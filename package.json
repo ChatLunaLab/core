@@ -55,7 +55,7 @@
         "@types/chai-as-promised": "^7.1.8",
         "@types/mocha": "^9.1.1",
         "eslint-plugin-mocha": "^10.2.0",
-        "jest-mock": "^28.1.3"
+        "jest-mock": "^29.7.0"
     },
     "repository": "git@github.com:ChatHubLab/chathub.git",
     "author": "dingyi222666 <dingyi222666@foxmail.com>"
