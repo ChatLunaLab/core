@@ -52,13 +52,13 @@ class Request {
      * package undici, and with proxy support
      * @returns
      */
-    fetch(info: fetchType.RequestInfo, init?: fetchType.RequestInit) {
+    async fetch(info: fetchType.RequestInfo, init?: fetchType.RequestInit) {
         if (this._proxyAddress != null && !init?.dispatcher) {
             init = createProxyAgentForFetch(init || {}, this._proxyAddress)
         }
 
         try {
-            return fetch(info, init)
+            return await fetch(info, init)
         } catch (e) {
             if (e.cause) {
                 this._logger?.error(e.cause)
@@ -72,7 +72,7 @@ class Request {
         let result: string | null = null
 
         let count = 0
-        while (result == null) {
+        while (result == null && count < 20) {
             const generated = UserAgents.random((rawUA) => {
                 const parsedUA = useragent.parse(rawUA.userAgent)
                 return (
@@ -83,9 +83,6 @@ class Request {
 
             if (generated != null) {
                 result = generated.toString()
-            }
-
-            if (count > 20) {
                 break
             }
 
