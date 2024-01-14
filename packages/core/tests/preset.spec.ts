@@ -65,7 +65,7 @@ describe('Load Preset', () => {
 
         `
 
-        const preset = loadTxtPreset(string1)
+        const preset = loadPreset(string1)
 
         const value = expect(preset)
 

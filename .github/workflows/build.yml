@@ -104,18 +104,13 @@ jobs:
         needs:
             - prepare
 
-        strategy:
-            fail-fast: false
-            matrix:
-                node-version: [18, 20]
-
         steps:
             - name: Check out
               uses: actions/checkout@v4
             - name: Set up Node
               uses: actions/setup-node@v4
               with:
-                  node-version: ${{ matrix.node-version }}
+                  node-version: 18
             - name: Restore Lockfile
               uses: actions/cache@v3
               with:
@@ -125,7 +120,7 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ${{ needs.prepare.outputs.cache-dir }}
-                  key: yarn-cache-${{ github.sha }}-node-${{ matrix.node-version }}
+                  key: yarn-cache-${{ github.sha }}-node-18
                   restore-keys: yarn-cache-${{ github.sha }}-node
             - name: Install
               run: yarn
