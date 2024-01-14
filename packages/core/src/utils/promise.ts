@@ -15,12 +15,3 @@ export function withResolver<R = void, E = unknown>(): Resolver<R, E> {
     })
     return { promise, resolve, reject }
 }
-
-export function runAsync(func: () => Promise<void>): void {
-    func().then(
-        () => {},
-        (err) => {
-            throw err
-        }
-    )
-}
