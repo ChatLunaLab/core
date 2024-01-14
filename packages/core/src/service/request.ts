@@ -114,7 +114,7 @@ export class RequestService extends Service {
     }
 }
 
-function createProxyAgentForFetch(
+export function createProxyAgentForFetch(
     init: fetchType.RequestInit,
     proxyAddress?: string
 ): fetchType.RequestInit {

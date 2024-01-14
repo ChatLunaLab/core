@@ -12,6 +12,7 @@ import net from 'net'
 import { buildSock5Proxy } from './mock/mock_sock'
 import { WebSocketServer, WebSocket } from 'ws'
 import { resolve } from 'path'
+import { createProxyAgentForFetch } from '../src/service'
 
 const app = new Context()
 
@@ -21,6 +22,9 @@ should()
 
 describe('Http Proxy', () => {
     it('Should request http normally when not proxy', async () => {
+        // funny
+        createProxyAgentForFetch({}, undefined)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         const response = await app.chatluna_request.root.fetch(serverUrl)
