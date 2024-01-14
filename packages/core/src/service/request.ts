@@ -122,13 +122,7 @@ function createProxyAgentForFetch(
         return init
     }
 
-    let proxyAddressURL: URL
-
-    try {
-        proxyAddressURL = new URL(proxyAddress)
-    } catch (e) {
-        throw new ChatLunaError(ChatLunaErrorCode.UNSUPPORTED_PROXY_PROTOCOL, e)
-    }
+    const proxyAddressURL = new URL(proxyAddress)
 
     if (proxyAddress.startsWith('socks://')) {
         init.dispatcher = socksDispatcher({
