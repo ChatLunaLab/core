@@ -64,7 +64,7 @@ class Request {
                 this._logger?.error(e.cause)
             }
 
-            throw e
+            throw new ChatLunaError(ChatLunaErrorCode.NETWORK_ERROR, e)
         }
     }
 
@@ -83,7 +83,6 @@ class Request {
 
             if (generated != null) {
                 result = generated.toString()
-                break
             }
 
             count++

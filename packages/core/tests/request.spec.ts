@@ -151,7 +151,9 @@ describe('Other', () => {
                 'https://1sdfokjfsdjkfkaldsfkalafklsfdjfjadksl1.cxxxz'
             )
         } catch (e) {
-            expect(e.toString()).to.be.equal('TypeError: fetch failed')
+            expect(e.toString()).to.be.equal(
+                '使用 ChatLuna 时出现错误，错误码为 1。请联系开发者以解决此问题。'
+            )
         }
     })
 
