@@ -1,5 +1,12 @@
-console.warn(
-    "Don't import anything from here, import from a submodule instead."
-)
+import { Context } from 'cordis'
+import { RequestService } from './service'
 
-export * from './preset'
+/**
+ *
+ * load chatluna root service
+ *
+ * @param ctx parentContext
+ */
+export function loadChatLunaCore(ctx: Context) {
+    ctx.plugin(RequestService)
+}

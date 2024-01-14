@@ -6,31 +6,32 @@ import {
     HumanMessage,
     SystemMessage
 } from '@langchain/core/messages'
-import { assert } from 'console'
 
 export function loadPreset(rawText: string): PresetTemplate {
-    try {
-        return loadYamlPreset(rawText)
-    } catch (e) {
+    if (!rawText.includes('prompts:') && !rawText.includes('keywords:')) {
         return loadTxtPreset(rawText)
     }
+
+    return loadYamlPreset(rawText)
 }
 
 function loadYamlPreset(rawText: string): PresetTemplate {
     const rawJson = load(rawText) as RawPreset
 
-    assert(
-        rawJson.keywords != null,
-        `Unknown keywords in preset: ${rawJson.keywords}, check you preset file`
-    )
+    if (rawJson.keywords == null) {
+        throw new Error(
+            `Unknown keywords in preset: ${rawJson.keywords}, check you preset file`
+        )
+    }
 
-    assert(
-        rawJson.prompts != null,
-        `Unknown prompts in preset: ${rawJson.prompts}, check you preset file`
-    )
+    if (rawJson.prompts == null) {
+        throw new Error(
+            `Unknown prompts in preset: ${rawJson.prompts}, check you preset file`
+        )
+    }
 
     return {
-        triggerKeyword: rawJson?.keywords,
+        triggerKeyword: rawJson.keywords,
         rawText,
         messages: rawJson.prompts.map((message) => {
             if (message.role === 'assistant') {

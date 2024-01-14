@@ -1,5 +1,5 @@
 import { Context } from 'cordis'
-import { expect } from 'chai'
+import { expect, should } from 'chai'
 import { describe, it } from 'mocha'
 import {
     formatPresetTemplate,
@@ -13,8 +13,10 @@ import {
 } from '@langchain/core/messages'
 import { loadPreset, loadTxtPreset } from '../src/preset/load'
 
+should()
+
 describe('Format Preset', () => {
-    it('should format a string', async () => {
+    it('should format string', async () => {
         const string1 = 'test {format} to {format2}'
 
         expect(
@@ -25,7 +27,7 @@ describe('Format Preset', () => {
         ).to.equal('test one to two')
     })
 
-    it('should format a preset object', async () => {
+    it('should format preset object', async () => {
         const object1: PresetTemplate = {
             triggerKeyword: [],
             rawText: 'test {format} to {format2}',
@@ -48,7 +50,7 @@ describe('Format Preset', () => {
 })
 
 describe('Load Preset', () => {
-    it('should load a txt preset', async () => {
+    it('should load txt preset', async () => {
         const string1 = `
         # keywords
         keyword: test, test1
@@ -67,15 +69,15 @@ describe('Load Preset', () => {
 
         const preset = loadPreset(string1)
 
-        const value = expect(preset)
-
-        value.to.have
+        preset.should.have.deep
             .property('triggerKeyword')
-            .that.deep.equals(['test', 'test1'])
+            .that.equals(['test', 'test1'])
 
-        value.to.have.property('formatUserPromptString').that.equals('test123')
+        preset.should.have.deep
+            .property('formatUserPromptString')
+            .that.equals('test123')
 
-        value.to.have
+        preset.should.have.deep
             .property('messages')
             .that.deep.equals([
                 new SystemMessage('test。'),
@@ -84,7 +86,7 @@ describe('Load Preset', () => {
             ])
     })
 
-    it('should load a yaml preset', async () => {
+    it('should load yaml preset', async () => {
         const rawText = `
 keywords:
     - test
@@ -111,12 +113,96 @@ format_user_prompt: test123
             .property('triggerKeyword')
             .that.deep.equals(['test', 'test1'])
 
-        value.to.have
+        preset.should.have
             .property('messages')
             .that.deep.equals([
                 new SystemMessage('test。'),
                 new AIMessage('test1'),
                 new HumanMessage('test2')
             ])
+    })
+
+    it('should load txt preset with error', async () => {
+        let rawText = `
+        # 这是系统设定的prompt，和之前在插件设置里的人格设定的那个配置是一样的。
+
+        system: test。
+
+        assistant: test1
+
+        user: test2
+
+        format_user_prompt: test123
+`
+
+        expect(() => loadPreset(rawText)).throw('No trigger keyword found')
+
+        rawText = `
+        # keywords
+        keyword: test, test
+        `
+
+        expect(() => loadPreset(rawText)).throw('No preset messages found')
+
+        rawText = `
+        # keywords
+        keyword: test, test
+
+        # 这是系统设定的prompt，和之前在插件设置里的人格设定的那个配置是一样的。
+
+        system: test。
+
+        assistant: test1
+
+        useraa: test2
+`
+
+        expect(() => loadPreset(rawText)).throw('Unknown role: useraa')
+    })
+
+    it('should load yaml preset with error', async () => {
+        let rawText = `
+prompts:
+  - content: 'test。'
+    role: 'system'
+  - content: 'test1'
+    role: 'assistant'
+  - content: 'test2'
+    role: 'user'
+`
+
+        expect(() => loadPreset(rawText)).throw(
+            'Unknown keywords in preset: undefined, check you preset file'
+        )
+
+        rawText = `
+        # keywords
+        keywords:
+            - test
+            - test2
+`
+
+        expect(() => loadPreset(rawText)).throw(
+            'Unknown prompts in preset: undefined, check you preset file'
+        )
+
+        rawText = `
+keywords:
+    - test
+    - test1
+
+prompts:
+    - role: system
+      content: 'test。'
+
+    - role: assistant
+      content: test1
+
+    - role: useraa
+      content: test2
+
+format_user_prompt: test123`
+
+        expect(() => loadPreset(rawText)).throw('Unknown role: useraa')
     })
 })
