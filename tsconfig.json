@@ -3,7 +3,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "@chatluna/*": ["packages/*/src"]
+            "@chatluna/core": ["packages/core/src"]
         }
     }
 }
