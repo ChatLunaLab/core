@@ -43,16 +43,17 @@
         "https-proxy-agent": "^7.0.2",
         "js-tiktoken": "^1.0.8",
         "js-yaml": "^4.1.0",
-        "random-useragent": "^0.5.0",
         "socks-proxy-agent": "^8.0.2",
         "undici": "^6.3.0",
+        "user-agents": "^2.0.0-alpha.81",
+        "useragent": "^2.3.0",
         "ws": "^8.16.0",
         "zod": "^3.22.4",
         "zod-to-json-schema": "^3.22.3"
     },
     "devDependencies": {
         "@types/js-yaml": "^4.0.9",
-        "@types/random-useragent": "^0.3.3",
+        "@types/useragent": "^2",
         "proxy": "^2.1.1"
     }
 }

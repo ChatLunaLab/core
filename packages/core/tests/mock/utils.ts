@@ -1,7 +1,7 @@
 import { Context } from 'cordis'
 import { withResolver } from '../../src/utils'
 
-export function waitService(ctx: Context, deps: string[]) {
+export function waitServiceLoad(ctx: Context, deps: string[]) {
     const { promise, resolve } = withResolver()
 
     ctx.inject(deps, () => {
