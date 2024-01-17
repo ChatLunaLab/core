@@ -10,8 +10,7 @@ import { waitServiceLoad } from './mock/utils'
 import * as logger from '@cordisjs/logger'
 import net from 'net'
 import { buildSock5Proxy } from './mock/mock_sock'
-import { WebSocketServer, WebSocket } from 'ws'
-import { resolve } from 'path'
+import { WebSocket } from 'ws'
 import { createProxyAgentForFetch } from '../src/service'
 
 const app = new Context()
@@ -21,7 +20,7 @@ chai.use(chaiAsPromised)
 should()
 
 describe('Http Proxy', () => {
-    it('Should request http normally when not proxy', async () => {
+    it('should request http normally when not proxy', async () => {
         // funny
         createProxyAgentForFetch({}, undefined)
 
@@ -48,7 +47,7 @@ describe('Http Proxy', () => {
         await waitServiceLoad(app, ['chatluna_request'])
 
         expect(() => {
-            app.chatluna_request.root.proxyAddress = 'http5://'
+            app.chatluna_request.root.proxyAddress = '127.0.0.1:7890'
         }).throw(
             '使用 ChatLuna 时出现错误，错误码为 2。请联系开发者以解决此问题。'
         )
