@@ -1,14 +1,12 @@
-import { Context } from 'cordis'
-import md5 from 'md5'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/src/utils'
 
 export interface ClientConfig {
     apiKey: string
     platform: string
-    maxRetries: number
-    concurrentMaxSize: number
+    maxRetries?: number
+    concurrentMaxSize?: number
     apiEndpoint?: string
-    timeout: number
+    timeout?: number
 }
 
 export interface ClientConfigWrapper<T extends ClientConfig = ClientConfig> {
@@ -24,32 +22,57 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
     private _currentLoadConfigIndex = 0
 
     constructor(
-        private ctx: Context,
         mode: ClientConfigPoolMode = ClientConfigPoolMode.AlwaysTheSame
     ) {
         this._mode = mode
     }
 
-    async addConfig(config: T) {
+    addConfig(config: T) {
+        if (config.concurrentMaxSize == null) {
+            config.concurrentMaxSize = 1
+        }
+
+        if (config.maxRetries == null) {
+            config.maxRetries = 3
+        }
+
+        if (config.timeout == null) {
+            config.timeout = 120 * 60 * 1000
+        }
+
         const wrapperConfig = this._createWrapperConfig(config)
 
         this._configs.push(wrapperConfig)
 
         if (wrapperConfig.isAvailable === true) {
-            await this.markConfigStatus(config, true)
+            this.markConfigStatus(config, true)
         }
     }
 
-    getConfig(lockSelectConfig: boolean = false): ClientConfigWrapper<T> {
+    addConfigs(...configs: T[]) {
+        for (const config of configs) {
+            this.addConfig(config)
+        }
+    }
+
+    getConfig(lockSelectConfig: boolean = false): T {
         if (this._mode === ClientConfigPoolMode.Random) {
+            const availedConfigs = this._configs.filter(
+                (config) => config.isAvailable
+            )
+
+            if (availedConfigs.length === 0) {
+                throw new ChatLunaError(ChatLunaErrorCode.NOT_AVAILABLE_CONFIG)
+            }
+
             while (true) {
                 const config =
-                    this._configs[
-                        Math.floor(Math.random() * this._configs.length)
+                    availedConfigs[
+                        Math.floor(Math.random() * availedConfigs.length)
                     ]
 
                 if (config.isAvailable) {
-                    return config
+                    return config.value
                 }
             }
         }
@@ -59,7 +82,7 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
                 const config = this._configs[i]
 
                 if (config.isAvailable) {
-                    return config
+                    return config.value
                 }
             }
 
@@ -67,6 +90,7 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
         }
 
         let loadConfigCount = 0
+
         while (true) {
             const config = this._configs[this._currentLoadConfigIndex]
 
@@ -77,7 +101,7 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
                         this._configs.length
                 }
 
-                return config
+                return config.value
             }
 
             this._currentLoadConfigIndex =
@@ -91,15 +115,23 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
         }
     }
 
-    getConfigs(): readonly ClientConfigWrapper<T>[] {
-        return this._configs
+    getConfigs(): T[] {
+        return this._configs.map((c) => c.value)
     }
 
-    async markConfigStatus(config: T, isAvailable: boolean) {
+    markConfigStatus(config: T, isAvailable: boolean) {
         //
         const wrapper = this._configs.find((c) => c.value === config)
 
         wrapper.isAvailable = isAvailable
+    }
+
+    set mode(mode: ClientConfigPoolMode) {
+        this._mode = mode
+    }
+
+    get mode(): ClientConfigPoolMode {
+        return this._mode
     }
 
     private _createWrapperConfig(config: T): ClientConfigWrapper<T> {
