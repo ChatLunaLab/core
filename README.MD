@@ -1,6 +1,6 @@
 # ChatLuna-Core
 
-ChatLuna 核心实现项目。
+ChatLuna 核心 项目。
 
 [![codecov](https://img.shields.io/codecov/c/github/ChatLunaLab/core)](https://codecov.io/gh/ChatLunaLab/core)
 [![npm](https://img.shields.io/npm/v/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core) [![npm](https://img.shields.io/npm/dm/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core)
