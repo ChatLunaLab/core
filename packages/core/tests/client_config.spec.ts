@@ -135,6 +135,8 @@ describe('Client Config', () => {
 
         pool.mode = ClientConfigPoolMode.AlwaysTheSame
 
+        expect(pool.mode).to.equal(ClientConfigPoolMode.AlwaysTheSame)
+
         expect(() => pool.getConfig()).to.throw('使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。')
 
         pool.mode = ClientConfigPoolMode.Random
