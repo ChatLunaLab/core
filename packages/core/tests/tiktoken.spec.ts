@@ -246,8 +246,8 @@ after(async () => {
 })
 
 async function setProxyAddress() {
+    await waitServiceLoad(app, ['chatluna_request'])
     if (os.homedir()?.includes('dingyi') && os.platform() === 'win32') {
-        await waitServiceLoad(app, ['chatluna_request'])
         app.chatluna_request.root.proxyAddress = 'http://127.0.0.1:7890'
     } else {
         app.chatluna_request.root.proxyAddress = undefined
