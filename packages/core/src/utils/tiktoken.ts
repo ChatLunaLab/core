@@ -22,10 +22,6 @@ export async function getEncoding(
         force?: boolean
     }
 ) {
-    if (errorCount > 3) {
-        throw new Error('Too many errors')
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const crossFetch = (input: any, init?: any) => {
         const rootRequest = options.ctx?.chatluna_request?.root
@@ -45,8 +41,6 @@ export async function getEncoding(
         )
             .then((res) => res.json() as unknown as TiktokenBPE)
             .catch((e) => {
-                errorCount++
-
                 delete cache[encoding]
                 throw e
             })

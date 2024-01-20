@@ -151,25 +151,34 @@ describe('Count Token', () => {
 
         await waitServiceLoad(app, ['chatluna_request'])
 
-        // in old gpt-3, the length of the encoded string should 5
-        calculateMaxTokens({
-            prompt: 'Hello World！',
-            modelName: 'text-davinci-003',
-            ctx: app
-        }).should.eventually.equals(5)
+        await setProxyAddress()
 
         // in old gpt-3, the length of the encoded string should 5
-        calculateMaxTokens({
-            prompt: 'Hello World！',
-            modelName: 'gpt-3.5-turbo',
-            ctx: app
-        }).should.eventually.equals(3)
 
-        calculateMaxTokens({
-            prompt: 'Hello World！',
-            modelName: getModelNameForTiktoken('chatglm3'),
-            ctx: app
-        }).should.eventually.equals(3)
+        expect(
+            await calculateMaxTokens({
+                prompt: 'Hello World！',
+                modelName: 'text-davinci-003',
+                ctx: app
+            })
+        ).to.equal(4092)
+
+        // in old gpt-3, the length of the encoded string should 5
+        expect(
+            await calculateMaxTokens({
+                prompt: 'Hello World！',
+                modelName: 'gpt-3.5-turbo',
+                ctx: app
+            })
+        ).to.equal(4093)
+
+        expect(
+            await calculateMaxTokens({
+                prompt: 'Hello World！',
+                modelName: getModelNameForTiktoken('chatglm3'),
+                ctx: app
+            })
+        ).to.equal(4093)
     })
 
     it('Get prompt tokens with error', async () => {
