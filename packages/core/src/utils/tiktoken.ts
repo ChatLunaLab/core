@@ -1,4 +1,4 @@
-import { Context } from 'cordis'
+import type { Context } from 'cordis'
 import {
     getEncodingNameForModel,
     Tiktoken,

@@ -187,11 +187,14 @@ describe('Count Token', () => {
         app.chatluna_request.root.proxyAddress = 'http://localhost:12934'
 
         // fallback to prompt.length / 2
-        calculateMaxTokens({
-            prompt: 'Hello World！',
-            modelName: 'text-davinci-003',
-            ctx: app
-        }).should.eventually.equals(6)
+        expect(
+            await calculateMaxTokens({
+                prompt: 'Hello World！',
+                modelName: 'text-davinci-003',
+                ctx: app,
+                force: true
+            })
+        ).to.equal(4091)
 
         await setProxyAddress()
     })
