@@ -133,11 +133,7 @@ export const calculateMaxTokens = async ({
         numTokens = (await encodingForModel(modelName, { ctx, force })).encode(
             prompt
         ).length
-    } catch (error) {
-        /* logger.warn(
-            'Failed to calculate number of tokens, falling back to approximate count'
-        ) */
-    }
+    } catch (error) {}
     const maxTokens = getModelContextSize(modelName)
 
     return maxTokens - numTokens
