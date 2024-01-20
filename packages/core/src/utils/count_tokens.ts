@@ -138,8 +138,9 @@ export const calculateMaxTokens = async ({
             'Failed to calculate number of tokens, falling back to approximate count'
         ) */
     }
-
     const maxTokens = getModelContextSize(modelName)
+
+    console.log(maxTokens, numTokens)
     return maxTokens - numTokens
 }
 

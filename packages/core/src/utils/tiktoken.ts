@@ -11,8 +11,6 @@ import { fetch } from 'undici'
 
 const cache: Record<string, TiktokenBPE> = {}
 
-export let errorCount = 0
-
 export async function getEncoding(
     encoding: TiktokenEncoding,
     options?: {
