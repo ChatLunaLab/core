@@ -65,10 +65,17 @@ describe('Tiktoken', () => {
 
         app.chatluna_request.root.proxyAddress = 'http://localhost:12934'
 
+        for (let i = 0; i < 3; i++) {
+            encodingForModel('text-davinci-003', {
+                ctx: app,
+                force: true
+            }).should.eventually.be.rejectedWith('fetch failed')
+        }
+
         encodingForModel('text-davinci-003', {
             ctx: app,
             force: true
-        }).should.eventually.be.rejectedWith('fetch failed')
+        }).should.eventually.be.rejectedWith('Too many errors')
 
         await setProxyAddress()
     })
@@ -114,13 +121,13 @@ describe('Count Token', () => {
 
         getModelContextSize('gpt-3.5-turbo').should.equal(4096)
 
-        console.log(getModelContextSize('gpt-4-32k'))
-
         getModelContextSize('gpt-4-32k').should.equal(32768)
 
         getModelContextSize('gpt-4').should.equal(8192)
 
         getModelContextSize('text-davinci-003').should.equal(4097)
+
+        getModelContextSize('text-davinci-002').should.equal(4097)
 
         getModelContextSize('text-curie-001').should.equal(2048)
 
