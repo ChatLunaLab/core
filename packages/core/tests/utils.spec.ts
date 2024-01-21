@@ -3,8 +3,10 @@ import { describe, it } from 'mocha'
 import {
     ChatLunaError,
     ChatLunaErrorCode,
-    setErrorFormatTemplate
-} from '../src/utils'
+    setErrorFormatTemplate,
+    messageTypeToOpenAIRole,
+    chunkArray
+} from '@chatluna/core/src/utils'
 
 should()
 
@@ -38,5 +40,31 @@ describe('Error', () => {
         expect(
             new ChatLunaError(ChatLunaErrorCode.UNKNOWN_ERROR, originError)
         ).to.be.property('stack', originError.stack)
+    })
+})
+
+describe('Other utils', () => {
+    it('openai message type', async () => {
+        messageTypeToOpenAIRole('system').should.eql('system')
+
+        messageTypeToOpenAIRole('ai').should.eql('assistant')
+        messageTypeToOpenAIRole('human').should.eql('user')
+        messageTypeToOpenAIRole('function').should.eql('function')
+        messageTypeToOpenAIRole('tool').should.eql('tool')
+
+        expect(() => messageTypeToOpenAIRole('111' as 'human')).to.throw(
+            'Unknown message type: 111'
+        )
+    })
+
+    it('chunk array', async () => {
+        const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        chunkArray(array, 3).should.deep.equal([
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+            [10]
+        ])
     })
 })

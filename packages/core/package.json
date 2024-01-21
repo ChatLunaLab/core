@@ -43,6 +43,7 @@
     "https-proxy-agent": "^7.0.2",
     "js-tiktoken": "^1.0.8",
     "js-yaml": "^4.1.0",
+    "ml-distance": "^4.0.1",
     "socks-proxy-agent": "^8.0.2",
     "undici": "^6.3.0",
     "user-agents": "^2.0.0-alpha.84",

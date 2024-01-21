@@ -13,7 +13,7 @@ let logger: Logger
 
 export class MockModelRequester extends ModelRequester {
     constructor(
-        private ctx: Context
+        ctx: Context
         /*  private _config: ClientConfig */
     ) {
         super()
@@ -58,14 +58,7 @@ export class MockModelRequester extends ModelRequester {
 }
 
 export class MockEmbeddingsRequester implements EmbeddingsRequester {
-    private _logger: Logger
-
-    constructor(
-        private ctx: Context
-        /*  private _config: ClientConfig */
-    ) {
-        this._logger = ctx.logger('[test]chatluna-test-adapter')
-    }
+    constructor() {}
 
     async embeddings(
         params: EmbeddingsRequestParams

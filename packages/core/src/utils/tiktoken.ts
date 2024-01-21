@@ -6,7 +6,7 @@ import {
     TiktokenEncoding,
     TiktokenModel
 } from 'js-tiktoken/lite'
-import {} from '@chatluna/core/src/service'
+import { Request } from '@chatluna/core/src/service'
 import { fetch } from 'undici'
 
 const cache: Record<string, TiktokenBPE> = {}
@@ -16,15 +16,15 @@ export async function getEncoding(
     options?: {
         signal?: AbortSignal
         extendedSpecialTokens?: Record<string, number>
-        ctx?: Context
+        request?: Request
         force?: boolean
     }
 ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const crossFetch = (input: any, init?: any) => {
-        const rootRequest = options.ctx?.chatluna_request?.root
-        if (rootRequest) {
-            rootRequest.fetch(input, init)
+        const request = options.request
+        if (request) {
+            request.fetch(input, init)
         }
 
         return fetch(input, init)
@@ -53,6 +53,7 @@ export async function encodingForModel(
         signal?: AbortSignal
         extendedSpecialTokens?: Record<string, number>
         ctx?: Context
+        request?: Request
         force?: boolean
     }
 ) {
@@ -66,6 +67,10 @@ export async function encodingForModel(
         options.signal = abortController.signal
 
         timeout = setTimeout(() => abortController.abort(), 1000 * 10)
+    }
+
+    if (options.ctx != null) {
+        options.request = options.ctx.chatluna_request.root
     }
 
     const result = await getEncoding(getEncodingNameForModel(model), options)

@@ -12,8 +12,8 @@ import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/src/utils'
 import { Context, Service } from 'cordis'
 import { Logger } from '@cordisjs/logger'
 
-class Request {
-    constructor(private _logger: Logger) {}
+export class DefaultRequest implements Request {
+    constructor(private _logger?: Logger) {}
 
     private _proxyAddress: string = null
 
@@ -52,13 +52,14 @@ class Request {
      * package undici, and with proxy support
      * @returns
      */
-    async fetch(info: fetchType.RequestInfo, init?: fetchType.RequestInit) {
+    async fetch(info: RequestInfo, init?: RequestInit): Promise<Response> {
         if (this._proxyAddress != null && !init?.dispatcher) {
             init = createProxyAgentForFetch(init || {}, this._proxyAddress)
         }
 
         try {
-            return await fetch(info, init)
+            // ???
+            return (await fetch(info, init)) as unknown as Response
         } catch (e) {
             if (e.cause) {
                 this._logger?.error(e.cause)
@@ -98,7 +99,7 @@ export class RequestService extends Service {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
         super(ctx, 'chatluna_request')
-        this._root = new Request(ctx.logger('chatluna_root_request'))
+        this._root = new DefaultRequest(ctx.logger('chatluna_root_request'))
     }
 
     get root() {
@@ -106,7 +107,7 @@ export class RequestService extends Service {
     }
 
     create(ctx: Context, proxyAddress?: string) {
-        const request = new Request(ctx.logger('chatluna_request'))
+        const request = new DefaultRequest(ctx.logger('chatluna_request'))
 
         request.proxyAddress = proxyAddress ?? this._root.proxyAddress
 
@@ -154,4 +155,19 @@ declare module 'cordis' {
     interface Context {
         chatluna_request: RequestService
     }
+}
+
+export type RequestInfo = fetchType.RequestInfo
+
+export type RequestInit = fetchType.RequestInit
+
+export interface Request {
+    set proxyAddress(url: string | undefined)
+    get proxyAddress()
+
+    ws(url: string, options?: ClientOptions | ClientRequestArgs): WebSocket
+
+    fetch(info: RequestInfo, init?: RequestInit): Promise<Response>
+
+    randomUA(): string
 }

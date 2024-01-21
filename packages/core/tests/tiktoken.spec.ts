@@ -24,7 +24,7 @@ should()
 
 describe('Tiktoken', () => {
     it('Get tiktoken BPE', async function () {
-        this.timeout(1000 * 5)
+        this.timeout(1000 * 30)
 
         await waitServiceLoad(app, ['chatluna_request'])
 
@@ -147,7 +147,7 @@ describe('Count Token', () => {
     })
 
     it('Get prompt tokens', async function () {
-        this.timeout(1000 * 5)
+        this.timeout(1000 * 30)
 
         await waitServiceLoad(app, ['chatluna_request'])
 

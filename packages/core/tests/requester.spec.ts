@@ -55,7 +55,7 @@ describe('Requester', () => {
     })
 
     it('Request Embeddings', async () => {
-        const requester = new MockEmbeddingsRequester(app)
+        const requester = new MockEmbeddingsRequester()
 
         // check return is it utf8Code
         expect(
@@ -69,7 +69,7 @@ describe('Requester', () => {
     })
 
     it('Request Multiple Embeddings', async () => {
-        const requester = new MockEmbeddingsRequester(app)
+        const requester = new MockEmbeddingsRequester()
 
         expect(
             requester.embeddings({

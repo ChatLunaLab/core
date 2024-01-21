@@ -143,7 +143,7 @@ describe('Socks Proxy', () => {
     })
 })
 
-describe('Other', () => {
+describe('Other in request', () => {
     it('should throw a error when request fake url', async () => {
         await waitServiceLoad(app, ['chatluna_request'])
 
