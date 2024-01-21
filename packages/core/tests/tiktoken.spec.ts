@@ -23,7 +23,7 @@ chai.use(chaiAsPromised)
 should()
 
 describe('Tiktoken', () => {
-    it('Get tiktoken BPE', async function () {
+    it('get tiktoken BPE', async function () {
         this.timeout(1000 * 30)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -42,7 +42,7 @@ describe('Tiktoken', () => {
         encoding.encode('Hello World！').should.length(3)
     })
 
-    it('Get tiktoken BPE with timeout', async function () {
+    it('get tiktoken BPE with timeout', async function () {
         this.timeout(1000)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -60,7 +60,7 @@ describe('Tiktoken', () => {
         }).should.eventually.be.rejectedWith('This operation was aborted')
     })
 
-    it('Get tiktoken BPE with unknown error', async function () {
+    it('get tiktoken BPE with unknown error', async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         app.chatluna_request.root.proxyAddress = 'http://localhost:12934'
@@ -82,7 +82,7 @@ describe('Tiktoken', () => {
 })
 
 describe('Count Token', () => {
-    it('Get tiktoken model name', () => {
+    it('get tiktoken model name', () => {
         // gpt-4
 
         getModelNameForTiktoken('gpt-4-vision-preview').should.equal(
@@ -114,7 +114,7 @@ describe('Count Token', () => {
         getModelNameForTiktoken('chatglm3').should.equal('gpt-3.5-turbo')
     })
 
-    it('Get model context window size', () => {
+    it('get model context window size', () => {
         getModelContextSize('gpt-4-1106-preview').should.equal(128000)
 
         getModelContextSize('gpt-3.5-turbo-16k').should.equal(16384)
@@ -146,7 +146,7 @@ describe('Count Token', () => {
         getEmbeddingContextSize('text-embedding-ada-001').should.equal(2046)
     })
 
-    it('Get prompt tokens', async function () {
+    it('get prompt tokens', async function () {
         this.timeout(1000 * 30)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -181,7 +181,7 @@ describe('Count Token', () => {
         ).to.equal(4093)
     })
 
-    it('Get prompt tokens with error', async () => {
+    it('get prompt tokens with error', async () => {
         await waitServiceLoad(app, ['chatluna_request'])
 
         app.chatluna_request.root.proxyAddress = 'http://localhost:12934'

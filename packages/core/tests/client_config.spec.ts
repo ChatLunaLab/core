@@ -8,7 +8,7 @@ import { HumanMessage } from '@langchain/core/messages'
 import { ClientConfigPool, ClientConfigPoolMode } from '../src/platform/config'
 
 describe('Client Config', () => {
-    it('Get with random mode', async () => {
+    it('get with random mode', async () => {
         const pool = new ClientConfigPool(ClientConfigPoolMode.Random)
 
         pool.addConfigs(
@@ -33,7 +33,7 @@ describe('Client Config', () => {
             .oneOf(['111', '222'])
     })
 
-    it('Get with alwaysTheSame', async () => {
+    it('get with alwaysTheSame', async () => {
         const pool = new ClientConfigPool(ClientConfigPoolMode.AlwaysTheSame)
 
         pool.addConfigs(
@@ -56,7 +56,7 @@ describe('Client Config', () => {
         expect(pool.getConfig()).to.have.property('apiKey', '222')
     })
 
-    it('Get with balance mode', async () => {
+    it('get with balance mode', async () => {
         const pool = new ClientConfigPool(ClientConfigPoolMode.LoadBalancing)
 
         pool.addConfigs(
@@ -81,7 +81,7 @@ describe('Client Config', () => {
         expect(pool.getConfig()).to.have.property('apiKey', '222')
     })
 
-    it('Get config list', async () => {
+    it('get config list', async () => {
         const pool = new ClientConfigPool(ClientConfigPoolMode.AlwaysTheSame)
 
         pool.addConfigs(
@@ -114,7 +114,7 @@ describe('Client Config', () => {
         ])
     })
 
-    it('Unavailable config', async () => {
+    it('unavailable config', async () => {
         const pool = new ClientConfigPool(ClientConfigPoolMode.LoadBalancing)
 
         pool.addConfigs(

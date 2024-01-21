@@ -29,7 +29,7 @@ const app = new Context()
 should()
 
 describe('ChatLuna Base Model', () => {
-    it('Request Model', async function () {
+    it('request model', async function () {
         this.timeout(5000)
 
         const requester = new MockModelRequester(app)
@@ -52,7 +52,7 @@ describe('ChatLuna Base Model', () => {
         )
     })
 
-    it('Request Model With Stream', async function () {
+    it('request model with stream', async function () {
         this.timeout(5000)
 
         const requester = new MockModelRequester(app)
@@ -83,7 +83,7 @@ describe('ChatLuna Base Model', () => {
         ).to.be.have.property('content', '我好！')
     })
 
-    it('Request Model With Tool', async function () {
+    it('request model with tool', async function () {
         this.timeout(5000)
 
         const requester = new MockModelRequester(app)
@@ -144,7 +144,7 @@ describe('ChatLuna Base Model', () => {
         }
     })
 
-    it('Get Model info', async function () {
+    it('get model info', async function () {
         this.timeout(5000)
 
         const requester = new MockModelRequester(app)
@@ -213,7 +213,7 @@ describe('ChatLuna Base Model', () => {
         await model.clearContext()
     })
 
-    it('Max Token and auto crop prompt', async function () {
+    it('max token and auto crop prompt', async function () {
         this.timeout(5000)
 
         const requester = new MockModelRequester(app)
@@ -246,7 +246,7 @@ describe('ChatLuna Base Model', () => {
         }
     })
 
-    it('Error catching', async function () {
+    it('error catching', async function () {
         this.timeout(1000 * 30)
 
         let requester = new MockModelRequester(app)
@@ -340,7 +340,7 @@ describe('ChatLuna Base Model', () => {
 })
 
 describe('ChatLuna Base Embeddings', () => {
-    it('Base Request', async () => {
+    it('base request', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
             client: mockEmbeddingRequester,
@@ -373,7 +373,7 @@ describe('ChatLuna Base Embeddings', () => {
         ])
     })
 
-    it('Timeout Request', async () => {
+    it('timeout request', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
             client: mockEmbeddingRequester,
@@ -395,7 +395,7 @@ describe('ChatLuna Base Embeddings', () => {
         }
     })
 
-    it('Request And Return Null', async () => {
+    it('request and return null', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
             client: mockEmbeddingRequester,
@@ -417,7 +417,7 @@ describe('ChatLuna Base Embeddings', () => {
         }
     })
 
-    it('Request And Api Throw Error', async () => {
+    it('request and api throw error', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
             client: mockEmbeddingRequester,

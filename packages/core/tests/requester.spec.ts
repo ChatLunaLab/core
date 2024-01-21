@@ -18,7 +18,7 @@ const app = new Context()
 should()
 
 describe('Requester', () => {
-    it('Request Model Streams', async () => {
+    it('request model streams', async () => {
         const requester = new MockModelRequester(app)
 
         const generator = requester.completionStream({
@@ -38,7 +38,7 @@ describe('Requester', () => {
         }
     })
 
-    it('Request Model Completion', async () => {
+    it('request model Completion', async () => {
         const requester = new MockModelRequester(app)
 
         const completion = await requester.completion({
@@ -54,7 +54,7 @@ describe('Requester', () => {
         expect(completion).to.be.haveOwnProperty('text', 'Hello.  I eat today!')
     })
 
-    it('Request Embeddings', async () => {
+    it('request embeddings', async () => {
         const requester = new MockEmbeddingsRequester()
 
         // check return is it utf8Code
@@ -68,7 +68,7 @@ describe('Requester', () => {
         ])
     })
 
-    it('Request Multiple Embeddings', async () => {
+    it('request multiple embeddings', async () => {
         const requester = new MockEmbeddingsRequester()
 
         expect(
