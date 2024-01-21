@@ -34,7 +34,7 @@ export function buildSock5Proxy() {
                         Buffer.from([5, 0, 0, 3, 0, 0, 0, 0, 0, 0])
                     ) //不支持ipv6地址
                 }
-                console.log(`socks5 => ${host}:${port}`)
+                // console.log(`socks5 => ${host}:${port}`)
 
                 // 连接到要求的 host 和 port
 

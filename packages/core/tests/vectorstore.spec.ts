@@ -9,7 +9,6 @@ import {
 import chaiAsPromised from 'chai-as-promised'
 import { MockEmbeddingsRequester } from './mock/mock_requester'
 import { ChatLunaEmbeddings } from '../src/model'
-import { makeRegExp } from 'koishi'
 
 chai.use(chaiAsPromised)
 

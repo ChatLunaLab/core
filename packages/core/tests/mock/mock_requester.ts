@@ -1,6 +1,7 @@
 import { Logger } from '@cordisjs/logger'
 import { Context } from 'cordis'
 import {
+    ChatLunaEmbeddings,
     EmbeddingsRequestParams,
     EmbeddingsRequester,
     ModelRequestParams,
@@ -8,16 +9,23 @@ import {
 } from '@chatluna/core/src/model'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { AIMessageChunk } from '@langchain/core/messages'
-
-let logger: Logger
+import { ChatLunaError, sleep } from '@chatluna/core/src/utils'
 
 export class MockModelRequester extends ModelRequester {
+    logger?: Logger
+
+    throwError?: ChatLunaError
+
+    timeout = 0
+
+    returnNull = false
+
     constructor(
-        ctx: Context
+        ctx?: Context
         /*  private _config: ClientConfig */
     ) {
         super()
-        logger = ctx.logger('chatluna-mock-model-adapter')
+        this.logger = ctx?.logger('chatluna-mock-model-adapter')
     }
 
     async *completionStream(
@@ -31,7 +39,21 @@ export class MockModelRequester extends ModelRequester {
             )
         } */
 
+        if (this.throwError) {
+            throw this.throwError
+        }
+
+        if (this.returnNull) {
+            yield undefined
+            return
+        }
+
+        if (this.timeout > 0) {
+            await sleep(this.timeout)
+        }
+
         const { input: messages } = params
+
         const input = messages[messages.length - 1].content as string
 
         const response = input
@@ -45,7 +67,7 @@ export class MockModelRequester extends ModelRequester {
             .replaceAll('有', '没有')
             .replaceAll('？', '！')
 
-        logger.debug(`[test] ${input} => ${response}`)
+        this.logger?.debug(`[test] ${input} => ${response}`)
 
         yield new ChatGenerationChunk({
             text: response,
@@ -60,19 +82,45 @@ export class MockModelRequester extends ModelRequester {
 export class MockEmbeddingsRequester implements EmbeddingsRequester {
     constructor() {}
 
+    timeout = 0
+
+    returnNull = false
+
+    mode = 'default'
+
+    throwError?: Error
+
     async embeddings(
         params: EmbeddingsRequestParams
     ): Promise<number[] | number[][]> {
         const input = params.input
 
         if (typeof input === 'string') {
-            return this.embedDocuments([input])[0]
+            const result = this.embedDocuments([input])
+
+            if (this.mode != 'default') {
+                return await result
+            }
+
+            return (await result)[0]
         } else {
             return this.embedDocuments(input)
         }
     }
 
-    private embedDocuments(documents: string[]): number[][] {
+    private async embedDocuments(documents: string[]): Promise<number[][]> {
+        if (this.timeout > 0) {
+            await sleep(this.timeout)
+        }
+
+        if (this.returnNull) {
+            return null
+        }
+
+        if (this.throwError) {
+            throw this.throwError
+        }
+
         return documents.map((text) => {
             // as uni8 code
             return text.split('').map((char) => char.charCodeAt(0))

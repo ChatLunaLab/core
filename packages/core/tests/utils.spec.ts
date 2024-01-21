@@ -5,7 +5,8 @@ import {
     ChatLunaErrorCode,
     setErrorFormatTemplate,
     messageTypeToOpenAIRole,
-    chunkArray
+    chunkArray,
+    sleep
 } from '@chatluna/core/src/utils'
 
 should()
@@ -59,6 +60,8 @@ describe('Other utils', () => {
 
     it('chunk array', async () => {
         const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        await sleep(1)
 
         chunkArray(array, 3).should.deep.equal([
             [1, 2, 3],
