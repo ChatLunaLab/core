@@ -95,7 +95,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     private _modelName: string
     private _maxModelContextSize: number
     private _modelInfo: ModelInfo
-    private _context: Context
+    private _ctx: Context
     private _request: Request
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -108,8 +108,9 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         this._maxModelContextSize =
             _options.modelMaxContextSize ?? _options.modelInfo.maxTokens
         this._modelInfo = _options.modelInfo
-        this._context = _options.context
-        this._request = _options.request
+        this._ctx = _options.context
+        this._request =
+            _options.request ?? _options.context?.chatluna_request?.root
     }
 
     get callKeys(): (keyof ChatLunaModelCallOptions)[] {
@@ -242,34 +243,30 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
     }
 
-    private _generateWithRetry(
+    private async _generateWithRetry(
         messages: BaseMessage[],
         options: ChatLunaModelCallOptions,
         runManager?: CallbackManagerForLLMRun
     ): Promise<ChatGeneration> {
-        const generateWithRetry = async () => {
-            let response: ChatGeneration
+        let response: ChatGeneration
 
-            if (options.stream) {
-                const stream = this._streamResponseChunks(
-                    messages,
-                    options,
-                    runManager
-                )
-                for await (const chunk of stream) {
-                    response = chunk
-                }
-            } else {
-                response = await this._completionWithRetry({
-                    ...options,
-                    input: messages
-                })
+        if (options.stream) {
+            const stream = this._streamResponseChunks(
+                messages,
+                options,
+                runManager
+            )
+            for await (const chunk of stream) {
+                response = chunk
             }
-
-            return response
+        } else {
+            response = await this._completionWithRetry({
+                ...options,
+                input: messages
+            })
         }
 
-        return this.caller.call(generateWithRetry)
+        return response
     }
 
     private async _withTimeout<T>(
@@ -485,7 +482,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         return await calculateTokens({
             modelName: getModelNameForTiktoken(this._modelName ?? 'gpt2'),
             prompt: text as string,
-            ctx: this._context,
+            ctx: this._ctx,
             request: this._request
         })
     }

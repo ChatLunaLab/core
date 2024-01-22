@@ -15,11 +15,11 @@ import { Logger } from '@cordisjs/logger'
 export class DefaultRequest implements Request {
     constructor(private _logger?: Logger) {}
 
-    private _proxyAddress: string = null
+    private _proxyAddress: string = undefined
 
     set proxyAddress(url: string | undefined) {
         if (url == null) {
-            this._proxyAddress = null
+            this._proxyAddress = undefined
             return
         }
 

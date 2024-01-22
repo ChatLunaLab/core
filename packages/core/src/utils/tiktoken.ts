@@ -8,6 +8,11 @@ import {
 } from 'js-tiktoken/lite'
 import { Request } from '@chatluna/core/src/service'
 import { fetch } from 'undici'
+import {
+    ChatLunaError,
+    ChatLunaErrorCode,
+    withResolver
+} from '@chatluna/core/src/utils'
 
 globalThis.chatluna_tiktoken_cache = globalThis.chatluna_tiktoken_cache ?? {}
 
@@ -22,9 +27,9 @@ export async function getEncoding(
 ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const crossFetch = (input: any, init?: any) => {
-        const request = options.request
+        const request = options?.request
         if (request) {
-            request.fetch(input, init)
+            return request.fetch(input, init)
         }
 
         return fetch(input, init)
@@ -32,8 +37,8 @@ export async function getEncoding(
 
     const cache = globalThis.chatluna_tiktoken_cache
 
-    if (!(encoding in cache) || options?.force) {
-        cache[encoding] = await crossFetch(
+    if (cache[encoding] == null || options?.force) {
+        const tiktokenBPE = await crossFetch(
             `https://tiktoken.pages.dev/js/${encoding}.json`,
             {
                 signal: options?.signal
@@ -44,15 +49,22 @@ export async function getEncoding(
                 delete cache[encoding]
                 throw e
             })
+
+        const tiktoken = new Tiktoken(
+            tiktokenBPE,
+            options?.extendedSpecialTokens
+        )
+
+        cache[encoding] = tiktoken
     }
 
-    return new Tiktoken(cache[encoding], options?.extendedSpecialTokens)
+    return cache[encoding]
 }
 
 export async function encodingForModel(
     model: TiktokenModel,
     options?: {
-        signal?: AbortSignal
+        timeout?: number
         extendedSpecialTokens?: Record<string, number>
         ctx?: Context
         request?: Request
@@ -61,31 +73,46 @@ export async function encodingForModel(
 ) {
     options = options ?? {}
 
-    let timeout: NodeJS.Timeout
+    const { promise, resolve, reject } = withResolver<Tiktoken>()
 
-    if (options.signal == null) {
+    ;(async () => {
         const abortController = new AbortController()
 
-        options.signal = abortController.signal
+        const signal = abortController.signal
 
-        timeout = setTimeout(() => abortController.abort(), 1000 * 10)
-    }
+        const timeout = setTimeout(
+            () => {
+                abortController.abort()
+                reject(new ChatLunaError(ChatLunaErrorCode.NETWORK_ERROR))
+            },
+            options?.timeout ?? 1000 * 6
+        )
 
-    if (options.ctx != null) {
-        options.request = options.ctx.chatluna_request.root
-    }
+        if (options.ctx != null) {
+            options.request = options.ctx.chatluna_request.root
+        }
 
-    const result = await getEncoding(getEncodingNameForModel(model), options)
+        try {
+            const result = await getEncoding(getEncodingNameForModel(model), {
+                signal,
+                ...options
+            })
 
-    if (timeout != null) {
-        clearTimeout(timeout)
-    }
+            if (timeout != null) {
+                clearTimeout(timeout)
+            }
 
-    return result
+            resolve(result)
+        } catch (e) {
+            reject(e)
+        }
+    })()
+
+    return promise
 }
 
 declare global {
     // https://stackoverflow.com/questions/59459312/using-globalthis-in-typescript
     // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
-    var chatluna_tiktoken_cache: Record<string, TiktokenBPE>
+    var chatluna_tiktoken_cache: Record<string, Tiktoken>
 }

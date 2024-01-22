@@ -118,6 +118,7 @@ interface CalculateMaxTokenProps {
     prompt: string
     modelName: TiktokenModel
     ctx?: Context
+    timeout?: number
     request?: Request
     force?: boolean
 }
@@ -130,18 +131,19 @@ export const calculateMaxTokens = async ({
     prompt,
     modelName,
     ctx,
+    timeout,
     request,
     force
 }: CalculateMaxTokenProps) => {
     // fallback to approximate calculation if tiktoken is not available
     let numTokens = Math.ceil(prompt.length / 2)
+    const maxTokens = getModelContextSize(modelName)
 
     try {
         numTokens = (
-            await encodingForModel(modelName, { ctx, request, force })
+            await encodingForModel(modelName, { ctx, request, force, timeout })
         ).encode(prompt).length
     } catch (error) {}
-    const maxTokens = getModelContextSize(modelName)
 
     return maxTokens - numTokens
 }
@@ -152,7 +154,8 @@ export const calculateTokens = async ({
     ctx,
     request,
     force,
-    fast
+    fast,
+    timeout
 }: CalculateTokenProps) => {
     // fallback to approximate calculation if tiktoken is not available
     let numTokens = Math.ceil(prompt.length / 2)
@@ -163,7 +166,7 @@ export const calculateTokens = async ({
 
     try {
         numTokens = (
-            await encodingForModel(modelName, { ctx, request, force })
+            await encodingForModel(modelName, { ctx, request, force, timeout })
         ).encode(prompt).length
     } catch (error) {}
 

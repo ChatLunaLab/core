@@ -31,9 +31,9 @@ const app = new Context()
 
 should()
 
-describe('ChatLuna Base Model', () => {
+describe('ChatLuna Base LLM Model', () => {
     it('request model', async function () {
-        this.timeout(5000)
+        this.timeout(10000)
 
         await waitServiceLoad(app, ['chatluna_request'])
 

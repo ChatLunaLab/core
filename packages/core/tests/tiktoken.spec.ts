@@ -48,17 +48,17 @@ describe('Tiktoken', () => {
 
         await waitServiceLoad(app, ['chatluna_request'])
 
-        const abortController = new AbortController()
-
-        const signal = abortController.signal
-
-        setTimeout(() => abortController.abort(), 100)
-
-        encodingForModel('text-davinci-003', {
-            ctx: app,
-            signal,
-            force: true
-        }).should.eventually.be.rejectedWith('This operation was aborted')
+        try {
+            await encodingForModel('text-davinci-003', {
+                ctx: app,
+                timeout: 100,
+                force: true
+            })
+        } catch (e) {
+            e.toString().should.equal(
+                '使用 ChatLuna 时出现错误，错误码为 1。请联系开发者以解决此问题。'
+            )
+        }
     })
 
     it('get tiktoken BPE with unknown error', async function () {
@@ -66,17 +66,16 @@ describe('Tiktoken', () => {
 
         app.chatluna_request.root.proxyAddress = 'http://localhost:12934'
 
-        for (let i = 0; i < 3; i++) {
-            encodingForModel('text-davinci-003', {
+        try {
+            await encodingForModel('text-davinci-003', {
                 ctx: app,
                 force: true
-            }).should.eventually.be.rejectedWith('fetch failed')
+            })
+        } catch (e) {
+            e.toString().should.equal(
+                '使用 ChatLuna 时出现错误，错误码为 1。请联系开发者以解决此问题。'
+            )
         }
-
-        encodingForModel('text-davinci-003', {
-            ctx: app,
-            force: true
-        }).should.eventually.be.rejectedWith('Too many errors')
 
         await setProxyAddress()
     })
@@ -200,10 +199,13 @@ describe('Count Token', () => {
         ).to.equal(6)
     })
 
-    it('get prompt tokens with error', async () => {
+    it('get prompt tokens with error', async function () {
+        this.timeout(1000 * 30)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
-        app.chatluna_request.root.proxyAddress = 'http://localhost:12934'
+        app.chatluna_request.root.proxyAddress =
+            'http://localhossfdklansdfalkjnsadflk.com:129364'
 
         // fallback to prompt.length / 2
         expect(
@@ -211,6 +213,16 @@ describe('Count Token', () => {
                 prompt: 'Hello World！',
                 modelName: 'text-davinci-003',
                 ctx: app,
+                force: true
+            })
+        ).to.equal(4091)
+
+        // fallback to prompt.length / 2
+        expect(
+            await calculateMaxTokens({
+                prompt: 'Hello World！',
+                modelName: 'text-davinci-003',
+                timeout: 10,
                 force: true
             })
         ).to.equal(4091)

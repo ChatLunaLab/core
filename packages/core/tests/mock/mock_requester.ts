@@ -9,7 +9,8 @@ import {
 } from '@chatluna/core/src/model'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { AIMessageChunk } from '@langchain/core/messages'
-import { ChatLunaError, sleep } from '@chatluna/core/src/utils'
+import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/src/utils'
+import { ClientConfig } from 'packages/core/src/platform'
 
 export class MockModelRequester extends ModelRequester {
     logger?: Logger
@@ -21,7 +22,8 @@ export class MockModelRequester extends ModelRequester {
     returnNull = false
 
     constructor(
-        ctx?: Context
+        private ctx?: Context,
+        private config?: ClientConfig
         /*  private _config: ClientConfig */
     ) {
         super()
@@ -32,12 +34,15 @@ export class MockModelRequester extends ModelRequester {
         //[!code focus:3]
         params: ModelRequestParams
     ): AsyncGenerator<ChatGenerationChunk> {
-        /* if (!this._config.apiKey.startsWith('chatluna_')) {
+        if (
+            this.config != null &&
+            !this.config.apiKey.startsWith('chatluna_')
+        ) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.API_KEY_UNAVAILABLE,
                 new Error('API Key is not valid')
             )
-        } */
+        }
 
         if (this.throwError) {
             throw this.throwError
