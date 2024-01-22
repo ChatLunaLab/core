@@ -1,16 +1,17 @@
 import {
-    EmbeddingsRequestParams,
     EmbeddingsRequester,
-    ModelRequestParams,
-    ModelRequester
+    EmbeddingsRequestParams,
+    ModelRequester,
+    ModelRequestParams
 } from '@chatluna/core/src/model'
 import { ModelInfo } from '@chatluna/core/src/platform'
+import { Request } from '@chatluna/core/src/service'
 import {
+    asyncGeneratorTimeout,
+    calculateTokens,
     ChatLunaError,
     ChatLunaErrorCode,
-    asyncGeneratorTimeout,
     chunkArray,
-    encodingForModel,
     getModelContextSize,
     getModelNameForTiktoken,
     messageTypeToOpenAIRole,
@@ -30,6 +31,8 @@ import {
 } from '@langchain/core/outputs'
 import { StructuredTool } from '@langchain/core/tools'
 import { Tiktoken } from 'js-tiktoken'
+
+import { Context } from 'cordis'
 export interface ChatLunaModelCallOptions extends BaseChatModelCallOptions {
     model?: string
 
@@ -78,6 +81,10 @@ export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
     maxConcurrency?: number
 
     maxRetries?: number
+
+    context?: Context
+
+    request?: Request
 }
 
 export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
@@ -88,6 +95,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     private _modelName: string
     private _maxModelContextSize: number
     private _modelInfo: ModelInfo
+    private _context: Context
+    private _request: Request
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
     lc_serializable = false
@@ -99,6 +108,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         this._maxModelContextSize =
             _options.modelMaxContextSize ?? _options.modelInfo.maxTokens
         this._modelInfo = _options.modelInfo
+        this._context = _options.context
+        this._request = _options.request
     }
 
     get callKeys(): (keyof ChatLunaModelCallOptions)[] {
@@ -357,10 +368,19 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
 
         for (const message of copyOfMessages.reverse()) {
-            const messageTokens = await this._countMessageTokens(message)
+            let messageTokens = await this._countMessageTokens(message, true)
 
             if (totalTokens + messageTokens > this.getModelMaxContextSize()) {
-                break
+                // try again
+
+                messageTokens = await this._countMessageTokens(message)
+
+                if (
+                    totalTokens + messageTokens >
+                    this.getModelMaxContextSize()
+                ) {
+                    break
+                }
             }
 
             totalTokens += messageTokens
@@ -374,7 +394,10 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         return [result, totalTokens]
     }
 
-    private async _countMessageTokens(message: BaseMessage) {
+    private async _countMessageTokens(
+        message: BaseMessage,
+        fast: boolean = false
+    ) {
         let totalCount = 0
         let tokensPerMessage = 0
         let tokensPerName = 0
@@ -388,13 +411,17 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             tokensPerName = 1
         }
 
-        const textCount = await this.getNumTokens(message.content as string)
+        const textCount = await this.getNumTokens(
+            message.content as string,
+            fast
+        )
         const roleCount = await this.getNumTokens(
-            messageTypeToOpenAIRole(message._getType())
+            messageTypeToOpenAIRole(message._getType()),
+            fast
         )
         const nameCount =
             message.name !== undefined
-                ? tokensPerName + (await this.getNumTokens(message.name))
+                ? tokensPerName + (await this.getNumTokens(message.name, fast))
                 : 0
         let count = textCount + tokensPerMessage + roleCount + nameCount
 
@@ -408,7 +435,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
         if (openAIMessage?.additional_kwargs.function_call?.name) {
             count += await this.getNumTokens(
-                openAIMessage.additional_kwargs.function_call?.name
+                openAIMessage.additional_kwargs.function_call?.name,
+                fast
             )
         }
         if (
@@ -422,7 +450,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                     JSON.parse(
                         openAIMessage.additional_kwargs.function_call?.arguments
                     )
-                )
+                ),
+                fast
             )
         }
 
@@ -445,21 +474,23 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         return getModelContextSize(modelName)
     }
 
-    async getNumTokens(text: string) {
+    async getNumTokens(text: string, fast?: boolean) {
         // fallback to approximate calculation if tiktoken is not available
-        let numTokens = Math.ceil(text.length / 4)
+        const numTokens = Math.ceil(text.length / 2)
 
-        if (!this.__encoding) {
-            try {
-                this.__encoding = await encodingForModel(
-                    getModelNameForTiktoken(this.modelName ?? 'gpt2')
-                )
-            } catch (error) {}
+        if (fast) {
+            return numTokens
         }
 
-        if (this.__encoding) {
-            numTokens = this.__encoding.encode(text).length
-        }
+        try {
+            return await calculateTokens({
+                modelName: getModelNameForTiktoken(this._modelName ?? 'gpt2'),
+                prompt: text as string,
+                ctx: this._context,
+                request: this._request
+            })
+        } catch (error) {}
+
         return numTokens
     }
 

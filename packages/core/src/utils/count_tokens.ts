@@ -2,7 +2,7 @@ import { type TiktokenModel } from 'js-tiktoken/lite'
 import { encodingForModel } from './tiktoken'
 import { ChatLunaError, ChatLunaErrorCode } from './error'
 import { Context } from 'cordis'
-import { DefaultRequest } from '@chatluna/core/src/service'
+import { Request } from '@chatluna/core/src/service'
 
 // https://www.npmjs.com/package/js-tiktoken
 
@@ -118,8 +118,12 @@ interface CalculateMaxTokenProps {
     prompt: string
     modelName: TiktokenModel
     ctx?: Context
-    request?: DefaultRequest
+    request?: Request
     force?: boolean
+}
+
+interface CalculateTokenProps extends CalculateMaxTokenProps {
+    fast?: boolean
 }
 
 export const calculateMaxTokens = async ({
@@ -140,6 +144,30 @@ export const calculateMaxTokens = async ({
     const maxTokens = getModelContextSize(modelName)
 
     return maxTokens - numTokens
+}
+
+export const calculateTokens = async ({
+    prompt,
+    modelName,
+    ctx,
+    request,
+    force,
+    fast
+}: CalculateTokenProps) => {
+    // fallback to approximate calculation if tiktoken is not available
+    let numTokens = Math.ceil(prompt.length / 2)
+
+    if (fast) {
+        return numTokens
+    }
+
+    try {
+        numTokens = (
+            await encodingForModel(modelName, { ctx, request, force })
+        ).encode(prompt).length
+    } catch (error) {}
+
+    return numTokens
 }
 
 export function parseRawModelName(modelName: string): [string, string] {

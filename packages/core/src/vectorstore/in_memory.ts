@@ -2,7 +2,7 @@ import { VectorStore, VectorStoreRetriever } from '@langchain/core/vectorstores'
 import { EmbeddingsParams } from '@langchain/core/embeddings'
 import { MemoryVectorStore } from '@chatluna/core/src/vectorstore'
 
-import { ScoreThresholdRetriever } from '@chatluna/core/src/retrievers'
+import { ScoreThresholdRetriever } from '@chatluna/core/src/retriever'
 import { ChatHubBaseEmbeddings } from '@chatluna/core/src/model'
 import { CreateVectorStoreParams } from '@chatluna/core/src/platform'
 

@@ -9,7 +9,8 @@ import {
     getModelContextSize,
     getEmbeddingContextSize,
     calculateMaxTokens,
-    parseRawModelName
+    parseRawModelName,
+    calculateTokens
 } from '@chatluna/core/src/utils'
 import { waitServiceLoad } from './mock/utils'
 import * as logger from '@cordisjs/logger'
@@ -179,6 +180,24 @@ describe('Count Token', () => {
                 ctx: app
             })
         ).to.equal(4093)
+
+        expect(
+            await calculateTokens({
+                prompt: 'Hello World！',
+                modelName: 'text-davinci-003',
+                ctx: app
+            })
+        ).to.equal(5)
+
+        // fast mode
+        expect(
+            await calculateTokens({
+                prompt: 'Hello World！',
+                modelName: 'text-davinci-003',
+                ctx: app,
+                fast: true
+            })
+        ).to.equal(6)
     })
 
     it('get prompt tokens with error', async () => {

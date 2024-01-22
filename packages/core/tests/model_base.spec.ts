@@ -19,6 +19,9 @@ import { MockTool } from './mock/mock_tool'
 import { z } from 'zod'
 import { withResolver } from '../src/utils/promise'
 import { ChatLunaError, ChatLunaErrorCode } from '../src/utils'
+import { loadChatLunaCore } from '@chatluna/core'
+import { waitServiceLoad } from './mock/utils'
+import os from 'os'
 
 chai.use(chaiAsPromised)
 
@@ -32,6 +35,8 @@ describe('ChatLuna Base Model', () => {
     it('request model', async function () {
         this.timeout(5000)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         const requester = new MockModelRequester(app)
 
         const model = new ChatLunaChatModel({
@@ -41,7 +46,8 @@ describe('ChatLuna Base Model', () => {
                 type: ModelType.llm,
                 maxTokens: 20
             },
-            requester
+            requester,
+            context: app
         })
 
         const messages = [new SystemMessage('我好'), new HumanMessage('你好？')]
@@ -57,6 +63,8 @@ describe('ChatLuna Base Model', () => {
 
         const requester = new MockModelRequester(app)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         const model = new ChatLunaChatModel({
             model: 'test',
             modelInfo: {
@@ -64,7 +72,8 @@ describe('ChatLuna Base Model', () => {
                 type: ModelType.llm,
                 maxTokens: 20
             },
-            requester
+            requester,
+            context: app
         })
 
         const messages = [new SystemMessage('你好'), new HumanMessage('你好？')]
@@ -88,6 +97,8 @@ describe('ChatLuna Base Model', () => {
 
         const requester = new MockModelRequester(app)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         const model = new ChatLunaChatModel({
             model: 'gpt-3.5-turbo-0301',
             modelInfo: {
@@ -95,7 +106,8 @@ describe('ChatLuna Base Model', () => {
                 type: ModelType.llm,
                 maxTokens: 200
             },
-            requester
+            requester,
+            context: app
         })
 
         const messages = [
@@ -149,6 +161,8 @@ describe('ChatLuna Base Model', () => {
 
         const requester = new MockModelRequester(app)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         const model = new ChatLunaChatModel({
             model: 'test',
             modelInfo: {
@@ -156,7 +170,8 @@ describe('ChatLuna Base Model', () => {
                 type: ModelType.llm
             },
             requester,
-            llmType: 'mock'
+            llmType: 'mock',
+            context: app
         })
 
         expect(model._llmType()).to.eql('mock')
@@ -216,6 +231,8 @@ describe('ChatLuna Base Model', () => {
     it('max token and auto crop prompt', async function () {
         this.timeout(5000)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         const requester = new MockModelRequester(app)
 
         const model = new ChatLunaChatModel({
@@ -225,7 +242,8 @@ describe('ChatLuna Base Model', () => {
                 type: ModelType.llm,
                 maxTokens: 40
             },
-            requester
+            requester,
+            context: app
         })
 
         const messages = [
@@ -251,6 +269,8 @@ describe('ChatLuna Base Model', () => {
 
         let requester = new MockModelRequester(app)
 
+        await waitServiceLoad(app, ['chatluna_request'])
+
         let model = new ChatLunaChatModel({
             model: 'test',
             modelInfo: {
@@ -259,7 +279,8 @@ describe('ChatLuna Base Model', () => {
                 maxTokens: 40
             },
             requester,
-            maxRetries: 0
+            maxRetries: 0,
+            context: app
         })
 
         try {
@@ -458,6 +479,9 @@ describe('ChatLuna Base Embeddings', () => {
 app.on('ready', async () => {
     // load logger
     app.plugin(logger)
+    loadChatLunaCore(app)
+
+    await setProxyAddress()
 })
 
 before(async () => {
@@ -467,3 +491,12 @@ before(async () => {
 after(async () => {
     await app.stop()
 })
+
+async function setProxyAddress() {
+    await waitServiceLoad(app, ['chatluna_request'])
+    if (os.homedir()?.includes('dingyi') && os.platform() === 'win32') {
+        app.chatluna_request.root.proxyAddress = 'http://127.0.0.1:7890'
+    } else {
+        app.chatluna_request.root.proxyAddress = undefined
+    }
+}
