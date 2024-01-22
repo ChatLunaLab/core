@@ -6,7 +6,7 @@ on:
 
 jobs:
     prepare:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-stable
 
         steps:
             - name: Check out
@@ -29,7 +29,7 @@ jobs:
                   path: ${{ steps.cache.outputs.value }}
                   key: yarn-cache-${{ github.sha }}-node-18
             - name: Use yarn lastest
-              run: yarn set version latest
+              run: yarn set version stable
             - name: Install
               run: yarn
 
@@ -37,7 +37,7 @@ jobs:
             cache-dir: ${{ steps.cache.outputs.value }}
 
     build:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-stable
         needs:
             - prepare
 
@@ -59,7 +59,7 @@ jobs:
                   path: ${{ needs.prepare.outputs.cache-dir }}
                   key: yarn-cache-${{ github.sha }}-node-18
             - name: Use yarn lastest
-              run: yarn set version latest
+              run: yarn set version stable
             - name: Install
               run: yarn
             - name: Build Clean
@@ -76,7 +76,7 @@ jobs:
 
     lint:
         if: ${{  github.event_name == 'pull_request' }}
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-stable
         needs:
             - prepare
 
@@ -98,7 +98,7 @@ jobs:
                   path: ${{ needs.prepare.outputs.cache-dir }}
                   key: yarn-cache-${{ github.sha }}-node-18
             - name: Use yarn lastest
-              run: yarn set version latest
+              run: yarn set version stable
             - name: Install
               run: yarn
             - name: Lint
@@ -106,7 +106,7 @@ jobs:
 
     unit-test:
         if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-stable
         needs:
             - prepare
 
@@ -129,7 +129,7 @@ jobs:
                   key: yarn-cache-${{ github.sha }}-node-18
                   restore-keys: yarn-cache-${{ github.sha }}-node\
             - name: Use yarn lastest
-              run: yarn set version latest
+              run: yarn set version stable
             - name: Install
               run: yarn
             - name: Unit Test
