@@ -482,16 +482,12 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             return numTokens
         }
 
-        try {
-            return await calculateTokens({
-                modelName: getModelNameForTiktoken(this._modelName ?? 'gpt2'),
-                prompt: text as string,
-                ctx: this._context,
-                request: this._request
-            })
-        } catch (error) {}
-
-        return numTokens
+        return await calculateTokens({
+            modelName: getModelNameForTiktoken(this._modelName ?? 'gpt2'),
+            prompt: text as string,
+            ctx: this._context,
+            request: this._request
+        })
     }
 
     _llmType(): string {

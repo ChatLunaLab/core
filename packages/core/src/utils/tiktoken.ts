@@ -9,7 +9,7 @@ import {
 import { Request } from '@chatluna/core/src/service'
 import { fetch } from 'undici'
 
-const cache: Record<string, TiktokenBPE> = {}
+globalThis.chatluna_tiktoken_cache = globalThis.chatluna_tiktoken_cache ?? {}
 
 export async function getEncoding(
     encoding: TiktokenEncoding,
@@ -29,6 +29,8 @@ export async function getEncoding(
 
         return fetch(input, init)
     }
+
+    const cache = globalThis.chatluna_tiktoken_cache
 
     if (!(encoding in cache) || options?.force) {
         cache[encoding] = await crossFetch(
@@ -80,4 +82,10 @@ export async function encodingForModel(
     }
 
     return result
+}
+
+declare global {
+    // https://stackoverflow.com/questions/59459312/using-globalthis-in-typescript
+    // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
+    var chatluna_tiktoken_cache: Record<string, TiktokenBPE>
 }

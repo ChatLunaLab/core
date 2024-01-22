@@ -1,5 +1,5 @@
 import { Context } from 'cordis'
-import { RequestService } from './service'
+import { PlatformService, RequestService } from './service'
 
 /**
  *
@@ -9,4 +9,5 @@ import { RequestService } from './service'
  */
 export function loadChatLunaCore(ctx: Context) {
     ctx.plugin(RequestService)
+    ctx.plugin(PlatformService)
 }

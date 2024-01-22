@@ -62,7 +62,7 @@ export class DefaultRequest implements Request {
             return (await fetch(info, init)) as unknown as Response
         } catch (e) {
             if (e.cause) {
-                this._logger?.error(e.cause)
+                this._logger?.error(e.stack)
             }
 
             throw new ChatLunaError(ChatLunaErrorCode.NETWORK_ERROR, e)
