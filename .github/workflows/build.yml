@@ -28,6 +28,8 @@ jobs:
               with:
                   path: ${{ steps.cache.outputs.value }}
                   key: yarn-cache-${{ github.sha }}-node-18
+            - name: Use yarn lastest
+              run: yarn set version latest
             - name: Install
               run: yarn
 
@@ -56,6 +58,8 @@ jobs:
               with:
                   path: ${{ needs.prepare.outputs.cache-dir }}
                   key: yarn-cache-${{ github.sha }}-node-18
+            - name: Use yarn lastest
+              run: yarn set version latest
             - name: Install
               run: yarn
             - name: Build Clean
@@ -93,6 +97,8 @@ jobs:
               with:
                   path: ${{ needs.prepare.outputs.cache-dir }}
                   key: yarn-cache-${{ github.sha }}-node-18
+            - name: Use yarn lastest
+              run: yarn set version latest
             - name: Install
               run: yarn
             - name: Lint
@@ -121,7 +127,9 @@ jobs:
               with:
                   path: ${{ needs.prepare.outputs.cache-dir }}
                   key: yarn-cache-${{ github.sha }}-node-18
-                  restore-keys: yarn-cache-${{ github.sha }}-node
+                  restore-keys: yarn-cache-${{ github.sha }}-node\
+            - name: Use yarn lastest
+              run: yarn set version latest
             - name: Install
               run: yarn
             - name: Unit Test

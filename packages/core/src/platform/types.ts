@@ -2,11 +2,6 @@ import {
     ChatHubBaseEmbeddings,
     ChatLunaChatModel
 } from '@chatluna/core/src/model'
-import {
-    BufferMemory,
-    ConversationSummaryMemory,
-    VectorStoreRetrieverMemory
-} from 'langchain/memory'
 import { VectorStore } from '@langchain/core/vectorstores'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage } from '@langchain/core/messages'
@@ -14,6 +9,10 @@ import {
     ChatLunaLLMChainWrapper,
     SystemPrompts
 } from '@chatluna/core/src/chain'
+import {
+    BufferWindowMemory,
+    VectorStoreRetrieverMemory
+} from '@chatluna/core/src/memory'
 
 export interface ChatLunaChainInfo {
     name: string
@@ -39,7 +38,7 @@ export interface CreateChatLunaLLMChainParams {
     model: ChatLunaChatModel
     embeddings?: ChatHubBaseEmbeddings
     longMemory?: VectorStoreRetrieverMemory
-    historyMemory: ConversationSummaryMemory | BufferMemory
+    historyMemory: BufferWindowMemory
     systemPrompt?: SystemPrompts
     vectorStoreName?: string
 }
