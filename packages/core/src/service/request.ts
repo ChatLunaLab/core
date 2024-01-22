@@ -151,12 +151,6 @@ function createProxyAgent(
     }
 }
 
-declare module 'cordis' {
-    interface Context {
-        chatluna_request: RequestService
-    }
-}
-
 export type RequestInfo = fetchType.RequestInfo
 
 export type RequestInit = fetchType.RequestInit
