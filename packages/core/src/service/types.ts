@@ -12,39 +12,39 @@ declare module 'cordis' {
         'chatluna/chat-chain-added': (
             service: PlatformService,
             chain: ChatLunaChainInfo
-        ) => Promise<void>
+        ) => void
         'chatluna/model-added': (
             service: PlatformService,
             platform: string,
             client: BasePlatformClient | BasePlatformClient[]
-        ) => Promise<void>
+        ) => void
         'chatluna/embeddings-added': (
             service: PlatformService,
             platform: string,
             client: BasePlatformClient | BasePlatformClient[]
-        ) => Promise<void>
+        ) => void
         'chatluna/vector-store-added': (
             service: PlatformService,
             name: string
-        ) => Promise<void>
+        ) => void
         'chatluna/chat-chain-removed': (
             service: PlatformService,
             chain: ChatLunaChainInfo
-        ) => Promise<void>
+        ) => void
         'chatluna/model-removed': (
             service: PlatformService,
             platform: string,
             client: BasePlatformClient
-        ) => Promise<void>
+        ) => void
         'chatluna/vector-store-removed': (
             service: PlatformService,
             name: string
-        ) => Promise<void>
+        ) => void
         'chatluna/embeddings-removed': (
             service: PlatformService,
             platform: string,
             client: BasePlatformClient | BasePlatformClient[]
-        ) => Promise<void>
-        'chatluna/tool-updated': (service: PlatformService) => Promise<void>
+        ) => void
+        'chatluna/tool-updated': (service: PlatformService) => void
     }
 }

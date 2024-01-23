@@ -14,7 +14,7 @@ import {
 } from '@langchain/core/messages'
 import chaiAsPromised from 'chai-as-promised'
 import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/src/model'
-import { ModelType } from '@chatluna/core/src/platform'
+import { ModelInfo, ModelType } from '@chatluna/core/src/platform'
 import { MockTool } from './mock/mock_tool'
 import { z } from 'zod'
 import { withResolver } from '../src/utils/promise'
@@ -46,7 +46,6 @@ describe('ChatLuna Base Client', () => {
                 apiKey: 'chatluna_111',
                 platform: 'mock'
             },
-            'mock',
             app
         )
 
@@ -56,7 +55,7 @@ describe('ChatLuna Base Client', () => {
 
         const llmModelInfo = (await client.getModels()).find(
             (m) => m.type === ModelType.llm
-        )
+        ) as ModelInfo
 
         const model = client.createModel(llmModelInfo.name) as ChatLunaChatModel
 
@@ -103,13 +102,10 @@ describe('ChatLuna Base Client', () => {
     })
 
     it('available = true', async () => {
-        const client = new MockPlatformEmbeddingsClient(
-            {
-                apiKey: 'chatluna_111',
-                platform: 'mock'
-            },
-            'mock'
-        )
+        const client = new MockPlatformEmbeddingsClient({
+            apiKey: 'chatluna_111',
+            platform: 'mock'
+        })
 
         expect(await client.isAvailable()).to.eql(true)
 
@@ -124,14 +120,11 @@ describe('ChatLuna Base Client', () => {
     })
 
     it('available = false', async function () {
-        const client = new MockPlatformEmbeddingsClient(
-            {
-                apiKey: 'chatluna_111',
-                platform: 'mock',
-                maxRetries: 3
-            },
-            'mock'
-        )
+        const client = new MockPlatformEmbeddingsClient({
+            apiKey: 'chatluna_111',
+            platform: 'mock',
+            maxRetries: 3
+        })
 
         client.initError = new ChatLunaError(
             ChatLunaErrorCode.API_REQUEST_FAILED,

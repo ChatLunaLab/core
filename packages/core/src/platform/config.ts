@@ -40,6 +40,19 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
             config.timeout = 120 * 60 * 1000
         }
 
+        // find the existing config
+        const existed = this._configs.find((old) => {
+            return (
+                old.value.apiKey === config.apiKey &&
+                old.value.platform === config.platform &&
+                old.value.apiEndpoint === config.apiEndpoint
+            )
+        })
+
+        if (existed) {
+            throw new ChatLunaError(ChatLunaErrorCode.ADD_EXISTING_CONFIG)
+        }
+
         const wrapperConfig = this._createWrapperConfig(config)
 
         this._configs.push(wrapperConfig)
@@ -119,6 +132,12 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
         return this._configs.map((c) => c.value)
     }
 
+    isAvailable(config: T): boolean {
+        const wrapper = this._configs.find((c) => c.value === config)
+
+        return wrapper.isAvailable
+    }
+
     markConfigStatus(config: T, isAvailable: boolean) {
         //
         const wrapper = this._configs.find((c) => c.value === config)
@@ -137,7 +156,6 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
     private _createWrapperConfig(config: T): ClientConfigWrapper<T> {
         return {
             value: config,
-
             isAvailable: true
         }
     }

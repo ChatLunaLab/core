@@ -11,12 +11,10 @@ export abstract class BasePlatformClient<
 > {
     private _modelPool: Record<string, R> = {}
 
-    private isInit: boolean = false
-
     constructor(
         public config: T,
-        public platform: string,
-        public ctx?: Context
+        public ctx?: Context,
+        public platform: string = config.platform
     ) {
         config.concurrentMaxSize = config.concurrentMaxSize ?? 1
         config.maxRetries = config.maxRetries ?? 3
@@ -24,14 +22,9 @@ export abstract class BasePlatformClient<
     }
 
     async isAvailable(): Promise<boolean> {
-        if (this.isInit) {
-            return true
-        }
-
         for (let i = 0; i < this.config.maxRetries; i++) {
             try {
                 await this.init()
-                this.isInit = true
                 return true
             } catch (e) {
                 if (i === this.config.maxRetries - 1) {

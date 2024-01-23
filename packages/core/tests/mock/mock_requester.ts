@@ -9,8 +9,12 @@ import {
 } from '@chatluna/core/src/model'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { AIMessageChunk } from '@langchain/core/messages'
-import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/src/utils'
-import { ClientConfig } from 'packages/core/src/platform'
+import {
+    ChatLunaError,
+    ChatLunaErrorCode,
+    sleep
+} from '@chatluna/core/src/utils'
+import { ClientConfig } from '@chatluna/core/src/platform'
 
 export class MockModelRequester extends ModelRequester {
     logger?: Logger
@@ -101,7 +105,7 @@ export class MockEmbeddingsRequester implements EmbeddingsRequester {
         const input = params.input
 
         if (typeof input === 'string') {
-            const result = this.embedDocuments([input])
+            const result = this._embedDocuments([input])
 
             if (this.mode != 'default') {
                 return await result
@@ -109,11 +113,11 @@ export class MockEmbeddingsRequester implements EmbeddingsRequester {
 
             return (await result)[0]
         } else {
-            return this.embedDocuments(input)
+            return this._embedDocuments(input)
         }
     }
 
-    private async embedDocuments(documents: string[]): Promise<number[][]> {
+    private async _embedDocuments(documents: string[]): Promise<number[][]> {
         if (this.timeout > 0) {
             await sleep(this.timeout)
         }

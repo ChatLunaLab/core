@@ -267,11 +267,11 @@ describe('ChatLuna Base LLM Model', () => {
     it('error catching', async function () {
         this.timeout(1000 * 30)
 
-        let requester = new MockModelRequester(app)
+        const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
 
-        let model = new ChatLunaChatModel({
+        const model = new ChatLunaChatModel({
             model: 'test',
             modelInfo: {
                 name: 'test',

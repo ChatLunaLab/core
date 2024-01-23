@@ -5,7 +5,9 @@ import {
     ChatLunaTool,
     ClientConfig,
     ClientConfigPool,
+    ContextWrapper,
     CreateChatLunaLLMChainParams,
+    CreateClientFunction,
     CreateVectorStoreFunction,
     CreateVectorStoreParams,
     ModelInfo,
@@ -15,12 +17,13 @@ import {
     PlatformModelClient
 } from '@chatluna/core/src/platform'
 import { ChatLunaLLMChainWrapper } from '@chatluna/core/src/chain'
+import { Option, parseRawModelName } from '@chatluna/core/src/utils'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}
     private _createClientFunctions: Record<
         string,
-        (ctx: Context, config: ClientConfig) => BasePlatformClient
+        ContextWrapper<CreateClientFunction>
     > = {}
 
     private _configPools: Record<string, ClientConfigPool> = {}
@@ -34,38 +37,66 @@ export class PlatformService extends Service {
     }
 
     registerClient(
-        name: string,
-        createClientFunction: (
-            ctx: Context,
-            config: ClientConfig
-        ) => BasePlatformClient
+        platform: string,
+        createClientFunction: CreateClientFunction,
+        ctx: Context = this.ctx
     ) {
-        if (this._createClientFunctions[name]) {
-            throw new Error(`Client ${name} already exists`)
+        if (this._createClientFunctions[platform]) {
+            throw new Error(`Client ${platform} already exists`)
         }
-        this._createClientFunctions[name] = createClientFunction
-        return async () => await this.unregisterClient(name)
+
+        this._createClientFunctions[platform] = {
+            ctx,
+            value: createClientFunction
+        }
+
+        if (!this._configPools[platform]) {
+            this._configPools[platform] = new ClientConfigPool()
+        }
+
+        const disposable = () => this._unregisterClient(platform)
+
+        return this[Context.current].effect(() => disposable)
     }
 
-    registerConfigPool(name: string, configPool: ClientConfigPool) {
-        if (this._configPools[name]) {
-            throw new Error(`Config pool ${name} already exists`)
+    registerConfigs(
+        platform: string,
+        ...configs: Option<ClientConfig, 'platform'>[]
+    ) {
+        if (!this._configPools[platform]) {
+            throw new Error(`Config pool ${platform} not found`)
         }
-        this._configPools[name] = configPool
+
+        const values = configs.map((config) => ({
+            ...config,
+            platform
+        }))
+
+        this._configPools[platform].addConfigs(...values)
     }
 
-    async registerTool(name: string, toolCreator: ChatLunaTool) {
+    registerConfigPool(platform: string, configPool: ClientConfigPool) {
+        if (this._configPools[platform]) {
+            throw new Error(`Config pool ${platform} already exists`)
+        }
+        this._configPools[platform] = configPool
+    }
+
+    registerTool(name: string, toolCreator: ChatLunaTool) {
         this._tools[name] = toolCreator
-        await this.ctx.parallel('chatluna/tool-updated', this)
-        return () => this.unregisterTool(name)
+        this.ctx.emit('chatluna/tool-updated', this)
+
+        const disposable = () => this._unregisterTool(name)
+
+        return this[Context.current].effect(() => disposable)
     }
 
-    async unregisterTool(name: string) {
+    private _unregisterTool(name: string) {
         delete this._tools[name]
-        await this.ctx.parallel('chatluna/tool-updated', this)
+        this.ctx.emit('chatluna/tool-updated', this)
     }
 
-    async unregisterClient(platform: string) {
+    private _unregisterClient(platform: string) {
         const configPool = this._configPools[platform]
 
         if (!configPool) {
@@ -89,49 +120,40 @@ export class PlatformService extends Service {
             delete this._platformClients[this._getClientConfigAsKey(config)]
 
             if (client instanceof PlatformModelClient) {
-                await this.ctx.parallel(
-                    'chatluna/model-removed',
-                    this,
-                    platform,
-                    client
-                )
+                this.ctx.emit('chatluna/model-removed', this, platform, client)
             } else if (client instanceof PlatformEmbeddingsClient) {
-                await this.ctx.parallel(
+                this.ctx.emit(
                     'chatluna/embeddings-removed',
                     this,
                     platform,
                     client
                 )
             } else if (client instanceof PlatformModelAndEmbeddingsClient) {
-                await this.ctx.parallel(
+                this.ctx.emit(
                     'chatluna/embeddings-removed',
                     this,
                     platform,
                     client
                 )
-                await this.ctx.parallel(
-                    'chatluna/model-removed',
-                    this,
-                    platform,
-                    client
-                )
+                this.ctx.emit('chatluna/model-removed', this, platform, client)
             }
         }
     }
 
-    async unregisterVectorStore(name: string) {
+    private _unregisterVectorStore(name: string) {
         delete this._vectorStore[name]
 
-        await this.ctx.parallel('chatluna/vector-store-removed', this, name)
+        this.ctx.emit('chatluna/vector-store-removed', this, name)
     }
 
-    async registerVectorStore(
+    registerVectorStore(
         name: string,
-        vectorStoreRetrieverCreator: CreateVectorStoreFunction
+        vectorStoreCreator: CreateVectorStoreFunction
     ) {
-        this._vectorStore[name] = vectorStoreRetrieverCreator
-        await this.ctx.parallel('chatluna/vector-store-added', this, name)
-        return async () => await this.unregisterVectorStore(name)
+        this._vectorStore[name] = vectorStoreCreator
+        this.ctx.emit('chatluna/vector-store-added', this, name)
+        const disposable = () => this._unregisterVectorStore(name)
+        return this[Context.current].effect(() => disposable)
     }
 
     async registerChatChain(
@@ -146,18 +168,15 @@ export class PlatformService extends Service {
             description,
             createFunction: createChatChainFunction
         }
-        await this.ctx.parallel(
-            'chatluna/chat-chain-added',
-            this,
-            this._chatChains[name]
-        )
-        return async () => await this.unregisterChatChain(name)
+        this.ctx.emit('chatluna/chat-chain-added', this, this._chatChains[name])
+        const disposable = () => this._unregisterChatChain(name)
+        return this[Context.current].effect(() => disposable)
     }
 
-    async unregisterChatChain(name: string) {
+    private _unregisterChatChain(name: string) {
         const chain = this._chatChains[name]
         delete this._chatChains[name]
-        await this.ctx.parallel('chatluna/chat-chain-removed', this, chain)
+        this.ctx.emit('chatluna/chat-chain-removed', this, chain)
     }
 
     getModels(platform: string, type: ModelType) {
@@ -180,6 +199,11 @@ export class PlatformService extends Service {
         return this._models[platform]?.find((m) => m.name === name)
     }
 
+    resolveFullModelName(fullModelName: string) {
+        const [platform, model] = parseRawModelName(fullModelName)
+        return this.resolveModel(platform, model)
+    }
+
     getAllModels(type: ModelType) {
         const allModel: string[] = []
 
@@ -196,7 +220,7 @@ export class PlatformService extends Service {
         return allModel
     }
 
-    getVectorStoreRetrievers() {
+    getVectorStores() {
         return Object.keys(this._vectorStore)
     }
 
@@ -215,7 +239,7 @@ export class PlatformService extends Service {
         return pool.markConfigStatus(config, isAvailable)
     }
 
-    async createVectorStoreRetriever(
+    async createVectorStore(
         name: string,
         params: CreateVectorStoreParams
     ) {
@@ -233,15 +257,19 @@ export class PlatformService extends Service {
     }
 
     async randomClient(platform: string, lockConfig: boolean = false) {
-        const config = await this.randomConfig(platform, lockConfig)
+        const pool = this._configPools[platform]
+        let config = await this.randomConfig(platform, lockConfig)
 
-        if (!config) {
-            return null
+        while (config != null) {
+            const client = await this.getClient(config)
+
+            if (pool.isAvailable(config)) {
+                return client
+            }
+            config = await this.randomConfig(platform, lockConfig)
         }
 
-        const client = await this.getClient(config)
-
-        return client
+        return null
     }
 
     async getClient(config: ClientConfig) {
@@ -284,45 +312,37 @@ export class PlatformService extends Service {
         )
 
         if (client instanceof PlatformModelClient) {
-            await this.ctx.parallel(
-                'chatluna/model-added',
-                this,
-                platform,
-                client
-            )
+            this.ctx.emit('chatluna/model-added', this, platform, client)
         } else if (client instanceof PlatformEmbeddingsClient) {
-            await this.ctx.parallel(
-                'chatluna/embeddings-added',
-                this,
-                platform,
-                client
-            )
+            this.ctx.emit('chatluna/embeddings-added', this, platform, client)
         } else if (client instanceof PlatformModelAndEmbeddingsClient) {
-            await this.ctx.parallel(
-                'chatluna/embeddings-added',
-                this,
-                platform,
-                client
-            )
-            await this.ctx.parallel(
-                'chatluna/model-added',
-                this,
-                platform,
-                client
-            )
+            this.ctx.emit('chatluna/embeddings-added', this, platform, client)
+            this.ctx.emit('chatluna/model-added', this, platform, client)
         }
     }
 
     async createClient(platform: string, config: ClientConfig) {
-        const createClientFunction = this._createClientFunctions[platform]
+        const createClientFunctionWrapper =
+            this._createClientFunctions[platform]
+        const configPool = this._configPools[platform]
 
-        if (!createClientFunction) {
+        if (!createClientFunctionWrapper) {
             throw new Error(`Create client function ${platform} not found`)
         }
 
-        const client = createClientFunction(this.ctx, config)
+        if (!configPool.isAvailable(config)) {
+            // unavailable client
+            return null
+        }
+
+        const client = createClientFunctionWrapper.value(
+            createClientFunctionWrapper.ctx,
+            config
+        )
 
         await this.refreshClient(client, platform, config)
+
+        this._platformClients[this._getClientConfigAsKey(config)] = client
 
         return client
     }
@@ -346,6 +366,7 @@ export class PlatformService extends Service {
             }
 
             clients.push(client)
+
             this._platformClients[this._getClientConfigAsKey(config)] = client
         }
 
@@ -368,5 +389,9 @@ export class PlatformService extends Service {
 
     private _getClientConfigAsKey(config: ClientConfig) {
         return `${config.platform}/${config.apiKey}/${config.apiEndpoint}/${config.maxRetries}/${config.concurrentMaxSize}/${config.timeout}`
+    }
+
+    static inject = {
+        optional: ['chatluna_request']
     }
 }

@@ -9,10 +9,12 @@ import {
     ChatLunaLLMChainWrapper,
     SystemPrompts
 } from '@chatluna/core/src/chain'
+import { BasePlatformClient, ClientConfig } from '@chatluna/core/src/platform'
 import {
     BufferWindowMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/src/memory'
+import { Context } from 'cordis'
 
 export interface ChatLunaChainInfo {
     name: string
@@ -55,6 +57,16 @@ export interface ChatLunaTool<T = any> {
 export type CreateVectorStoreFunction = (
     params: CreateVectorStoreParams
 ) => Promise<VectorStore>
+
+export type CreateClientFunction = (
+    ctx: Context,
+    config: ClientConfig
+) => BasePlatformClient
+
+export interface ContextWrapper<T> {
+    ctx: Context
+    value: T
+}
 
 export interface ModelInfo {
     name: string

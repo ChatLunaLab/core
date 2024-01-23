@@ -128,20 +128,45 @@ describe('Client Config', () => {
             }
         )
 
-        pool.markConfigStatus(pool.getConfig(), false)
+        const config1 = pool.getConfig()
+        pool.markConfigStatus(config1, false)
         pool.markConfigStatus(pool.getConfig(), false)
 
-        expect(() => pool.getConfig()).to.throw('使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。')
+        expect(pool.isAvailable(config1)).to.equal(false)
+
+        expect(() => pool.getConfig()).to.throw(
+            '使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。'
+        )
 
         pool.mode = ClientConfigPoolMode.AlwaysTheSame
 
         expect(pool.mode).to.equal(ClientConfigPoolMode.AlwaysTheSame)
 
-        expect(() => pool.getConfig()).to.throw('使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。')
+        expect(() => pool.getConfig()).to.throw(
+            '使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。'
+        )
 
         pool.mode = ClientConfigPoolMode.Random
 
-        expect(() => pool.getConfig()).to.throw('使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。')
+        expect(() => pool.getConfig()).to.throw(
+            '使用 ChatLuna 时出现错误，错误码为 307。请联系开发者以解决此问题。'
+        )
+    })
 
+    it('add same config', async () => {
+        const pool = new ClientConfigPool(ClientConfigPoolMode.LoadBalancing)
+
+        expect(() => {
+            pool.addConfigs(
+                {
+                    apiKey: '111',
+                    platform: '111'
+                },
+                {
+                    apiKey: '111',
+                    platform: '111'
+                }
+            )
+        }).throw('')
     })
 })
