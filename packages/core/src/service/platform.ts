@@ -187,7 +187,7 @@ export class PlatformService extends Service {
         )
     }
 
-    getTools() {
+    get tools() {
         return Object.keys(this._tools)
     }
 
@@ -220,11 +220,11 @@ export class PlatformService extends Service {
         return allModel
     }
 
-    getVectorStores() {
+    get vectorStores() {
         return Object.keys(this._vectorStore)
     }
 
-    getChatChains() {
+    get chatChains() {
         return Object.values(this._chatChains)
     }
 
@@ -239,10 +239,7 @@ export class PlatformService extends Service {
         return pool.markConfigStatus(config, isAvailable)
     }
 
-    async createVectorStore(
-        name: string,
-        params: CreateVectorStoreParams
-    ) {
+    async createVectorStore(name: string, params: CreateVectorStoreParams) {
         const vectorStoreRetriever = this._vectorStore[name]
 
         if (!vectorStoreRetriever) {

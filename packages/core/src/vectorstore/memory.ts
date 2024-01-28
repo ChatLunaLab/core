@@ -1,7 +1,10 @@
 import { similarity as ml_distance_similarity } from 'ml-distance'
-import { VectorStore } from '@langchain/core/vectorstores'
+import { SaveableVectorStore } from '@langchain/core/vectorstores'
 import type { EmbeddingsInterface } from '@langchain/core/embeddings'
 import { Document } from '@langchain/core/documents'
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs/promises'
 
 /**
  * Interface representing a vector in memory. It includes the content
@@ -29,7 +32,7 @@ export interface MemoryVectorStoreArgs {
  * methods for adding documents, performing similarity searches, and
  * creating instances from texts, documents, or an existing index.
  */
-export class MemoryVectorStore extends VectorStore {
+export class MemoryVectorStore extends SaveableVectorStore {
     declare FilterType: (doc: Document) => boolean
 
     memoryVectors: MemoryVector[] = []
@@ -131,6 +134,31 @@ export class MemoryVectorStore extends VectorStore {
         return result
     }
 
+    static async fromDirctory(
+        directory: string,
+        embeddings: EmbeddingsInterface,
+        dbConfig?: MemoryVectorStoreArgs
+    ): Promise<MemoryVectorStore> {
+        const docs: MemoryVector[] = []
+        const files = await fs.readdir(directory)
+
+        for (const file of files) {
+            if (!file.endsWith('.json')) {
+                continue
+            }
+
+            const rawData = await fs.readFile(path.join(directory, file))
+            const store = JSON.parse(rawData.toString()) as MemoryVector
+            docs.push(store)
+        }
+
+        const self = new MemoryVectorStore(embeddings, dbConfig)
+
+        self.memoryVectors = docs
+
+        return self
+    }
+
     /**
      * Static method to create a `MemoryVectorStore` instance from an array of
      * texts. It creates a `Document` for each text and metadata pair, and
@@ -192,4 +220,29 @@ export class MemoryVectorStore extends VectorStore {
         const instance = new this(embeddings, dbConfig)
         return instance
     }
+
+    async save(directory: string): Promise<void> {
+        const vectors = this.memoryVectors.map((vector) => {
+            return {
+                vector,
+                hash: hash(vector.content)
+            }
+        })
+
+        for (const vector of vectors) {
+            const jsonPath = path.join(directory, vector.hash)
+
+            try {
+                await fs.access(jsonPath)
+                continue
+            } catch (e) {
+                await fs.mkdir(directory)
+                await fs.writeFile(jsonPath, JSON.stringify(vector))
+            }
+        }
+    }
+}
+
+function hash(content: string): string {
+    return crypto.createHash('sha256').update(content).digest('hex')
 }
