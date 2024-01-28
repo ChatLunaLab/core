@@ -9,6 +9,7 @@ import {
 import chaiAsPromised from 'chai-as-promised'
 import { MockEmbeddingsRequester } from './mock/mock_requester'
 import { ChatLunaEmbeddings } from '../src/model'
+import fs from 'fs/promises'
 
 chai.use(chaiAsPromised)
 
@@ -77,6 +78,48 @@ describe('Memory Vector Store', () => {
                     metadata: {}
                 }
             ],
+            mockEmbedding
+        )
+
+        expect((await memoryVectorStore.similaritySearch('he'))[0]).to.property(
+            'pageContent',
+            'hello'
+        )
+
+        expect((await memoryVectorStore.similaritySearch('wo'))[0]).to.property(
+            'pageContent',
+            'world'
+        )
+
+        expect(
+            await memoryVectorStore.similaritySearch('he', 1, (_) => false)
+        ).to.have.length(0)
+    })
+
+    it('from Directory', async () => {
+        const mockEmbeddingRequester = new MockEmbeddingsRequester()
+        const mockEmbedding = new ChatLunaEmbeddings({
+            client: mockEmbeddingRequester
+        })
+
+        let memoryVectorStore = await MemoryVectorStore.fromDocuments(
+            [
+                {
+                    pageContent: 'hello',
+                    metadata: {}
+                },
+                {
+                    pageContent: 'world',
+                    metadata: {}
+                }
+            ],
+            mockEmbedding
+        )
+
+        await memoryVectorStore.save('./test/vector_store')
+
+        memoryVectorStore = await MemoryVectorStore.fromDirectory(
+            './test/vector_store',
             mockEmbedding
         )
 

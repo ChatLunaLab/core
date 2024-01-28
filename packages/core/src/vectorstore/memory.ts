@@ -134,7 +134,7 @@ export class MemoryVectorStore extends SaveableVectorStore {
         return result
     }
 
-    static async fromDirctory(
+    static async fromDirectory(
         directory: string,
         embeddings: EmbeddingsInterface,
         dbConfig?: MemoryVectorStoreArgs
@@ -143,10 +143,6 @@ export class MemoryVectorStore extends SaveableVectorStore {
         const files = await fs.readdir(directory)
 
         for (const file of files) {
-            if (!file.endsWith('.json')) {
-                continue
-            }
-
             const rawData = await fs.readFile(path.join(directory, file))
             const store = JSON.parse(rawData.toString()) as MemoryVector
             docs.push(store)
@@ -236,8 +232,8 @@ export class MemoryVectorStore extends SaveableVectorStore {
                 await fs.access(jsonPath)
                 continue
             } catch (e) {
-                await fs.mkdir(directory)
-                await fs.writeFile(jsonPath, JSON.stringify(vector))
+                await fs.mkdir(directory, { recursive: true })
+                await fs.writeFile(jsonPath, JSON.stringify(vector.vector))
             }
         }
     }

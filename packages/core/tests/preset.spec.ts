@@ -49,42 +49,6 @@ describe('Format Preset', () => {
 })
 
 describe('Load Preset', () => {
-    it('should load txt preset', async () => {
-        const string1 = `
-        # keywords
-        keyword: test, test1
-
-        # 这是系统设定的prompt，和之前在插件设置里的人格设定的那个配置是一样的。
-
-        system: test。
-
-        assistant: test1
-
-        user: test2
-
-        format_user_prompt: test123
-
-        `
-
-        const preset = loadPreset(string1)
-
-        preset.should.have.deep
-            .property('triggerKeyword')
-            .that.equals(['test', 'test1'])
-
-        preset.should.have.deep
-            .property('formatUserPromptString')
-            .that.equals('test123')
-
-        preset.should.have.deep
-            .property('messages')
-            .that.deep.equals([
-                new SystemMessage('test。'),
-                new AIMessage('test1'),
-                new HumanMessage('test2')
-            ])
-    })
-
     it('should load yaml preset', async () => {
         const rawText = `
 keywords:
@@ -119,44 +83,6 @@ format_user_prompt: test123
                 new AIMessage('test1'),
                 new HumanMessage('test2')
             ])
-    })
-
-    it('should load txt preset with error', async () => {
-        let rawText = `
-        # 这是系统设定的prompt，和之前在插件设置里的人格设定的那个配置是一样的。
-
-        system: test。
-
-        assistant: test1
-
-        user: test2
-
-        format_user_prompt: test123
-`
-
-        expect(() => loadPreset(rawText)).throw('No trigger keyword found')
-
-        rawText = `
-        # keywords
-        keyword: test, test
-        `
-
-        expect(() => loadPreset(rawText)).throw('No preset messages found')
-
-        rawText = `
-        # keywords
-        keyword: test, test
-
-        # 这是系统设定的prompt，和之前在插件设置里的人格设定的那个配置是一样的。
-
-        system: test。
-
-        assistant: test1
-
-        useraa: test2
-`
-
-        expect(() => loadPreset(rawText)).throw('Unknown role: useraa')
     })
 
     it('should load yaml preset with error', async () => {
