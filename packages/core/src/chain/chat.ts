@@ -1,80 +1,77 @@
 import {
+    callChatLunaChain,
+    ChatLunaChatPrompt,
+    ChatLunaLLMCallArg,
+    ChatLunaLLMChain,
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
 } from '@chatluna/core/src/chain'
-import { PartialValues } from '@langchain/core/utils/types'
+import { ChainValues } from '@langchain/core/utils/types'
 import {
-    BaseChatPromptTemplate,
-    BasePromptTemplate,
     HumanMessagePromptTemplate,
     MessagesPlaceholder
 } from '@langchain/core/prompts'
-import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
-import { ChatPromptValueInterface } from '@langchain/core/prompt_values'
-import { Document } from '@langchain/core/documents'
-import { messageTypeToOpenAIRole } from '@chatluna/core/src/utils'
+import { AIMessage, SystemMessage } from '@langchain/core/messages'
 import {
     BufferWindowMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/src/memory'
-import { ChatLunaChatModel } from '../model'
+import { ChatLunaChatModel } from '@chatluna/core/src/model'
+import { ChatLunaSaveableVectorStore } from '@chatluna/core/src/vectorstore'
 
 export class ChatLunaChatChain
     extends ChatLunaLLMChainWrapper
     implements ChatLunaLLMChainWrapperInput
 {
-    longMemory: VectorStoreRetrieverMemory
+    chatMemory: VectorStoreRetrieverMemory
 
-    chain: ChatHubLLMChain
+    chain: ChatLunaLLMChain
 
     historyMemory: BufferWindowMemory
 
-    systemPrompts?: SystemPrompts
+    prompt: ChatLunaChatPrompt
+
+    llm: ChatLunaChatModel
 
     constructor(
         params: ChatLunaLLMChainWrapperInput & {
-            chain: ChatHubLLMChain
+            chain: ChatLunaLLMChain
+            prompt: ChatLunaChatPrompt
+            llm: ChatLunaChatModel
         }
     ) {
         super(params)
 
-        const { longMemory, historyMemory, systemPrompts, chain } = params
+        const { chatMemory: longMemory, historyMemory, chain } = params
 
-        this.botName = botName
-
-        // roll back to the empty memory if not set
-        this.longMemory = longMemory
+        this.chatMemory = longMemory
         this.historyMemory = historyMemory
-        this.systemPrompts =
-            systemPrompts ??
-            new SystemMessage(
-                "You are ChatGPT, a large language model trained by OpenAI. Carefully heed the user's instructions."
-            )
+
         this.chain = chain
+        this.prompt = params.prompt
+        this.llm = params.llm
     }
 
     static fromLLM(
         llm: ChatLunaChatModel,
-        params: ChatLunaChatChain
+        params: ChatLunaLLMChainWrapperInput
     ): ChatLunaChatChain {
         const humanMessagePromptTemplate =
             HumanMessagePromptTemplate.fromTemplate(
                 params.humanMessagePrompt ?? '{input}'
             )
 
-        let conversationSummaryPrompt: HumanMessagePromptTemplate
-        let messagesPlaceholder: MessagesPlaceholder
+        const conversationSummaryPrompt =
+            HumanMessagePromptTemplate.fromTemplate(
+                // eslint-disable-next-line max-len
+                `Relevant pieces of previous conversation: {long_history} (You do not need to use these pieces of information if not relevant, and based on these information, generate similar but non-repetitive responses. Pay attention, you need to think more and diverge your creativity.)`
+            )
 
-        const conversationSummaryPrompt = HumanMessagePromptTemplate.fromTemplate(
-            // eslint-disable-next-line max-len
-            `Relevant pieces of previous conversation: {long_history} (You do not need to use these pieces of information if not relevant, and based on these information, generate similar but non-repetitive responses. Pay attention, you need to think more and diverge your creativity.)`
-        )
+        const messagesPlaceholder = new MessagesPlaceholder('chat_history')
 
-        messagesPlaceholder = new MessagesPlaceholder('chat_history')
-
-        const prompt = new ChatHubChatPrompt({
-            systemPrompts: systemPrompts ?? [
+        const prompt = new ChatLunaChatPrompt({
+            systemPrompts: params.systemPrompts ?? [
                 new SystemMessage(
                     "You are ChatGPT, a large language model trained by OpenAI. Carefully heed the user's instructions."
                 )
@@ -87,14 +84,13 @@ export class ChatLunaChatChain
                 llm.invocationParams().maxTokens ?? llm.getModelMaxContextSize()
         })
 
-        const chain = new ChatHubLLMChain({ llm, prompt })
+        const chain = prompt.pipe(llm)
 
-        return new ChatHubChatChain({
-            botName,
-            longMemory,
-            historyMemory,
-            systemPrompts,
-            chain
+        return new ChatLunaChatChain({
+            ...params,
+            chain,
+            prompt,
+            llm
         })
     }
 
@@ -102,23 +98,30 @@ export class ChatLunaChatChain
         message,
         stream,
         events,
-        conversationId
-    }: ChatHubLLMCallArg): Promise<ChainValues> {
+        params
+    }: ChatLunaLLMCallArg): Promise<ChainValues> {
         const requests: ChainValues = {
             input: message
         }
         const chatHistory =
             await this.historyMemory.loadMemoryVariables(requests)
 
-        const longHistory = await this.longMemory.loadMemoryVariables({
-            user: message.content
-        })
+        const longHistory =
+            this.chatMemory != null
+                ? await this.chatMemory.loadMemoryVariables({
+                      user: message.content
+                  })
+                : undefined
+
+        this.prompt.systemPrompts =
+            params?.systemPrompts ?? this.prompt.systemPrompts
 
         requests['chat_history'] = chatHistory[this.historyMemory.memoryKey]
-        requests['long_history'] = longHistory[this.longMemory.memoryKey]
-        requests['id'] = conversationId
+        requests['long_history'] = longHistory[this.chatMemory.memoryKey]
 
-        const response = await callChatHubChain(
+        Object.assign(requests, params)
+
+        const response = await callChatLunaChain(
             this.chain,
             {
                 ...requests,
@@ -133,7 +136,7 @@ export class ChatLunaChatChain
 
         const responseString = response.text
 
-        await this.longMemory.saveContext(
+        await this.chatMemory.saveContext(
             { user: message.content },
             { your: responseString }
         )
@@ -141,10 +144,9 @@ export class ChatLunaChatChain
         await this.historyMemory.chatHistory.addMessage(message)
         await this.historyMemory.chatHistory.addAIChatMessage(responseString)
 
-        const vectorStore = this.longMemory.vectorStoreRetriever.vectorStore
+        const vectorStore = this.chatMemory.vectorStoreRetriever.vectorStore
 
         if (vectorStore instanceof ChatLunaSaveableVectorStore) {
-            logger?.debug('saving vector store')
             await vectorStore.save()
         }
 
@@ -163,7 +165,7 @@ export class ChatLunaChatChain
     }
 
     get model() {
-        return this.chain.llm
+        return this.llm
     }
 }
 
@@ -174,145 +176,4 @@ export interface ChatLunaChatPromptInput {
     conversationSummaryPrompt: HumanMessagePromptTemplate
     humanMessagePromptTemplate?: HumanMessagePromptTemplate
     sendTokenLimit?: number
-}
-
-export class ChatLunaChatPrompt
-    extends BaseChatPromptTemplate
-    implements ChatLunaChatPromptInput
-{
-    systemPrompts?: SystemPrompts
-
-    tokenCounter: (text: string) => Promise<number>
-
-    messagesPlaceholder?: MessagesPlaceholder
-
-    humanMessagePromptTemplate: HumanMessagePromptTemplate
-
-    conversationSummaryPrompt: HumanMessagePromptTemplate
-
-    sendTokenLimit?: number
-
-    constructor(fields: ChatLunaChatPromptInput) {
-        super({ inputVariables: ['chat_history', 'long_history', 'input'] })
-
-        this.systemPrompts = fields.systemPrompts
-        this.tokenCounter = fields.tokenCounter
-
-        this.messagesPlaceholder = fields.messagesPlaceholder
-        this.conversationSummaryPrompt = fields.conversationSummaryPrompt
-        this.humanMessagePromptTemplate =
-            fields.humanMessagePromptTemplate ??
-            HumanMessagePromptTemplate.fromTemplate('{input}')
-        this.sendTokenLimit = fields.sendTokenLimit ?? 4096
-    }
-
-    _getPromptType() {
-        return 'chathub_chat' as const
-    }
-
-    private async _countMessageTokens(message: BaseMessage) {
-        let result =
-            (await this.tokenCounter(message.content as string)) +
-            (await this.tokenCounter(
-                messageTypeToOpenAIRole(message._getType())
-            ))
-
-        if (message.name) {
-            result += await this.tokenCounter(message.name)
-        }
-
-        return result
-    }
-
-    async formatMessages({
-        chat_history: chatHistory,
-        long_history: longHistory,
-        input
-    }: {
-        input: BaseMessage
-        chat_history: BaseMessage[] | string
-        long_history: Document[]
-    }) {
-        const result: BaseMessage[] = []
-        let usedTokens = 0
-
-        for (const message of this.systemPrompts || []) {
-            const messageTokens = await this._countMessageTokens(message)
-
-            // always add the system prompts
-            result.push(message)
-            usedTokens += messageTokens
-        }
-
-        const inputTokens = await this.tokenCounter(input.content as string)
-
-        usedTokens += inputTokens
-
-        let formatConversationSummary: HumanMessage | null
-
-        const formatChatHistory: BaseMessage[] = []
-
-        for (const message of (<BaseMessage[]>chatHistory).reverse()) {
-            const messageTokens = await this._countMessageTokens(message)
-
-            // reserve 400 tokens for the long history
-            if (
-                usedTokens + messageTokens >
-                this.sendTokenLimit - (longHistory.length > 0 ? 480 : 80)
-            ) {
-                break
-            }
-
-            usedTokens += messageTokens
-            formatChatHistory.unshift(message)
-        }
-
-        if (longHistory.length > 0) {
-            const formatDocuments: Document[] = []
-
-            for (const document of longHistory) {
-                const documentTokens = await this.tokenCounter(
-                    document.pageContent
-                )
-
-                // reserve 80 tokens for the format
-                if (usedTokens + documentTokens > this.sendTokenLimit - 80) {
-                    break
-                }
-
-                usedTokens += documentTokens
-                formatDocuments.push(document)
-            }
-
-            formatConversationSummary =
-                await this.conversationSummaryPrompt.format({
-                    long_history: formatDocuments
-                        .map((document) => document.pageContent)
-                        .join(' ')
-                })
-        }
-
-        const formatMessagesPlaceholder =
-            await this.messagesPlaceholder.formatMessages({
-                chat_history: formatChatHistory
-            })
-
-        result.push(...formatMessagesPlaceholder)
-
-        if (formatConversationSummary) {
-            result.push(formatConversationSummary)
-            result.push(new AIMessage('Ok.'))
-        }
-
-        result.push(input)
-
-        return result
-    }
-
-    partial(
-        values: PartialValues
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<BasePromptTemplate<any, ChatPromptValueInterface, any>> {
-        throw new Error('Method not implemented.')
-    }
 }

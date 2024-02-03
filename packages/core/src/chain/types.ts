@@ -22,7 +22,7 @@ export interface ChatLunaLLMCallArg {
 export interface ChatLunaLLMChainWrapperInput {
     ctx?: Context
     systemPrompts?: SystemPrompts
-    longMemory?: VectorStoreRetrieverMemory
+    chatMemory?: VectorStoreRetrieverMemory
     humanMessagePrompt?: string
     historyMemory: BufferWindowMemory
 }

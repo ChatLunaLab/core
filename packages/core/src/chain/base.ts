@@ -13,7 +13,7 @@ export abstract class ChatLunaLLMChainWrapper<
     T extends ChatLunaLLMChainWrapperInput = ChatLunaLLMChainWrapperInput,
     R extends ChatLunaLLMCallArg = ChatLunaLLMCallArg
 > {
-    constructor(params: T) {}
+    constructor(_params: T) {}
 
     abstract call(arg: R): Promise<ChainValues>
 
@@ -31,19 +31,21 @@ export async function callChatLunaChain(
 
     let response: BaseMessageChunk
 
-    if (values.stream) {
-        const streamIterable = await chain.stream(values, {
-            callbacks: [
-                {
-                    handleLLMNewToken(token: string) {
-                        events?.['llm-new-token']?.(token)
-                    },
-                    handleLLMEnd(output, runId, parentRunId, tags) {
-                        usedToken += output.llmOutput?.tokenUsage?.totalTokens
-                    }
+    const callback = {
+        callbacks: [
+            {
+                handleLLMNewToken(token: string) {
+                    events?.['llm-new-token']?.(token)
+                },
+                handleLLMEnd(output, runId, parentRunId, tags) {
+                    usedToken += output.llmOutput?.tokenUsage?.totalTokens
                 }
-            ]
-        })
+            }
+        ]
+    }
+
+    if (values.stream) {
+        const streamIterable = await chain.stream(values, callback)
 
         for await (const chunk of streamIterable) {
             response = chunk
@@ -51,18 +53,7 @@ export async function callChatLunaChain(
 
         await events?.['llm-used-token-count'](usedToken)
     } else {
-        response = await chain.invoke(values, {
-            callbacks: [
-                {
-                    handleLLMNewToken(token: string) {
-                        events?.['llm-new-token']?.(token)
-                    },
-                    handleLLMEnd(output, runId, parentRunId, tags) {
-                        usedToken += output.llmOutput?.tokenUsage?.totalTokens
-                    }
-                }
-            ]
-        })
+        response = await chain.invoke(values, callback)
     }
 
     await events?.['llm-used-token-count'](usedToken)
