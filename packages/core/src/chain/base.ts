@@ -5,7 +5,7 @@ import {
     ChatLunaLLMChainWrapperInput
 } from '@chatluna/core/src/chain'
 import { ChainValues } from '@langchain/core/utils/types'
-import { BufferWindowMemory } from '@chatluna/core/src/memory'
+import { BaseChatMemory } from '@chatluna/core/src/memory'
 import { ChatLunaChatModel } from '@chatluna/core/src/model'
 import { BaseMessageChunk } from '@langchain/core/messages'
 
@@ -17,7 +17,7 @@ export abstract class ChatLunaLLMChainWrapper<
 
     abstract call(arg: R): Promise<ChainValues>
 
-    abstract historyMemory: BufferWindowMemory
+    abstract historyMemory: BaseChatMemory
 
     abstract get model(): ChatLunaChatModel
 }
@@ -37,7 +37,7 @@ export async function callChatLunaChain(
                 handleLLMNewToken(token: string) {
                     events?.['llm-new-token']?.(token)
                 },
-                handleLLMEnd(output, runId, parentRunId, tags) {
+                handleLLMEnd(output) {
                     usedToken += output.llmOutput?.tokenUsage?.totalTokens
                 }
             }
@@ -57,6 +57,5 @@ export async function callChatLunaChain(
     }
 
     await events?.['llm-used-token-count'](usedToken)
-
     return { text: response.content }
 }

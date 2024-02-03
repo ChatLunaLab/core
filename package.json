@@ -29,7 +29,7 @@
     "chai": "^4.4.1",
     "chai-as-promised": "^7.1.1",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.19.12",
+    "esbuild": "^0.20.0",
     "esbuild-register": "^3.5.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",

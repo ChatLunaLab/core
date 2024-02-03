@@ -5,7 +5,7 @@ import {
 } from '@langchain/core/messages'
 import { Context } from 'cordis'
 import {
-    BufferWindowMemory,
+    BaseChatMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/src/memory'
 import { Runnable, RunnableConfig } from '@langchain/core/runnables'
@@ -24,7 +24,8 @@ export interface ChatLunaLLMChainWrapperInput {
     systemPrompts?: SystemPrompts
     chatMemory?: VectorStoreRetrieverMemory
     humanMessagePrompt?: string
-    historyMemory: BufferWindowMemory
+    historyMemory: BaseChatMemory
+    verbose?: boolean
 }
 
 export interface ChainEvents {
