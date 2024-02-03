@@ -27,13 +27,10 @@ import {
     BufferWindowMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/src/memory'
-import { Logger } from '@cordisjs/logger'
 import { VectorStore } from '@langchain/core/vectorstores'
-import {
-    BaseDocumentTransformer,
-    DocumentInterface
-} from '@langchain/core/documents'
+import { DocumentInterface } from '@langchain/core/documents'
 import { BaseRetrieverInterface } from '@langchain/core/retrievers'
+import { Logger } from '@cordisjs/logger'
 
 // github.com/langchain-ai/weblangchain/blob/main/nextjs/app/api/chat/stream_log/route.ts#L81
 
@@ -49,7 +46,7 @@ export interface ChatLunaBrowsingChainInput
 
     htmlRetriever?: (
         args: CreateChatLunaBrowsingRetrieverArgs
-    ) => BaseDocumentTransformer
+    ) => BaseRetrieverInterface
     browsePage: boolean
 }
 
@@ -78,7 +75,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
 
     htmlLoader?: (url: string) => Promise<DocumentInterface[]>
 
-    htmlRetriever: BaseDocumentTransformer
+    htmlRetriever: BaseRetrieverInterface
 
     logger?: Logger
 
@@ -216,7 +213,10 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             .join('\n\n')
     }
 
-    private async _formatSearchResults(searchResults: SearchResult[]) {
+    private async _formatSearchResults(
+        searchResults: SearchResult[],
+        question: string
+    ) {
         if (this.browsePage === false || this.browsePage == null) {
             return this._formatInnerResults(searchResults)
         }
@@ -225,20 +225,32 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
 
         const htmlResults = await Promise.all(
             searchResults.flatMap(async (result) => {
-                const { url, title, description } = result
+                const { url } = result
 
-                const html = await this.htmlLoader(url)
+                return this.htmlLoader(url).then((documents) => {
+                    documents.forEach((document) => {
+                        document.metadata = result
+                    })
 
-                const transformer = this.htmlRetriever({
-                    url,
-                    title,
-                    description,
-                    html
+                    return documents
                 })
-
-                return transformer.i
             })
-        )
+        ).then((result) => result.flatMap((_) => _))
+
+        await this.htmlMemory.addDocuments(htmlResults)
+
+        const similarityDocuments =
+            await this.htmlRetriever.getRelevantDocuments(question)
+
+        return similarityDocuments
+            .map(
+                (result) =>
+                    `title: ${result.metadata.title}\ncontent: ${result.metadata.content}` +
+                    (result.metadata.url
+                        ? `\nsource: ${result.metadata.url}`
+                        : '')
+            )
+            .join('\n\n')
     }
 
     async call({
@@ -293,8 +305,10 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
 
         // format questions
 
-        const formattedSearchResults =
-            await this._formatSearchResults(searchResults,newQuestion)
+        const formattedSearchResults = await this._formatSearchResults(
+            searchResults,
+            newQuestion
+        )
 
         this.logger?.debug('formatted search results', formattedSearchResults)
 
