@@ -124,7 +124,7 @@ export class ChatLunaPluginChain
             systemPrompts
         }: Omit<ChatLunaPluginChainInput, 'embeddings' | 'createExecutor'>
     ) {
-        const executor = this.createExecutor({
+        return this.createExecutor({
             tags: ['openai-functions'],
             agent: createOpenAIAgent({
                 llm,
@@ -142,8 +142,6 @@ export class ChatLunaPluginChain
                 }),
             verbose: true
         })
-
-        return executor
     }
 
     private _getActiveTools(
@@ -165,32 +163,33 @@ export class ChatLunaPluginChain
             }
         )
 
-        const differenceTools = newActiveTools.filter((tool) => {
-            const include = tools.includes(tool[0])
+        const differenceTools: [ChatLunaTool, boolean][] =
+            newActiveTools.filter((tool) => {
+                const include = tools.includes(tool[0])
 
-            return !include || (include && tool[1] === false)
-        })
+                return !include || (include && tool[1] === false)
+            })
 
-        if (differenceTools.length > 0) {
-            for (const differenceTool of differenceTools) {
-                if (differenceTool[1] === false) {
-                    const index = tools.findIndex(
-                        (tool) => tool === differenceTool[0]
-                    )
-                    if (index > -1) {
-                        tools.splice(index, 1)
-                    }
-                } else {
-                    tools.push(differenceTool[0])
-                }
-            }
-            return [this.activeTools, true]
+        if (differenceTools.length <= 0) {
+            return [
+                this.tools,
+                this.tools.some((tool) => tool?.alwaysRecreate === true)
+            ]
         }
 
-        return [
-            this.tools,
-            this.tools.some((tool) => tool?.alwaysRecreate === true)
-        ]
+        for (const differenceTool of differenceTools) {
+            if (differenceTool[1] === false) {
+                const index = tools.findIndex(
+                    (tool) => tool === differenceTool[0]
+                )
+                if (index > -1) {
+                    tools.splice(index, 1)
+                }
+            } else {
+                tools.push(differenceTool[0])
+            }
+        }
+        return [this.activeTools, true]
     }
 
     async call({

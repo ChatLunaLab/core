@@ -1,6 +1,6 @@
-# ChatLuna-Core
+# ChatLuna Core Library
 
-ChatLuna 核心 项目。
+ChatLuna 核心相关库。
 
 [![codecov](https://img.shields.io/codecov/c/github/ChatLunaLab/core)](https://codecov.io/gh/ChatLunaLab/core)
 [![npm](https://img.shields.io/npm/v/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core) [![npm](https://img.shields.io/npm/dm/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core)
@@ -9,7 +9,7 @@ ChatLuna 核心 项目。
 
 - [@chatluna/core](./packages/core/README.MD)
 
-  核心项目，基于 LangChain 建设的一套简易的适用于聊天机器人插件的 LLM Framework。
+  ChatLuna 核心项目，基于 LangChain 建设的一套简易的适用于聊天机器人插件的 LLM Framework。
 
 - [@chatluna/koishi](./packages/koishi/README.MD)
 
