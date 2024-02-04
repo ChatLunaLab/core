@@ -1,5 +1,5 @@
 import { load } from 'js-yaml'
-import { PresetTemplate, RawPreset } from './types'
+import { PresetTemplate, RawPreset } from './types.js'
 import {
     AIMessage,
     HumanMessage,

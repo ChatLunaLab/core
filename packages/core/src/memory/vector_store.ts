@@ -7,7 +7,7 @@ import {
     MemoryVariables,
     OutputValues
 } from '@langchain/core/memory'
-import { formatDocumentsAsString } from '@chatluna/core/src/utils'
+import { formatDocumentsAsString } from '@chatluna/core/utils'
 /**
  * Interface for the parameters required to initialize a
  * VectorStoreRetrieverMemory instance.

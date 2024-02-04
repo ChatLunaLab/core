@@ -6,13 +6,13 @@ import {
     TiktokenEncoding,
     TiktokenModel
 } from 'js-tiktoken/lite'
-import { Request } from '@chatluna/core/src/service'
+import { Request } from '@chatluna/core/service'
 import { fetch } from 'undici'
 import {
     ChatLunaError,
     ChatLunaErrorCode,
     withResolver
-} from '@chatluna/core/src/utils'
+} from '@chatluna/core/utils'
 
 globalThis.chatluna_tiktoken_cache = globalThis.chatluna_tiktoken_cache ?? {}
 

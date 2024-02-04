@@ -6,15 +6,15 @@ import {
     EmbeddingsRequester,
     ModelRequestParams,
     ModelRequester
-} from '@chatluna/core/src/model'
+} from '@chatluna/core/model'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { AIMessageChunk } from '@langchain/core/messages'
 import {
     ChatLunaError,
     ChatLunaErrorCode,
     sleep
-} from '@chatluna/core/src/utils'
-import { ClientConfig } from '@chatluna/core/src/platform'
+} from '@chatluna/core/utils'
+import { ClientConfig } from '@chatluna/core/platform'
 
 export class MockModelRequester extends ModelRequester {
     logger?: Logger

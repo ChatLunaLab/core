@@ -1,3 +1,3 @@
-export * from './request'
-export * from './platform'
-export * from './types'
+export * from './request.js'
+export * from './platform.js'
+export * from './types.js'

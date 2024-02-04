@@ -3,7 +3,7 @@ import { describe, it } from 'mocha'
 import * as logger from '@cordisjs/logger'
 import { Context } from 'cordis'
 import chaiAsPromised from 'chai-as-promised'
-import { ClientConfigPool } from '@chatluna/core/src/platform'
+import { ClientConfigPool } from '@chatluna/core/platform'
 import { MockTool } from './mock/mock_tool'
 import { z } from 'zod'
 import { loadChatLunaCore } from '@chatluna/core/src'
@@ -13,7 +13,7 @@ import { MockPlatformMixClient } from './mock/mock_platform_client'
 import {
     MemoryVectorStore,
     emptyEmbeddings
-} from '@chatluna/core/src/vectorstore'
+} from '@chatluna/core/vectorstore'
 
 chai.use(chaiAsPromised)
 

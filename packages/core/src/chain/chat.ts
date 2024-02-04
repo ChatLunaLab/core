@@ -6,7 +6,7 @@ import {
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
-} from '@chatluna/core/src/chain'
+} from '@chatluna/core/chain'
 import { ChainValues } from '@langchain/core/utils/types'
 import {
     HumanMessagePromptTemplate,
@@ -14,11 +14,11 @@ import {
 } from '@langchain/core/prompts'
 import { AIMessage, SystemMessage } from '@langchain/core/messages'
 import {
-    BufferWindowMemory,
+    BaseChatMemory,
     VectorStoreRetrieverMemory
-} from '@chatluna/core/src/memory'
-import { ChatLunaChatModel } from '@chatluna/core/src/model'
-import { ChatLunaSaveableVectorStore } from '@chatluna/core/src/vectorstore'
+} from '@chatluna/core/memory'
+import { ChatLunaChatModel } from '@chatluna/core/model'
+import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export class ChatLunaChatChain
     extends ChatLunaLLMChainWrapper
@@ -28,7 +28,7 @@ export class ChatLunaChatChain
 
     chain: ChatLunaLLMChain
 
-    historyMemory: BufferWindowMemory
+    historyMemory: BaseChatMemory
 
     prompt: ChatLunaChatPrompt
 
@@ -116,7 +116,7 @@ export class ChatLunaChatChain
         this.prompt.systemPrompts =
             params?.systemPrompts ?? this.prompt.systemPrompts
 
-        requests['chat_history'] = chatHistory[this.historyMemory.memoryKey]
+        requests['chat_history'] = chatHistory[this.historyMemory.memoryKeys[0]]
         requests['long_history'] = longHistory[this.chatMemory.memoryKey]
 
         Object.assign(requests, params)

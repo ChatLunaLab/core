@@ -7,7 +7,7 @@ import { Context } from 'cordis'
 import {
     BaseChatMemory,
     VectorStoreRetrieverMemory
-} from '@chatluna/core/src/memory'
+} from '@chatluna/core/memory'
 import { Runnable, RunnableConfig } from '@langchain/core/runnables'
 import { ChainValues } from '@langchain/core/utils/types'
 

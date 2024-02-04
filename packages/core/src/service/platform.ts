@@ -15,9 +15,9 @@ import {
     PlatformEmbeddingsClient,
     PlatformModelAndEmbeddingsClient,
     PlatformModelClient
-} from '@chatluna/core/src/platform'
-import { ChatLunaLLMChainWrapper } from '@chatluna/core/src/chain'
-import { Option, parseRawModelName } from '@chatluna/core/src/utils'
+} from '@chatluna/core/platform'
+import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
+import { Option, parseRawModelName } from '@chatluna/core/utils'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}

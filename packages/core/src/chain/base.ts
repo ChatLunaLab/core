@@ -3,10 +3,10 @@ import {
     ChatLunaLLMCallArg,
     ChatLunaLLMChain,
     ChatLunaLLMChainWrapperInput
-} from '@chatluna/core/src/chain'
+} from '@chatluna/core/chain'
 import { ChainValues } from '@langchain/core/utils/types'
-import { BaseChatMemory } from '@chatluna/core/src/memory'
-import { ChatLunaChatModel } from '@chatluna/core/src/model'
+import { BaseChatMemory } from '@chatluna/core/memory'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 import { BaseMessageChunk } from '@langchain/core/messages'
 
 export abstract class ChatLunaLLMChainWrapper<

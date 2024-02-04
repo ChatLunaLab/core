@@ -1,9 +1,9 @@
 import { Context } from 'cordis'
-import { ClientConfig, ModelInfo } from '@chatluna/core/src/platform'
+import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
 import {
     ChatHubBaseEmbeddings,
     ChatLunaChatModel
-} from '@chatluna/core/src/model'
+} from '@chatluna/core/model'
 
 export abstract class BasePlatformClient<
     T extends ClientConfig = ClientConfig,

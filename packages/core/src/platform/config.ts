@@ -1,4 +1,4 @@
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/src/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 
 export interface ClientConfig {
     apiKey: string

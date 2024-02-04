@@ -13,8 +13,8 @@ import {
     SystemMessage
 } from '@langchain/core/messages'
 import chaiAsPromised from 'chai-as-promised'
-import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/src/model'
-import { ModelInfo, ModelType } from '@chatluna/core/src/platform'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
+import { ModelInfo, ModelType } from '@chatluna/core/platform'
 import { MockTool } from './mock/mock_tool'
 import { z } from 'zod'
 import { withResolver } from '../src/utils/promise'

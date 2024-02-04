@@ -3,9 +3,9 @@ import {
     EmbeddingsRequestParams,
     ModelRequester,
     ModelRequestParams
-} from '@chatluna/core/src/model'
-import { ModelInfo } from '@chatluna/core/src/platform'
-import { Request } from '@chatluna/core/src/service'
+} from '@chatluna/core/model'
+import { ModelInfo } from '@chatluna/core/platform'
+import { Request } from '@chatluna/core/service'
 import {
     asyncGeneratorTimeout,
     calculateTokens,
@@ -16,7 +16,7 @@ import {
     getModelNameForTiktoken,
     messageTypeToOpenAIRole,
     withResolver
-} from '@chatluna/core/src/utils'
+} from '@chatluna/core/utils'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { Embeddings, EmbeddingsParams } from '@langchain/core/embeddings'
 import {
@@ -623,7 +623,7 @@ export class ChatLunaEmbeddings extends ChatHubBaseEmbeddings {
                         reject(
                             new ChatLunaError(
                                 ChatLunaErrorCode.API_REQUEST_FAILED,
-                                e
+                                e as Error
                             )
                         )
                     }

@@ -1,10 +1,10 @@
 import { VectorStore, VectorStoreRetriever } from '@langchain/core/vectorstores'
 import { EmbeddingsParams } from '@langchain/core/embeddings'
-import { MemoryVectorStore } from '@chatluna/core/src/vectorstore'
+import { MemoryVectorStore } from '@chatluna/core/vectorstore'
 
-import { ScoreThresholdRetriever } from '@chatluna/core/src/retriever'
-import { ChatHubBaseEmbeddings } from '@chatluna/core/src/model'
-import { CreateVectorStoreParams } from '@chatluna/core/src/platform'
+import { ScoreThresholdRetriever } from '@chatluna/core/retriever'
+import { ChatHubBaseEmbeddings } from '@chatluna/core/model'
+import { CreateVectorStoreParams } from '@chatluna/core/platform'
 
 class InMemoryVectorStoreRetrieverProvider {
     async createVectorStoreRetriever(

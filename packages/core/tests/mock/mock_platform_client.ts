@@ -4,12 +4,12 @@ import {
     PlatformEmbeddingsClient,
     PlatformModelAndEmbeddingsClient,
     PlatformModelClient
-} from '@chatluna/core/src/platform'
+} from '@chatluna/core/platform'
 import {
     ChatLunaChatModel,
     ChatHubBaseEmbeddings,
     ChatLunaEmbeddings
-} from '@chatluna/core/src/model'
+} from '@chatluna/core/model'
 import { MockEmbeddingsRequester, MockModelRequester } from './mock_requester'
 
 export class MockPlatformMixClient extends PlatformModelAndEmbeddingsClient {

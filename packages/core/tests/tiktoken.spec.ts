@@ -11,7 +11,7 @@ import {
     calculateMaxTokens,
     parseRawModelName,
     calculateTokens
-} from '@chatluna/core/src/utils'
+} from '@chatluna/core/utils'
 import { waitServiceLoad } from './mock/utils'
 import * as logger from '@cordisjs/logger'
 

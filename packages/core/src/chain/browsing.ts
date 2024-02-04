@@ -17,16 +17,16 @@ import {
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
-} from '@chatluna/core/src/chain'
-import { ChatLunaChatModel } from '@chatluna/core/src/model'
+} from '@chatluna/core/chain'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 import {
     ChatLunaSaveableVectorStore,
     MemoryVectorStore
-} from '@chatluna/core/src/vectorstore'
+} from '@chatluna/core/vectorstore'
 import {
     BufferWindowMemory,
     VectorStoreRetrieverMemory
-} from '@chatluna/core/src/memory'
+} from '@chatluna/core/memory'
 import { VectorStore } from '@langchain/core/vectorstores'
 import { DocumentInterface } from '@langchain/core/documents'
 import { BaseRetrieverInterface } from '@langchain/core/retrievers'

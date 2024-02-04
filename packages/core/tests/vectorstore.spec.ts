@@ -5,7 +5,7 @@ import {
     emptyEmbeddings,
     inMemoryVectorStoreRetrieverProvider,
     MemoryVectorStore
-} from '@chatluna/core/src/vectorstore'
+} from '@chatluna/core/vectorstore'
 import chaiAsPromised from 'chai-as-promised'
 import { MockEmbeddingsRequester } from './mock/mock_requester'
 import { ChatLunaEmbeddings } from '../src/model'

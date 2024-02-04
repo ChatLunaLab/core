@@ -10,7 +10,7 @@ import {
     OpenAIFunctionsAgentOutputParser,
     OpenAIToolsAgentOutputParser,
     ToolsAgentAction
-} from '@chatluna/core/src/agents'
+} from '@chatluna/core/agents'
 import { AgentAction, AgentFinish, AgentStep } from '@langchain/core/agents'
 import {
     ChatPromptTemplate,
@@ -18,13 +18,13 @@ import {
     MessagesPlaceholder
 } from '@langchain/core/prompts'
 import { StructuredTool } from '@langchain/core/tools'
-import { ChatLunaChatModel } from '@chatluna/core/src/model'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 import {
     RunnableLambda,
     RunnablePassthrough,
     RunnableSequence
 } from '@langchain/core/runnables'
-import { SystemPrompts } from '@chatluna/core/src/chain'
+import { SystemPrompts } from '@chatluna/core/chain'
 /**
  * Checks if the given action is a FunctionsAgentAction.
  * @param action The action to check.
@@ -146,5 +146,5 @@ export function createOpenAIAgent({
     return agent
 }
 
-export * from './output_parser'
-export * from './prompt'
+export * from './output_parser.js'
+export * from './prompt.js'

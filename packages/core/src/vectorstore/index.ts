@@ -1,3 +1,3 @@
-export * from './base'
-export * from './in_memory'
-export * from './memory'
+export * from './base.js'
+export * from './in_memory.js'
+export * from './memory.js'

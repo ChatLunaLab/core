@@ -1,5 +1,5 @@
 import { fetch, ProxyAgent } from 'undici'
-import * as fetchType from 'undici/types/fetch'
+import * as fetchType from 'undici/types'
 import { ClientOptions, WebSocket } from 'ws'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
@@ -8,7 +8,7 @@ import { ClientRequestArgs } from 'http'
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import UserAgents from 'user-agents'
 import useragent from 'useragent'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/src/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 import { Context, Service } from 'cordis'
 import { Logger } from '@cordisjs/logger'
 
@@ -61,11 +61,14 @@ export class DefaultRequest implements Request {
             // ???
             return (await fetch(info, init)) as unknown as Response
         } catch (e) {
-            if (e.cause) {
+            if (e instanceof Error && e.cause) {
                 this._logger?.error(e.stack)
             }
 
-            throw new ChatLunaError(ChatLunaErrorCode.NETWORK_ERROR, e)
+            throw new ChatLunaError(
+                ChatLunaErrorCode.NETWORK_ERROR,
+                e as Error | string
+            )
         }
     }
 

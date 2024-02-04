@@ -1,2 +1,2 @@
-export * from './types'
-export * from './openai'
+export * from './types.js'
+export * from './openai/index.js'

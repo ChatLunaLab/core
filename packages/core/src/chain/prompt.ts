@@ -8,9 +8,8 @@ import {
 } from '@langchain/core/prompts'
 import { Document } from '@langchain/core/documents'
 import { PartialValues } from '@langchain/core/utils/types'
-import { messageTypeToOpenAIRole } from '@chatluna/core/src/utils'
-import { ChatLunaChatPromptInput } from '@chatluna/core/src/chain'
-import { SystemPrompts } from './types'
+import { messageTypeToOpenAIRole } from '@chatluna/core/utils'
+import { ChatLunaChatPromptInput, SystemPrompts } from '@chatluna/core/chain'
 
 export class ChatLunaChatPrompt
     extends BaseChatPromptTemplate

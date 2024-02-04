@@ -1,1 +1,1 @@
-export * from './score_threshold'
+export * from './score_threshold.js'

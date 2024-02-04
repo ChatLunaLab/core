@@ -1,6 +1,5 @@
-import { PlatformService, RequestService } from '@chatluna/core/src/service'
-import { ChatLunaChainInfo } from '@chatluna/core/src/platform'
-import { BasePlatformClient } from '../platform/client'
+import { PlatformService, RequestService } from '@chatluna/core/service'
+import { BasePlatformClient, ChatLunaChainInfo } from '@chatluna/core/platform'
 
 declare module 'cordis' {
     interface Context {

@@ -8,7 +8,7 @@ import {
 import {
     ChatCompletionMessageFunctionCall,
     ChatCompletionMessageToolCall
-} from '@chatluna/core/src/agents'
+} from '@chatluna/core/agents'
 
 /**
  * Type that represents an agent action with an optional message log.

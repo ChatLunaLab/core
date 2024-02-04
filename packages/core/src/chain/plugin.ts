@@ -4,15 +4,15 @@ import {
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
-} from '@chatluna/core/src/chain'
-import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/src/model'
-import { ChatLunaTool } from '@chatluna/core/src/platform'
+} from '@chatluna/core/chain'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
+import { ChatLunaTool } from '@chatluna/core/platform'
 import { StructuredTool } from '@langchain/core/tools'
 import { ChainValues } from '@langchain/core/utils/types'
-import { createOpenAIAgent } from '@chatluna/core/src/agents'
+import { createOpenAIAgent } from '@chatluna/core/agents'
 import { Runnable, RunnableSequence } from '@langchain/core/runnables'
 import { AgentAction, AgentFinish, AgentStep } from '@langchain/core/agents'
-import { BaseChatMemory, BufferWindowMemory } from '@chatluna/core/src/memory'
+import { BaseChatMemory, BufferWindowMemory } from '@chatluna/core/memory'
 
 export interface ChatLunaPluginChainInput extends ChatLunaLLMChainWrapperInput {
     systemPrompts?: SystemPrompts

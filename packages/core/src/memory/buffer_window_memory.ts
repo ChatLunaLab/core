@@ -1,6 +1,6 @@
 import { InputValues, MemoryVariables } from '@langchain/core/memory'
 import { getBufferString } from '@langchain/core/messages'
-import { BaseChatMemory, BaseChatMemoryInput } from '@chatluna/core/src/memory'
+import { BaseChatMemory, BaseChatMemoryInput } from '@chatluna/core/memory'
 
 /**
  * Interface for the input parameters of the BufferWindowMemory class.
