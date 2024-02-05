@@ -10,7 +10,10 @@ import {
     ChatHubBaseEmbeddings,
     ChatLunaEmbeddings
 } from '@chatluna/core/model'
-import { MockEmbeddingsRequester, MockModelRequester } from './mock_requester'
+import {
+    MockEmbeddingsRequester,
+    MockModelRequester
+} from './mock_requester.ts'
 
 export class MockPlatformMixClient extends PlatformModelAndEmbeddingsClient {
     initError?: Error

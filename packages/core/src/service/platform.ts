@@ -1,4 +1,4 @@
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@cordisjs/core'
 import {
     BasePlatformClient,
     ChatLunaChainInfo,

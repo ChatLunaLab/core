@@ -1,5 +1,5 @@
 import chai, { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it } from 'node:test'
 import {
     ChatLunaSaveableVectorStore,
     emptyEmbeddings,
@@ -7,8 +7,8 @@ import {
     MemoryVectorStore
 } from '@chatluna/core/vectorstore'
 import chaiAsPromised from 'chai-as-promised'
-import { MockEmbeddingsRequester } from './mock/mock_requester'
-import { ChatLunaEmbeddings } from '../src/model'
+import { MockEmbeddingsRequester } from './mock/mock_requester.ts'
+import { ChatLunaEmbeddings } from '@chatluna/core/model'
 import fs from 'fs/promises'
 
 chai.use(chaiAsPromised)

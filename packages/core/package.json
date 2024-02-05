@@ -94,9 +94,9 @@
         "chatluna"
     ],
     "dependencies": {
-        "@cordisjs/logger": "^0.1.4",
+        "@cordisjs/core": "^3.8.4",
+        "@cordisjs/logger": "^0.2.0",
         "@langchain/core": "^0.1.22",
-        "cordis": "^3.7.1",
         "fetch-socks": "^1.2.0",
         "https-proxy-agent": "^7.0.2",
         "js-tiktoken": "^1.0.10",

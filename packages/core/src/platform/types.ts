@@ -1,20 +1,14 @@
-import {
-    ChatHubBaseEmbeddings,
-    ChatLunaChatModel
-} from '@chatluna/core/model'
+import { ChatHubBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { VectorStore } from '@langchain/core/vectorstores'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage } from '@langchain/core/messages'
-import {
-    ChatLunaLLMChainWrapper,
-    SystemPrompts
-} from '@chatluna/core/chain'
+import { ChatLunaLLMChainWrapper, SystemPrompts } from '@chatluna/core/chain'
 import { BasePlatformClient, ClientConfig } from '@chatluna/core/platform'
 import {
     BufferWindowMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/memory'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 
 export interface ChatLunaChainInfo {
     name: string

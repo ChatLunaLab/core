@@ -1,11 +1,11 @@
 import { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it } from 'node:test'
 import {
     formatPresetTemplate,
     formatPresetTemplateString,
     loadPreset
-} from '@chatluna/core/src/preset'
-import { PresetTemplate } from '../src/preset/types'
+} from '@chatluna/core/preset'
+import { PresetTemplate } from '@chatluna/core/preset'
 import {
     AIMessage,
     HumanMessage,
@@ -14,7 +14,7 @@ import {
 
 should()
 
-describe('Format Preset', () => {
+describe('Format Preset', { concurrency: true }, () => {
     it('should format string', async () => {
         const string1 = 'test {format} to {format2}'
 
@@ -48,7 +48,7 @@ describe('Format Preset', () => {
     })
 })
 
-describe('Load Preset', () => {
+describe('Load Preset', { concurrency: true }, () => {
     it('should load yaml preset', async () => {
         const rawText = `
 keywords:

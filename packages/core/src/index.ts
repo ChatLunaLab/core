@@ -1,4 +1,4 @@
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import { PlatformService, RequestService } from '@chatluna/core/service'
 
 /**

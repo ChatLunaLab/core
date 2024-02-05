@@ -1,8 +1,8 @@
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import chai, { expect, should } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { describe, it } from 'mocha'
-import { loadChatLunaCore } from '@chatluna/core/src'
+import { describe, it, before, after } from 'node:test'
+import { loadChatLunaCore } from '@chatluna/core'
 import {
     encodingForModel,
     getModelNameForTiktoken,
@@ -12,7 +12,7 @@ import {
     parseRawModelName,
     calculateTokens
 } from '@chatluna/core/utils'
-import { waitServiceLoad } from './mock/utils'
+import { runAsync, waitServiceLoad } from './mock/utils.ts'
 import * as logger from '@cordisjs/logger'
 
 import os from 'os'
@@ -24,9 +24,7 @@ chai.use(chaiAsPromised)
 should()
 
 describe('Tiktoken', () => {
-    it('get tiktoken BPE', async function () {
-        this.timeout(1000 * 30)
-
+    it('get tiktoken BPE', { timeout: 5000 }, async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         let encoding = await encodingForModel('text-davinci-003', {
@@ -43,9 +41,7 @@ describe('Tiktoken', () => {
         encoding.encode('Hello World！').should.length(3)
     })
 
-    it('get tiktoken BPE with timeout', async function () {
-        this.timeout(1000)
-
+    it('get tiktoken BPE with timeout', { timeout: 10000 }, async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         try {
@@ -146,9 +142,7 @@ describe('Count Token', () => {
         getEmbeddingContextSize('text-embedding-ada-001').should.equal(2046)
     })
 
-    it('get prompt tokens', async function () {
-        this.timeout(1000 * 30)
-
+    it('get prompt tokens', { timeout: 10000 }, async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         await setProxyAddress()
@@ -199,9 +193,7 @@ describe('Count Token', () => {
         ).to.equal(6)
     })
 
-    it('get prompt tokens with error', async function () {
-        this.timeout(1000 * 30)
-
+    it('get prompt tokens with error', { timeout: 10000 }, async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         app.chatluna_request.root.proxyAddress =
@@ -265,18 +257,25 @@ describe('Parse chatluna platform model', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
     loadChatLunaCore(app)
 
     await setProxyAddress()
 })
 
-before(async () => {
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await app.start()
+        done()
+    })
 })
 
-after(async () => {
-    await app.stop()
+after((_, done) => {
+    runAsync(async () => {
+        await app.stop()
+        done()
+    })
 })
 
 async function setProxyAddress() {

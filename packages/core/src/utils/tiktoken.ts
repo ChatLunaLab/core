@@ -1,4 +1,4 @@
-import type { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     getEncodingNameForModel,
     Tiktoken,

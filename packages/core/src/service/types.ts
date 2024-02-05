@@ -1,7 +1,6 @@
 import { PlatformService, RequestService } from '@chatluna/core/service'
 import { BasePlatformClient, ChatLunaChainInfo } from '@chatluna/core/platform'
-
-declare module 'cordis' {
+declare module '@cordisjs/core' {
     interface Context {
         chatluna_request: RequestService
         chatluna_platform: PlatformService

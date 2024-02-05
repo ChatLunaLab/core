@@ -1,19 +1,17 @@
 import chai, { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it, before, after } from 'node:test'
 import * as logger from '@cordisjs/logger'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import chaiAsPromised from 'chai-as-promised'
 import { ClientConfigPool } from '@chatluna/core/platform'
-import { MockTool } from './mock/mock_tool'
+import { MockTool } from './mock/mock_tool.ts'
 import { z } from 'zod'
-import { loadChatLunaCore } from '@chatluna/core/src'
-import { loadPlugin, waitServiceLoad } from './mock/utils'
+import { loadChatLunaCore } from '@chatluna/core'
+import { loadPlugin, runAsync, waitServiceLoad } from './mock/utils.ts'
 import os from 'os'
-import { MockPlatformMixClient } from './mock/mock_platform_client'
-import {
-    MemoryVectorStore,
-    emptyEmbeddings
-} from '@chatluna/core/vectorstore'
+import { MockPlatformMixClient } from './mock/mock_platform_client.ts'
+import { MemoryVectorStore, emptyEmbeddings } from '@chatluna/core/vectorstore'
+import {} from '@chatluna/core/service'
 
 chai.use(chaiAsPromised)
 
@@ -145,18 +143,25 @@ describe('Platform Service', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
     loadChatLunaCore(app)
 
     await setProxyAddress()
 })
 
-before(async () => {
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await app.start()
+        done()
+    })
 })
 
-after(async () => {
-    await app.stop()
+after((_, done) => {
+    runAsync(async () => {
+        await app.stop()
+        done()
+    })
 })
 
 async function setProxyAddress() {

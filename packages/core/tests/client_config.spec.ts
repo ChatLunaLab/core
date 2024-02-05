@@ -1,11 +1,11 @@
 import { expect } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it } from 'node:test'
 import {
     MockEmbeddingsRequester,
     MockModelRequester
-} from './mock/mock_requester'
+} from './mock/mock_requester.ts'
 import { HumanMessage } from '@langchain/core/messages'
-import { ClientConfigPool, ClientConfigPoolMode } from '../src/platform/config'
+import { ClientConfigPool, ClientConfigPoolMode } from '@chatluna/core/platform'
 
 describe('Client Config', () => {
     it('get with random mode', async () => {

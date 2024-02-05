@@ -1,2 +1,2 @@
-export * from './requester.js'
-export * from './base.js'
+export * from './requester.ts'
+export * from './base.ts'

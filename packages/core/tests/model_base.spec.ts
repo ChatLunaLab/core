@@ -1,11 +1,11 @@
 import chai, { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it, before, after } from 'node:test'
 import * as logger from '@cordisjs/logger'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     MockEmbeddingsRequester,
     MockModelRequester
-} from './mock/mock_requester'
+} from './mock/mock_requester.ts'
 import {
     AIMessage,
     FunctionMessage,
@@ -13,15 +13,18 @@ import {
     SystemMessage
 } from '@langchain/core/messages'
 import chaiAsPromised from 'chai-as-promised'
-import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/src/model'
-import { ModelType } from '@chatluna/core/src/platform'
-import { MockTool } from './mock/mock_tool'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
+import { ModelType } from '@chatluna/core/platform'
+import { MockTool } from './mock/mock_tool.ts'
 import { z } from 'zod'
-import { withResolver } from '../src/utils/promise'
-import { ChatLunaError, ChatLunaErrorCode } from '../src/utils'
-import { loadChatLunaCore } from '@chatluna/core/src'
-import {} from '@chatluna/core/src/service'
-import { waitServiceLoad } from './mock/utils'
+import {
+    withResolver,
+    ChatLunaError,
+    ChatLunaErrorCode
+} from '@chatluna/core/utils'
+import { loadChatLunaCore } from '@chatluna/core'
+import {} from '@chatluna/core/service'
+import { runAsync, waitServiceLoad } from './mock/utils.ts'
 import os from 'os'
 
 chai.use(chaiAsPromised)
@@ -32,10 +35,8 @@ const app = new Context()
 
 should()
 
-describe('ChatLuna Base LLM Model', () => {
+describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
     it('request model', async function () {
-        this.timeout(10000)
-
         await waitServiceLoad(app, ['chatluna_request'])
 
         const requester = new MockModelRequester(app)
@@ -60,8 +61,6 @@ describe('ChatLuna Base LLM Model', () => {
     })
 
     it('request model with stream', async function () {
-        this.timeout(5000)
-
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -93,9 +92,7 @@ describe('ChatLuna Base LLM Model', () => {
         ).to.be.have.property('content', '我好！')
     })
 
-    it('request model with tool', async function () {
-        this.timeout(5000)
-
+    it('request model with tool', { timeout: 5000 }, async function () {
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -157,9 +154,7 @@ describe('ChatLuna Base LLM Model', () => {
         }
     })
 
-    it('get model info', async function () {
-        this.timeout(5000)
-
+    it('get model info', { timeout: 5000 }, async function () {
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -229,9 +224,7 @@ describe('ChatLuna Base LLM Model', () => {
         await model.clearContext()
     })
 
-    it('max token and auto crop prompt', async function () {
-        this.timeout(5000)
-
+    it('max token and auto crop prompt', { timeout: 5000 }, async function () {
         await waitServiceLoad(app, ['chatluna_request'])
 
         const requester = new MockModelRequester(app)
@@ -265,9 +258,7 @@ describe('ChatLuna Base LLM Model', () => {
         }
     })
 
-    it('error catching', async function () {
-        this.timeout(1000 * 30)
-
+    it('error catching', { timeout: 5000 }, async function () {
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -361,7 +352,7 @@ describe('ChatLuna Base LLM Model', () => {
     })
 })
 
-describe('ChatLuna Base Embeddings', () => {
+describe('ChatLuna Base Embeddings', { concurrency: true }, () => {
     it('base request', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
@@ -479,18 +470,25 @@ describe('ChatLuna Base Embeddings', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
     loadChatLunaCore(app)
 
     await setProxyAddress()
 })
 
-before(async () => {
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await app.start()
+        done()
+    })
 })
 
-after(async () => {
-    await app.stop()
+after((_, done) => {
+    runAsync(async () => {
+        await app.stop()
+        done()
+    })
 })
 
 async function setProxyAddress() {

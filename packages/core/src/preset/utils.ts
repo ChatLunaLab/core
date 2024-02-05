@@ -1,5 +1,5 @@
 import { BaseMessage } from '@langchain/core/messages'
-import { PresetTemplate } from './types.js'
+import { PresetTemplate } from    './types.ts'
 
 export function formatPresetTemplate(
     presetTemplate: PresetTemplate,

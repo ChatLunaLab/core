@@ -1,3 +1,3 @@
-export * from './base.js'
-export * from './in_memory.js'
-export * from './memory.js'
+export * from    './base.ts'
+export * from    './in_memory.ts'
+export * from    './memory.ts'

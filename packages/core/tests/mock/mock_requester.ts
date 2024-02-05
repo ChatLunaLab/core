@@ -1,5 +1,5 @@
 import { Logger } from '@cordisjs/logger'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     ChatLunaEmbeddings,
     EmbeddingsRequestParams,
@@ -9,11 +9,7 @@ import {
 } from '@chatluna/core/model'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { AIMessageChunk } from '@langchain/core/messages'
-import {
-    ChatLunaError,
-    ChatLunaErrorCode,
-    sleep
-} from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/utils'
 import { ClientConfig } from '@chatluna/core/platform'
 
 export class MockModelRequester extends ModelRequester {
@@ -53,7 +49,7 @@ export class MockModelRequester extends ModelRequester {
         }
 
         if (this.returnNull) {
-            yield undefined
+            yield undefined as any
             return
         }
 
@@ -123,7 +119,7 @@ export class MockEmbeddingsRequester implements EmbeddingsRequester {
         }
 
         if (this.returnNull) {
-            return null
+            return null as any
         }
 
         if (this.throwError) {

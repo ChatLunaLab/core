@@ -146,5 +146,5 @@ export function createOpenAIAgent({
     return agent
 }
 
-export * from './output_parser.js'
-export * from './prompt.js'
+export * from    './output_parser.ts'
+export * from    './prompt.ts'

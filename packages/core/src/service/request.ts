@@ -9,7 +9,7 @@ import { ClientRequestArgs } from 'http'
 import UserAgents from 'user-agents'
 import useragent from 'useragent'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@cordisjs/core'
 import { Logger } from '@cordisjs/logger'
 
 export class DefaultRequest implements Request {

@@ -1,17 +1,17 @@
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import chai, { expect, should } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { describe, it } from 'mocha'
-import { loadChatLunaCore } from '@chatluna/core/src'
+import { describe, it, before, after } from 'node:test'
+import { loadChatLunaCore } from '@chatluna/core'
 import { IncomingMessage, Server, ServerResponse, createServer } from 'http'
 import { ProxyServer, createProxy } from 'proxy'
 import { withResolver } from '@chatluna/core/utils'
-import { waitServiceLoad } from './mock/utils'
+import { runAsync, waitServiceLoad } from './mock/utils.ts'
 import * as logger from '@cordisjs/logger'
 import net from 'net'
-import { buildSock5Proxy } from './mock/mock_sock'
+import { buildSock5Proxy } from './mock/mock_sock.ts'
 import { WebSocket } from 'ws'
-import { createProxyAgentForFetch } from '../src/service'
+import { createProxyAgentForFetch } from '@chatluna/core/service'
 
 const app = new Context()
 
@@ -169,22 +169,29 @@ describe('Other in request', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
     loadChatLunaCore(app)
 })
 
-before(async () => {
-    await readyMockResource()
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await readyMockResource()
+        await app.start()
+        done()
+    })
 })
 
-after(async () => {
-    await app.stop()
+after((_, done) => {
+    runAsync(async () => {
+        await app.stop()
 
-    httpServer?.close()
-    proxyServer?.close()
-    socket5ProxyServer?.close()
-    webSocketServer?.close()
+        httpServer?.close()
+        proxyServer?.close()
+        socket5ProxyServer?.close()
+        webSocketServer?.close()
+        done()
+    })
 })
 
 let httpServer: Server<typeof IncomingMessage, typeof ServerResponse>

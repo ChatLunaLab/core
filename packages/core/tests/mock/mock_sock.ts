@@ -1,5 +1,5 @@
 import net, { AddressInfo } from 'net'
-import { withResolver } from '../../src/utils'
+import { withResolver } from '@chatluna/core/utils'
 
 export function buildSock5Proxy() {
     const { promise, resolve } = withResolver<net.Server>()

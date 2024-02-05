@@ -1,5 +1,5 @@
-import { Context } from 'cordis'
-import { withResolver } from '../../src/utils'
+import { Context } from '@cordisjs/core'
+import { withResolver } from '@chatluna/core/utils'
 
 export function waitServiceLoad(ctx: Context, deps: string[]) {
     const { promise, resolve } = withResolver()
@@ -38,7 +38,7 @@ export function loadPlugin(
 
     setTimeout(() => {
         fork.start()
-    }, 1)
+    }, 0)
 
     return promise
 }
@@ -48,4 +48,8 @@ export async function checkError(ctx: Context) {
     ctx.registry.forEach((scope) => {
         if (scope.error) throw scope.error
     })
+}
+
+export function runAsync(t: () => Promise<void>) {
+    t()
 }

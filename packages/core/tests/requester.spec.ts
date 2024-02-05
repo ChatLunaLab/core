@@ -1,13 +1,14 @@
 import chai, { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it, before, after } from 'node:test'
 import * as logger from '@cordisjs/logger'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     MockEmbeddingsRequester,
     MockModelRequester
-} from './mock/mock_requester'
+} from './mock/mock_requester.ts'
 import { HumanMessage } from '@langchain/core/messages'
 import chaiAsPromised from 'chai-as-promised'
+import { runAsync } from './mock/utils.ts'
 
 chai.use(chaiAsPromised)
 
@@ -17,7 +18,7 @@ const app = new Context()
 
 should()
 
-describe('Requester', () => {
+describe('Requester', { concurrency: true }, () => {
     it('request model streams', async () => {
         const requester = new MockModelRequester(app)
 
@@ -93,13 +94,20 @@ describe('Requester', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
 })
 
-before(async () => {
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await app.start()
+        done()
+    })
 })
 
-after(async () => {
-    await app.stop()
+after((_, done) => {
+    runAsync(async () => {
+        await app.stop()
+        done()
+    })
 })

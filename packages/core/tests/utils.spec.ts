@@ -1,5 +1,5 @@
 import { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it } from 'node:test'
 import {
     ChatLunaError,
     ChatLunaErrorCode,
@@ -7,7 +7,7 @@ import {
     messageTypeToOpenAIRole,
     chunkArray,
     sleep
-} from '@chatluna/core/src/utils'
+} from '@chatluna/core/utils'
 
 should()
 

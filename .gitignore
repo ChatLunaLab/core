@@ -27,3 +27,4 @@ packages/*/lib
 .yarn/install-state.gz
 
 coverage
+test/

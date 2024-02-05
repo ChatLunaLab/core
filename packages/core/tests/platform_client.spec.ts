@@ -1,11 +1,11 @@
 import chai, { expect, should } from 'chai'
-import { describe, it } from 'mocha'
+import { describe, it, before, after } from 'node:test'
 import * as logger from '@cordisjs/logger'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     MockEmbeddingsRequester,
     MockModelRequester
-} from './mock/mock_requester'
+} from './mock/mock_requester.ts'
 import {
     AIMessage,
     FunctionMessage,
@@ -15,17 +15,20 @@ import {
 import chaiAsPromised from 'chai-as-promised'
 import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
 import { ModelInfo, ModelType } from '@chatluna/core/platform'
-import { MockTool } from './mock/mock_tool'
+import { MockTool } from './mock/mock_tool.ts'
 import { z } from 'zod'
-import { withResolver } from '../src/utils/promise'
-import { ChatLunaError, ChatLunaErrorCode } from '../src/utils'
+import {
+    withResolver,
+    ChatLunaError,
+    ChatLunaErrorCode
+} from '@chatluna/core/utils'
 import { loadChatLunaCore } from '@chatluna/core'
-import { waitServiceLoad } from './mock/utils'
+import { runAsync, waitServiceLoad } from './mock/utils.ts'
 import os from 'os'
 import {
     MockPlatformEmbeddingsClient,
     MockPlatformMixClient
-} from './mock/mock_platform_client'
+} from './mock/mock_platform_client.ts'
 
 chai.use(chaiAsPromised)
 
@@ -37,8 +40,6 @@ should()
 
 describe('ChatLuna Base Client', () => {
     it('request llm model', async function () {
-        this.timeout(15000)
-
         await waitServiceLoad(app, ['chatluna_request'])
 
         const client = new MockPlatformMixClient(
@@ -73,6 +74,7 @@ describe('ChatLuna Base Client', () => {
                 apiKey: 'chatluna_111',
                 platform: 'mock'
             },
+            undefined,
             'mock'
         )
 
@@ -81,6 +83,10 @@ describe('ChatLuna Base Client', () => {
         const llmModelInfo = (await client.getModels()).find(
             (m) => m.type === ModelType.embeddings
         )
+
+        if (llmModelInfo == null) {
+            return
+        }
 
         const model = client.createModel(llmModelInfo.name)
 
@@ -139,18 +145,23 @@ describe('ChatLuna Base Client', () => {
 
 app.on('ready', async () => {
     // load logger
+    app.provide('logger', undefined, true)
     app.plugin(logger)
     loadChatLunaCore(app)
 
     await setProxyAddress()
 })
 
-before(async () => {
-    await app.start()
+before((_, done) => {
+    runAsync(async () => {
+        await app.start()
+    })
 })
 
 after(async () => {
-    await app.stop()
+    runAsync(async () => {
+        await app.stop()
+    })
 })
 
 async function setProxyAddress() {

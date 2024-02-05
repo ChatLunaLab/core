@@ -3,7 +3,7 @@ import {
     BaseMessageChunk,
     HumanMessage
 } from '@langchain/core/messages'
-import { Context } from 'cordis'
+import { Context } from '@cordisjs/core'
 import {
     BaseChatMemory,
     VectorStoreRetrieverMemory
