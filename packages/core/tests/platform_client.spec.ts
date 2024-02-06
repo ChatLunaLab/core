@@ -1,5 +1,6 @@
-import chai, { expect, should } from 'chai'
-import { describe, it, before, after } from 'node:test'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
+import { describe, it, before, after } from 'mocha'
 import * as logger from '@cordisjs/logger'
 import { Context } from '@cordisjs/core'
 import {
@@ -152,16 +153,12 @@ app.on('ready', async () => {
     await setProxyAddress()
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await app.start()
-    })
+before(async () => {
+    await app.start()
 })
 
 after(async () => {
-    runAsync(async () => {
-        await app.stop()
-    })
+    await app.stop()
 })
 
 async function setProxyAddress() {

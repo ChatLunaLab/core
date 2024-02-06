@@ -1,5 +1,5 @@
 import { expect, should } from 'chai'
-import { describe, it } from 'node:test'
+import { describe, it } from 'mocha'
 import {
     formatPresetTemplate,
     formatPresetTemplateString,
@@ -14,7 +14,7 @@ import {
 
 should()
 
-describe('Format Preset', { concurrency: true }, () => {
+describe('Format Preset', () => {
     it('should format string', async () => {
         const string1 = 'test {format} to {format2}'
 
@@ -48,7 +48,7 @@ describe('Format Preset', { concurrency: true }, () => {
     })
 })
 
-describe('Load Preset', { concurrency: true }, () => {
+describe('Load Preset', () => {
     it('should load yaml preset', async () => {
         const rawText = `
 keywords:

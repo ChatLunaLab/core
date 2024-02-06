@@ -1,7 +1,8 @@
-import chai, { expect, should } from 'chai'
-import { describe, it, before, after } from 'node:test'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
+import { describe, it, before, after } from 'mocha'
 import * as logger from '@cordisjs/logger'
-import { Context } from '@cordisjs/core'
+import { Context, ScopeStatus } from '@cordisjs/core'
 import chaiAsPromised from 'chai-as-promised'
 import { ClientConfigPool } from '@chatluna/core/platform'
 import { MockTool } from './mock/mock_tool.ts'
@@ -150,18 +151,15 @@ app.on('ready', async () => {
     await setProxyAddress()
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await app.start()
-        done()
+before(async () => {
+    await app.start()
+    app.on('internal/error', (format: any, ...param: any[]) => {
+        console.log(format, ...param)
     })
 })
 
-after((_, done) => {
-    runAsync(async () => {
-        await app.stop()
-        done()
-    })
+after(async () => {
+    await app.stop()
 })
 
 async function setProxyAddress() {

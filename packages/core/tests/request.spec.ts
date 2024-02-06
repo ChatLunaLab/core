@@ -1,7 +1,8 @@
 import { Context } from '@cordisjs/core'
-import chai, { expect, should } from 'chai'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after } from 'mocha'
 import { loadChatLunaCore } from '@chatluna/core'
 import { IncomingMessage, Server, ServerResponse, createServer } from 'http'
 import { ProxyServer, createProxy } from 'proxy'
@@ -174,24 +175,18 @@ app.on('ready', async () => {
     loadChatLunaCore(app)
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await readyMockResource()
-        await app.start()
-        done()
-    })
+before(async () => {
+    await readyMockResource()
+    await app.start()
 })
 
-after((_, done) => {
-    runAsync(async () => {
-        await app.stop()
+after(async () => {
+    await app.stop()
 
-        httpServer?.close()
-        proxyServer?.close()
-        socket5ProxyServer?.close()
-        webSocketServer?.close()
-        done()
-    })
+    httpServer?.close()
+    proxyServer?.close()
+    socket5ProxyServer?.close()
+    webSocketServer?.close()
 })
 
 let httpServer: Server<typeof IncomingMessage, typeof ServerResponse>

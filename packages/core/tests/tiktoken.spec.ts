@@ -1,7 +1,8 @@
 import { Context } from '@cordisjs/core'
-import chai, { expect, should } from 'chai'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after } from 'mocha'
 import { loadChatLunaCore } from '@chatluna/core'
 import {
     encodingForModel,
@@ -24,7 +25,9 @@ chai.use(chaiAsPromised)
 should()
 
 describe('Tiktoken', () => {
-    it('get tiktoken BPE', { timeout: 5000 }, async function () {
+    it('get tiktoken BPE', async function () {
+        this.timeout(5000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         let encoding = await encodingForModel('text-davinci-003', {
@@ -41,7 +44,9 @@ describe('Tiktoken', () => {
         encoding.encode('Hello World！').should.length(3)
     })
 
-    it('get tiktoken BPE with timeout', { timeout: 10000 }, async function () {
+    it('get tiktoken BPE with timeout', async function () {
+        this.timeout(5000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         try {
@@ -142,7 +147,9 @@ describe('Count Token', () => {
         getEmbeddingContextSize('text-embedding-ada-001').should.equal(2046)
     })
 
-    it('get prompt tokens', { timeout: 10000 }, async function () {
+    it('get prompt tokens', async function () {
+        this.timeout(10000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         await setProxyAddress()
@@ -193,7 +200,9 @@ describe('Count Token', () => {
         ).to.equal(6)
     })
 
-    it('get prompt tokens with error', { timeout: 10000 }, async function () {
+    it('get prompt tokens with error', async function () {
+        this.timeout(10000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         app.chatluna_request.root.proxyAddress =
@@ -264,18 +273,12 @@ app.on('ready', async () => {
     await setProxyAddress()
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await app.start()
-        done()
-    })
+before(async () => {
+    await app.start()
 })
 
-after((_, done) => {
-    runAsync(async () => {
-        await app.stop()
-        done()
-    })
+after(async () => {
+    await app.stop()
 })
 
 async function setProxyAddress() {

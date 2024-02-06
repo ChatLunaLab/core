@@ -54,9 +54,11 @@ export class PlatformService extends Service {
             this._configPools[platform] = new ClientConfigPool()
         }
 
-        const disposable = () => this._unregisterClient(platform)
+        const current = this[Context.current]
 
-        return this[Context.current].effect(() => disposable)
+        return current.effect(() => () => {
+            this._unregisterClient(platform)
+        })
     }
 
     registerConfigs(
@@ -80,6 +82,10 @@ export class PlatformService extends Service {
             throw new Error(`Config pool ${platform} already exists`)
         }
         this._configPools[platform] = configPool
+
+        const disposable = () => this._unregisterConfigPool(platform)
+
+        return this[Context.current].effect(() => disposable)
     }
 
     registerTool(name: string, toolCreator: ChatLunaTool) {
@@ -89,6 +95,10 @@ export class PlatformService extends Service {
         const disposable = () => this._unregisterTool(name)
 
         return this[Context.current].effect(() => disposable)
+    }
+
+    private _unregisterConfigPool(platform: string) {
+        delete this._configPools[platform]
     }
 
     private _unregisterTool(name: string) {

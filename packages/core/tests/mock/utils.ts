@@ -1,5 +1,6 @@
-import { Context } from '@cordisjs/core'
+import { Context, ForkScope, ScopeStatus } from '@cordisjs/core'
 import { withResolver } from '@chatluna/core/utils'
+import { cosine } from 'ml-distance/lib/similarities.js'
 
 export function waitServiceLoad(ctx: Context, deps: string[]) {
     const { promise, resolve } = withResolver()
@@ -14,11 +15,13 @@ export function waitServiceLoad(ctx: Context, deps: string[]) {
 export function loadPlugin(
     ctx: Context,
     plugin: (ctx: Context) => Promise<void>,
-    timeout: number = 100
-): Promise<void> {
-    const { resolve, reject, promise } = withResolver<void>()
+    timeout: number = 10
+): Promise<ForkScope> {
+    const { resolve, reject, promise } = withResolver<ForkScope>()
 
-    const fork = ctx.plugin({
+    let fork: ForkScope
+
+    fork = ctx.plugin({
         apply: (pluginCtx) => {
             pluginCtx.on('ready', async () => {
                 try {
@@ -29,16 +32,18 @@ export function loadPlugin(
 
                 setTimeout(() => {
                     fork.dispose()
-                    resolve()
+
+                    resolve(fork)
                 }, timeout)
             })
         },
-        inject: ['chatluna_request', 'chatluna_platform']
+        name: 'chatluna_fork',
+        inject: ['chatluna_request', 'chatluna_platform', 'logger']
     })
 
     setTimeout(() => {
         fork.start()
-    }, 0)
+    }, 1)
 
     return promise
 }

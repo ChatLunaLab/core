@@ -1,5 +1,6 @@
-import chai, { expect, should } from 'chai'
-import { describe, it, before, after } from 'node:test'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
+import { describe, it, before, after } from 'mocha'
 import * as logger from '@cordisjs/logger'
 import { Context } from '@cordisjs/core'
 import {
@@ -35,8 +36,10 @@ const app = new Context()
 
 should()
 
-describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
+describe('ChatLuna Base LLM Model', () => {
     it('request model', async function () {
+        this.timeout(5000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         const requester = new MockModelRequester(app)
@@ -92,7 +95,8 @@ describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
         ).to.be.have.property('content', '我好！')
     })
 
-    it('request model with tool', { timeout: 5000 }, async function () {
+    it('request model with tool', async function () {
+        this.timeout(5000)
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -154,7 +158,9 @@ describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
         }
     })
 
-    it('get model info', { timeout: 5000 }, async function () {
+    it('get model info', async function () {
+        this.timeout(5000)
+
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -224,7 +230,9 @@ describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
         await model.clearContext()
     })
 
-    it('max token and auto crop prompt', { timeout: 5000 }, async function () {
+    it('max token and auto crop prompt', async function () {
+        this.timeout(5000)
+
         await waitServiceLoad(app, ['chatluna_request'])
 
         const requester = new MockModelRequester(app)
@@ -258,7 +266,9 @@ describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
         }
     })
 
-    it('error catching', { timeout: 5000 }, async function () {
+    it('error catching', async function () {
+        this.timeout(5000)
+
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])
@@ -352,7 +362,7 @@ describe('ChatLuna Base LLM Model', { concurrency: true }, () => {
     })
 })
 
-describe('ChatLuna Base Embeddings', { concurrency: true }, () => {
+describe('ChatLuna Base Embeddings', () => {
     it('base request', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
@@ -477,18 +487,12 @@ app.on('ready', async () => {
     await setProxyAddress()
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await app.start()
-        done()
-    })
+before(async () => {
+    await app.start()
 })
 
-after((_, done) => {
-    runAsync(async () => {
-        await app.stop()
-        done()
-    })
+after(async () => {
+    await app.stop()
 })
 
 async function setProxyAddress() {

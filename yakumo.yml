@@ -7,3 +7,4 @@
 
 - name: yakumo-esbuild
 - name: yakumo-tsc
+- name: yakumo-mocha

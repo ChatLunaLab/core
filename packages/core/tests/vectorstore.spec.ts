@@ -1,5 +1,6 @@
-import chai, { expect, should } from 'chai'
-import { describe, it } from 'node:test'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
+import { describe, it } from 'mocha'
 import {
     ChatLunaSaveableVectorStore,
     emptyEmbeddings,

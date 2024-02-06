@@ -1,5 +1,6 @@
-import chai, { expect, should } from 'chai'
-import { describe, it, before, after } from 'node:test'
+import { expect, should } from 'chai'
+import * as chai from 'chai'
+import { describe, it, before, after } from 'mocha'
 import * as logger from '@cordisjs/logger'
 import { Context } from '@cordisjs/core'
 import {
@@ -18,7 +19,7 @@ const app = new Context()
 
 should()
 
-describe('Requester', { concurrency: true }, () => {
+describe('Requester', () => {
     it('request model streams', async () => {
         const requester = new MockModelRequester(app)
 
@@ -98,16 +99,10 @@ app.on('ready', async () => {
     app.plugin(logger)
 })
 
-before((_, done) => {
-    runAsync(async () => {
-        await app.start()
-        done()
-    })
+before(async () => {
+    await app.start()
 })
 
-after((_, done) => {
-    runAsync(async () => {
-        await app.stop()
-        done()
-    })
+after(async () => {
+    await app.stop()
 })
