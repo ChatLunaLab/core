@@ -124,6 +124,8 @@ describe('Memory Vector Store', () => {
             mockEmbedding
         )
 
+        await fs.rm('./test/vector_store', { recursive: true })
+
         expect((await memoryVectorStore.similaritySearch('he'))[0]).to.property(
             'pageContent',
             'hello'

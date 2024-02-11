@@ -4,15 +4,16 @@ import { describe, it, before, after } from 'mocha'
 import * as logger from '@cordisjs/logger'
 import { Context, ScopeStatus } from '@cordisjs/core'
 import chaiAsPromised from 'chai-as-promised'
-import { ClientConfigPool } from '@chatluna/core/platform'
+import { ClientConfigPool, ModelType } from '@chatluna/core/platform'
 import { MockTool } from './mock/mock_tool.ts'
 import { z } from 'zod'
 import { loadChatLunaCore } from '@chatluna/core'
 import { loadPlugin, runAsync, waitServiceLoad } from './mock/utils.ts'
 import os from 'os'
-import { MockPlatformMixClient } from './mock/mock_platform_client.ts'
+import { MockPlatformEmbeddingsClient, MockPlatformMixClient, MockPlatformModelClient } from './mock/mock_platform_client.ts'
 import { MemoryVectorStore, emptyEmbeddings } from '@chatluna/core/vectorstore'
-import {} from '@chatluna/core/service'
+import { } from '@chatluna/core/service'
+import { MockChatChain } from './mock/mock_chat_chain.ts'
 
 chai.use(chaiAsPromised)
 
@@ -80,7 +81,7 @@ describe('Platform Service', () => {
                     timeout: 7200000
                 })
             }
-            await loadPlugin(app, plugin, 5)
+            await loadPlugin(app, plugin, 10)
         })
 
         it('Tool', async () => {
@@ -136,6 +137,42 @@ describe('Platform Service', () => {
                         embeddings: emptyEmbeddings
                     })
                 ).to.instanceOf(MemoryVectorStore)
+            }
+            await loadPlugin(app, plugin, 5)
+        })
+
+        it("Chain", async () => {
+            const plugin = async (ctx: Context) => {
+                const platform = ctx.chatluna_platform
+
+                platform.registerChatChain('mock', "mock", async (params) => {
+                    return MockChatChain.fromLLM(params.model, params)
+                })
+
+                const pool = new ClientConfigPool()
+
+                platform.registerConfigPool('mock', pool)
+
+                platform.registerClient(
+                    'mock',
+                    (_, config) => new MockPlatformModelClient(config)
+                )
+
+                pool.addConfigs({
+                    apiKey: 'chatluna_123',
+                    platform: 'mock'
+                })
+
+                await platform.createClients('mock')
+
+                console.log(platform.getAllModels(ModelType.all))
+                expect(
+                    await platform.createChatChain('mock', {
+                        model: await platform.randomModel("mock/mock_model", ModelType.llm),
+                        historyMemory: null as any,
+                        botName: "??"
+                    })
+                ).to.instanceOf(MockChatChain)
             }
             await loadPlugin(app, plugin, 5)
         })

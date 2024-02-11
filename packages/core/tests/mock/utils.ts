@@ -30,12 +30,14 @@ export function loadPlugin(
                     reject(e)
                 }
 
-                setTimeout(() => {
-                    fork.dispose()
-
-                    resolve(fork)
-                }, timeout)
+                fork.dispose()
             })
+
+            pluginCtx.on('dispose', () => {
+                resolve(fork)
+            })
+
+
         },
         name: 'chatluna_fork',
         inject: ['chatluna_request', 'chatluna_platform', 'logger']

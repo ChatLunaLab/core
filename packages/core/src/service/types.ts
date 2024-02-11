@@ -1,5 +1,10 @@
 import { PlatformService, RequestService } from '@chatluna/core/service'
-import { BasePlatformClient, ChatLunaChainInfo } from '@chatluna/core/platform'
+import {
+    BasePlatformClient,
+    ChatLunaChainInfo,
+    ModelType
+} from '@chatluna/core/platform'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '../model/base.ts'
 declare module '@cordisjs/core' {
     interface Context {
         chatluna_request: RequestService
@@ -46,3 +51,11 @@ declare module '@cordisjs/core' {
         'chatluna/tool-updated': (service: PlatformService) => void
     }
 }
+
+export type PickModelType<T = ModelType.all> = T extends ModelType.all
+    ? ChatLunaEmbeddings | ChatLunaChatModel
+    : T extends ModelType.embeddings
+      ? ChatLunaEmbeddings
+      : T extends ModelType.llm
+        ? ChatLunaChatModel
+        : never

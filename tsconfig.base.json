@@ -9,11 +9,12 @@
         "skipLibCheck": true,
         "esModuleInterop": true,
         "strictNullChecks": false,
+
         "emitDeclarationOnly": true,
         "allowImportingTsExtensions": true,
         "strict": true,
         "noImplicitAny": false,
-        "sourceMap": false,
+        "sourceMap": true,
         "jsx": "react-jsx",
         "jsxImportSource": "@satorijs/element"
     }

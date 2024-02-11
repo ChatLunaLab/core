@@ -17,7 +17,14 @@ import {
     PlatformModelClient
 } from '@chatluna/core/platform'
 import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
-import { Option, parseRawModelName } from '@chatluna/core/utils'
+import {
+    ChatLunaError,
+    ChatLunaErrorCode,
+    Option,
+    parseRawModelName
+} from '@chatluna/core/utils'
+import { PickModelType } from '@chatluna/core/service'
+import { Logger } from '@cordisjs/logger'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}
@@ -32,8 +39,11 @@ export class PlatformService extends Service {
     private _chatChains: Record<string, ChatLunaChainInfo> = {}
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
 
+    private logger: Logger
+
     constructor(ctx: Context) {
         super(ctx, 'chatluna_platform')
+        this.logger = ctx.logger('chatluna_platform')
     }
 
     registerClient(
@@ -54,11 +64,9 @@ export class PlatformService extends Service {
             this._configPools[platform] = new ClientConfigPool()
         }
 
-        const current = this[Context.current]
+        const disposable = () => this._unregisterClient(platform)
 
-        return current.effect(() => () => {
-            this._unregisterClient(platform)
-        })
+        return this[Context.current].effect(() => disposable)
     }
 
     registerConfigs(
@@ -85,7 +93,7 @@ export class PlatformService extends Service {
 
         const disposable = () => this._unregisterConfigPool(platform)
 
-        return this[Context.current].effect(() => disposable)
+        return disposable
     }
 
     registerTool(name: string, toolCreator: ChatLunaTool) {
@@ -110,10 +118,10 @@ export class PlatformService extends Service {
         const configPool = this._configPools[platform]
 
         if (!configPool) {
-            throw new Error(`Config pool ${platform} not found`)
+            this.logger?.warn(`Config pool ${platform} not found`)
         }
 
-        const configs = configPool.getConfigs()
+        const configs = configPool?.getConfigs() ?? []
 
         delete this._models[platform]
         delete this._configPools[platform]
@@ -205,13 +213,12 @@ export class PlatformService extends Service {
         return this._configPools[platform]?.getConfigs() ?? []
     }
 
-    resolveModel(platform: string, name: string) {
+    resolveModel(platform: string, name: string): ModelInfo
+    resolveModel(platform: string, name?: string): ModelInfo {
+        if (name == null) {
+            ;[platform, name] = parseRawModelName(platform)
+        }
         return this._models[platform]?.find((m) => m.name === name)
-    }
-
-    resolveFullModelName(fullModelName: string) {
-        const [platform, model] = parseRawModelName(fullModelName)
-        return this.resolveModel(platform, model)
     }
 
     getAllModels(type: ModelType) {
@@ -277,6 +284,38 @@ export class PlatformService extends Service {
         }
 
         return null
+    }
+
+    async randomModel<T extends ModelType>(
+        fullModelName: string,
+        modelType: T = ModelType.all as T,
+        lockConfig: boolean = false,
+        reCreateModel: boolean = false
+    ): Promise<PickModelType<T>> {
+        const [platform, name] = parseRawModelName(fullModelName)
+
+        const client = await this.randomClient(platform, lockConfig)
+
+        const modelInfo = this.resolveModel(platform, name)
+
+        if (client == null || modelInfo == null) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.MODEL_NOT_FOUND,
+                `unable to resolve model ${fullModelName}`
+            )
+        }
+
+        if (modelInfo.type !== modelType) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.MODEL_NOT_FOUND,
+                `the model ${fullModelName} is not a ${modelType} model`
+            )
+        }
+
+
+        const model = client.createModel(name, reCreateModel)
+
+        return model as PickModelType<T>
     }
 
     async getClient(config: ClientConfig) {
