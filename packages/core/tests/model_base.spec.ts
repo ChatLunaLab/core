@@ -418,7 +418,7 @@ describe('ChatLuna Base Embeddings', () => {
         }
     })
 
-    it('request and return null', async () => {
+    it('request and return undefined', async () => {
         const mockEmbeddingRequester = new MockEmbeddingsRequester()
         const mockEmbedding = new ChatLunaEmbeddings({
             client: mockEmbeddingRequester,

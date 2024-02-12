@@ -91,7 +91,7 @@ export class PlatformService extends Service {
         }
         this._configPools[platform] = configPool
 
-        const disposable = () => this._unregisterConfigPool(platform)
+        const disposable = () => delete this._configPools[platform]
 
         return disposable
     }
@@ -103,10 +103,6 @@ export class PlatformService extends Service {
         const disposable = () => this._unregisterTool(name)
 
         return this[Context.current].effect(() => disposable)
-    }
-
-    private _unregisterConfigPool(platform: string) {
-        delete this._configPools[platform]
     }
 
     private _unregisterTool(name: string) {
@@ -213,7 +209,9 @@ export class PlatformService extends Service {
         return this._configPools[platform]?.getConfigs() ?? []
     }
 
+    resolveModel(platform: string): ModelInfo
     resolveModel(platform: string, name: string): ModelInfo
+
     resolveModel(platform: string, name?: string): ModelInfo {
         if (name == null) {
             ;[platform, name] = parseRawModelName(platform)
@@ -222,14 +220,14 @@ export class PlatformService extends Service {
     }
 
     getAllModels(type: ModelType) {
-        const allModel: string[] = []
+        const allModel: ModelInfo[] = []
 
         for (const platform in this._models) {
             const models = this._models[platform]
 
             for (const model of models) {
                 if (type === ModelType.all || model.type === type) {
-                    allModel.push(platform + '/' + model.name)
+                    allModel.push(model)
                 }
             }
         }
@@ -280,10 +278,14 @@ export class PlatformService extends Service {
             if (pool.isAvailable(config)) {
                 return client
             }
-            config = await this.randomConfig(platform, lockConfig)
+            try {
+                config = await this.randomConfig(platform, lockConfig)
+            } catch (e) {
+                config = undefined
+            }
         }
 
-        return null
+        return undefined
     }
 
     async randomModel<T extends ModelType>(
@@ -312,7 +314,6 @@ export class PlatformService extends Service {
             )
         }
 
-
         const model = client.createModel(name, reCreateModel)
 
         return model as PickModelType<T>
@@ -337,15 +338,15 @@ export class PlatformService extends Service {
         pool.markConfigStatus(config, isAvailable)
 
         if (!isAvailable) {
-            return null
+            return undefined
         }
 
         const models = await client.getModels()
-
+        console.log(models)
         if (models == null) {
             pool.markConfigStatus(config, false)
 
-            return null
+            return undefined
         }
 
         const availableModels = this._models[platform] ?? []
@@ -378,7 +379,7 @@ export class PlatformService extends Service {
 
         if (!configPool.isAvailable(config)) {
             // unavailable client
-            return null
+            return undefined
         }
 
         const client = createClientFunctionWrapper.value(
@@ -387,6 +388,11 @@ export class PlatformService extends Service {
         )
 
         await this.refreshClient(client, platform, config)
+
+        if (!configPool.isAvailable(config)) {
+            // unavailable client
+            return undefined
+        }
 
         this._platformClients[this._getClientConfigAsKey(config)] = client
 

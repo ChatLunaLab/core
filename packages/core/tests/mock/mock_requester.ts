@@ -119,7 +119,7 @@ export class MockEmbeddingsRequester implements EmbeddingsRequester {
         }
 
         if (this.returnNull) {
-            return null as any
+            return undefined as any
         }
 
         if (this.throwError) {

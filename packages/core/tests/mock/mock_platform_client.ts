@@ -1,4 +1,5 @@
 import {
+    ClientConfig,
     ModelInfo,
     ModelType,
     PlatformEmbeddingsClient,
@@ -14,6 +15,7 @@ import {
     MockEmbeddingsRequester,
     MockModelRequester
 } from './mock_requester.ts'
+import { Context } from '@cordisjs/core'
 
 export class MockPlatformMixClient extends PlatformModelAndEmbeddingsClient {
     initError?: Error
@@ -87,6 +89,8 @@ export class MockPlatformMixClient extends PlatformModelAndEmbeddingsClient {
 export class MockPlatformModelClient extends PlatformModelClient {
     initError?: Error
 
+    returnNullInModels = false
+
     private _model: ModelInfo[]
 
     async init(): Promise<void> {
@@ -100,6 +104,10 @@ export class MockPlatformModelClient extends PlatformModelClient {
     async getModels(): Promise<ModelInfo[]> {
         if (this.initError) {
             throw this.initError
+        }
+
+        if (this.returnNullInModels) {
+            return undefined
         }
 
         if (this._model != null) {
@@ -182,5 +190,37 @@ export class MockPlatformEmbeddingsClient extends PlatformEmbeddingsClient {
             stripNewLines: false,
             ...this.getBaseCallKeys()
         })
+    }
+}
+
+export class MockUnavailablePlatformModelClient<
+    T extends ClientConfig = ClientConfig
+> extends PlatformModelClient<T> {
+    initError?: Error
+
+    throwErrorOnInit = true
+
+    constructor(config: T, ctx?: Context, platform?: string) {
+        super(config, ctx, platform)
+    }
+
+    async init(): Promise<void> {
+        if (this.initError) {
+            throw this.initError
+        }
+
+        throw new Error('Unavailable')
+    }
+
+    async getModels(): Promise<ModelInfo[]> {
+        return undefined
+    }
+
+    async refreshModels(): Promise<ModelInfo[]> {
+        return []
+    }
+
+    protected _createModel(model: string): ChatLunaChatModel {
+        return undefined
     }
 }
