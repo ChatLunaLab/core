@@ -60,12 +60,16 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
         if (wrapperConfig.isAvailable === true) {
             this.markConfigStatus(config, true)
         }
+
+        return config
     }
 
     addConfigs(...configs: T[]) {
         for (const config of configs) {
             this.addConfig(config)
         }
+
+        return configs
     }
 
     getConfig(lockSelectConfig: boolean = false): T {

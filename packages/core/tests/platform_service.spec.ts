@@ -384,104 +384,288 @@ describe('Platform Service', () => {
     })
 
     describe('Error', async () => {
-        it('Unavailable Client (Auto Check)', async () => {
+        describe('Unavailable Client', async () => {
+            it('Auto Check', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    platform.registerClient(
+                        'mock',
+                        (_, config) =>
+                            new MockUnavailablePlatformModelClient(config)
+                    )
+
+                    platform.registerConfigs('mock', {
+                        apiKey: 'chatluna_123',
+                        platform: 'mock'
+                    })
+
+                    let client = await platform.randomClient('mock')
+
+                    expect(client).to.be.equal(undefined)
+
+                    platform.registerClient('mock2', (_, config) => {
+                        const result = new MockUnavailablePlatformModelClient(
+                            config,
+                            ctx
+                        )
+
+                        result.throwErrorOnInit = true
+
+                        return result
+                    })
+
+                    platform.registerConfigs('mock2', {
+                        apiKey: 'chatluna_123',
+                        platform: 'mock2'
+                    })
+
+                    try {
+                        await platform.randomModel('mock2/mock')
+                    } catch (e) {
+                        expect(() => {
+                            throw e
+                        }).to.throw(
+                            '使用 ChatLuna 时出现错误，错误码为 301。请联系开发者以解决此问题。'
+                        )
+                    }
+
+                    platform.registerClient('mock3', (_, config) => {
+                        const result = new MockPlatformModelClient(
+                            config,
+                            ctx,
+                            undefined
+                        )
+
+                        result.returnNullInModels = true
+
+                        return result
+                    })
+
+                    platform.registerConfigs('mock3', {
+                        apiKey: 'chatluna_123',
+                        platform: 'mock3'
+                    })
+
+                    const config = platform.getConfigs('mock3')[0]
+
+                    expect(
+                        await platform.createClient('mock3', config)
+                    ).to.be.equal(undefined)
+
+                    // make code coverage happy
+
+                    await platform.createClients('mock3')
+                }
+
+                await loadPlugin(app, plugin, 5)
+            })
+
+            it('Manual Set', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    platform.registerClient(
+                        'mock',
+                        (_, config) =>
+                            new MockUnavailablePlatformModelClient(config)
+                    )
+
+                    platform.registerConfigs('mock', {
+                        apiKey: 'chatluna_123',
+                        platform: 'mock'
+                    })
+
+                    const config = platform.getConfigs('mock')[0]
+
+                    platform.makeConfigStatus(config, false)
+
+                    expect(
+                        await platform.createClient('mock', config)
+                    ).to.be.equal(undefined)
+                }
+
+                await loadPlugin(app, plugin, 5)
+            })
+        })
+
+        describe('Already exists', () => {
+            it('Client', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    platform.registerClient(
+                        'mock',
+                        (_, config) => new MockPlatformMixClient(config)
+                    )
+
+                    platform.registerConfigs('mock', {
+                        apiKey: 'chatluna_123',
+                        platform: 'mock'
+                    })
+
+                    expect(() => {
+                        platform.registerClient(
+                            'mock',
+                            (_, config) => new MockPlatformMixClient(config)
+                        )
+                    }).to.throw('Client mock already exists')
+                }
+                await loadPlugin(app, plugin, 5)
+            })
+
+            it('Config Pool', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+                    const pool = new ClientConfigPool()
+
+                    // auto dispose
+                    ctx.effect(() => platform.registerConfigPool('mock', pool))
+
+                    expect(() => {
+                        platform.registerConfigPool('mock', pool)
+                    }).to.throw('Config pool mock already exists')
+                }
+                await loadPlugin(app, plugin, 5)
+            })
+        })
+
+        describe('Not Found', () => {
+            it('Config Pool', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    expect(() => {
+                        platform.registerConfigs('mock', {
+                            apiKey: 'chatluna_123',
+                            platform: 'mock'
+                        })
+                    }).to.throw('Config pool mock not found')
+
+                    try {
+                        await platform.createClients('mock')
+                        throw new Error('Should not reach here')
+                    } catch (e) {
+                        expect(() => {
+                            throw e
+                        }).throw('Config pool mock not found')
+                    }
+
+                    const pool = new ClientConfigPool()
+
+                    const config = pool.addConfig({
+                        apiKey: 'chatluna_123',
+                        platform: 'mock'
+                    })
+
+                    const configPoolDisposable = platform.registerConfigPool(
+                        'mock',
+                        pool
+                    )
+
+                    const clientDisposable = platform.registerClient(
+                        'mock',
+                        (_, config) => new MockPlatformMixClient(config)
+                    )
+
+                    configPoolDisposable()
+
+                    clientDisposable()
+
+                    expect(() => {
+                        platform.makeConfigStatus(config, false)
+                    }).to.throw('Config pool mock not found')
+                }
+
+                await loadPlugin(app, plugin, 5)
+            })
+
+            it('Chain', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    try {
+                        await platform.createChatChain('mock', undefined)
+                        throw new Error('Should not reach here')
+                    } catch (e) {
+                        expect(() => {
+                            throw e
+                        }).throw('Chat chain mock not found or params is null')
+                    }
+                }
+                await loadPlugin(app, plugin, 5)
+            })
+
+            it('Client', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    try {
+                        await platform.createClient('mock', undefined)
+                        throw new Error('Should not reach here')
+                    } catch (e) {
+                        expect(() => {
+                            throw e
+                        }).throw(
+                            'Create client function mock not found or config is null'
+                        )
+                    }
+                }
+                await loadPlugin(app, plugin, 5)
+            })
+
+            it('VectorStore', async () => {
+                const plugin = async (ctx: Context) => {
+                    const platform = ctx.chatluna_platform
+
+                    try {
+                        await platform.createVectorStore('mock', undefined)
+                        throw new Error('Should not reach here')
+                    } catch (e) {
+                        expect(() => {
+                            throw e
+                        }).throw(
+                            'Vector store retriever mock not found or params is null'
+                        )
+                    }
+                }
+                await loadPlugin(app, plugin, 5)
+            })
+        })
+
+        it('Other', async () => {
             const plugin = async (ctx: Context) => {
                 const platform = ctx.chatluna_platform
 
+                platform.registerChatChain('mock', 'mock', async (params) => {
+                    return MockChatChain.fromLLM(params.model, params)
+                })
+
+                const pool = new ClientConfigPool()
+
+                platform.registerConfigPool('mock', pool)
+
                 platform.registerClient(
                     'mock',
-                    (_, config) =>
-                        new MockUnavailablePlatformModelClient(config)
+                    (_, config) => new MockPlatformModelClient(config)
                 )
 
-                platform.registerConfigs('mock', {
+                pool.addConfigs({
                     apiKey: 'chatluna_123',
                     platform: 'mock'
-                })
-
-                let client = await platform.randomClient('mock')
-
-                expect(client).to.be.equal(undefined)
-
-                platform.registerClient('mock2', (_, config) => {
-                    const result = new MockUnavailablePlatformModelClient(
-                        config,
-                        ctx
-                    )
-
-                    result.throwErrorOnInit = true
-
-                    return result
-                })
-
-                platform.registerConfigs('mock2', {
-                    apiKey: 'chatluna_123',
-                    platform: 'mock2'
                 })
 
                 try {
-                    await platform.randomModel('mock2/mock')
+                    await platform.randomModel(
+                        'mock/mock_model',
+                        ModelType.embeddings
+                    )
+                    throw new Error('Should not reach here')
                 } catch (e) {
                     expect(() => {
                         throw e
-                    }).to.throw(
-                        '使用 ChatLuna 时出现错误，错误码为 301。请联系开发者以解决此问题。'
-                    )
+                    }).throw('使用 ChatLuna 时出现错误，错误码为 301。请联系开发者以解决此问题。')
                 }
-
-                platform.registerClient('mock3', (_, config) => {
-                    const result = new MockPlatformModelClient(
-                        config,
-                        ctx,
-                        undefined
-                    )
-
-                    result.returnNullInModels = true
-
-                    return result
-                })
-
-                platform.registerConfigs('mock3', {
-                    apiKey: 'chatluna_123',
-                    platform: 'mock3'
-                })
-
-                const config = platform.getConfigs('mock3')[0]
-
-                expect(
-                    await platform.createClient('mock3', config)
-                ).to.be.equal(undefined)
-
-                // make code coverage happy
-
-                await platform.createClients('mock3')
-            }
-
-            await loadPlugin(app, plugin, 5)
-        })
-
-        it('Unavailable Client (Manual Set)', async () => {
-            const plugin = async (ctx: Context) => {
-                const platform = ctx.chatluna_platform
-
-                platform.registerClient(
-                    'mock',
-                    (_, config) =>
-                        new MockUnavailablePlatformModelClient(config)
-                )
-
-                platform.registerConfigs('mock', {
-                    apiKey: 'chatluna_123',
-                    platform: 'mock'
-                })
-
-                const config = platform.getConfigs('mock')[0]
-
-                platform.makeConfigStatus(config, false)
-
-                expect(await platform.createClient('mock', config)).to.be.equal(
-                    undefined
-                )
             }
 
             await loadPlugin(app, plugin, 5)

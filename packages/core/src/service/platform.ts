@@ -89,6 +89,7 @@ export class PlatformService extends Service {
         if (this._configPools[platform]) {
             throw new Error(`Config pool ${platform} already exists`)
         }
+
         this._configPools[platform] = configPool
 
         const disposable = () => delete this._configPools[platform]
@@ -257,8 +258,10 @@ export class PlatformService extends Service {
     async createVectorStore(name: string, params: CreateVectorStoreParams) {
         const vectorStoreRetriever = this._vectorStore[name]
 
-        if (!vectorStoreRetriever) {
-            throw new Error(`Vector store retriever ${name} not found`)
+        if (!vectorStoreRetriever || params == null) {
+            throw new Error(
+                `Vector store retriever ${name} not found or params is null`
+            )
         }
 
         return await vectorStoreRetriever(params)
@@ -307,7 +310,7 @@ export class PlatformService extends Service {
             )
         }
 
-        if (modelInfo.type !== modelType) {
+        if (modelInfo.type !== modelType && modelType !== ModelType.all) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.MODEL_NOT_FOUND,
                 `the model ${fullModelName} is not a ${modelType} model`
@@ -342,7 +345,7 @@ export class PlatformService extends Service {
         }
 
         const models = await client.getModels()
-        console.log(models)
+
         if (models == null) {
             pool.markConfigStatus(config, false)
 
@@ -373,8 +376,10 @@ export class PlatformService extends Service {
             this._createClientFunctions[platform]
         const configPool = this._configPools[platform]
 
-        if (!createClientFunctionWrapper) {
-            throw new Error(`Create client function ${platform} not found`)
+        if (!createClientFunctionWrapper || config == null) {
+            throw new Error(
+                `Create client function ${platform} not found or config is null`
+            )
         }
 
         if (!configPool.isAvailable(config)) {
@@ -432,8 +437,8 @@ export class PlatformService extends Service {
     createChatChain(name: string, params: CreateChatLunaLLMChainParams) {
         const chatChain = this._chatChains[name]
 
-        if (!chatChain) {
-            throw new Error(`Chat chain ${name} not found`)
+        if (!chatChain || params == null) {
+            throw new Error(`Chat chain ${name} not found or params is null`)
         }
 
         return chatChain.createFunction(params)
