@@ -197,7 +197,7 @@ export class ChatLunaPluginChain
         stream,
         events,
         params
-    }: ChatLunaLLMCallArg): Promise<ChainValues> {
+    }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues & {
             chat_history?: BaseMessage[]
             id?: string
@@ -269,12 +269,11 @@ export class ChatLunaPluginChain
         const responseString = response.output
 
         const aiMessage = new AIMessage(responseString)
-        response.message = aiMessage
 
         await this.historyMemory.chatHistory.addMessage(message)
         await this.historyMemory.chatHistory.addAIChatMessage(responseString)
 
-        return response
+        return aiMessage
     }
 
     get model() {

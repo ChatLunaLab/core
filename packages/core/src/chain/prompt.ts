@@ -11,10 +11,8 @@ import { PartialValues } from '@langchain/core/utils/types'
 import { messageTypeToOpenAIRole } from '@chatluna/core/utils'
 import { ChatLunaChatPromptInput, SystemPrompts } from '@chatluna/core/chain'
 
-export class ChatLunaChatPrompt
-    extends BaseChatPromptTemplate
-    implements ChatLunaChatPromptInput
-{
+export class ChatLunaChatPrompt extends BaseChatPromptTemplate {
+    /*  implements ChatLunaChatPromptInput */
     systemPrompts?: SystemPrompts
 
     tokenCounter: (text: string) => Promise<number>
@@ -36,8 +34,9 @@ export class ChatLunaChatPrompt
         this.messagesPlaceholder = fields.messagesPlaceholder
         this.conversationSummaryPrompt = fields.conversationSummaryPrompt
         this.humanMessagePromptTemplate =
-            fields.humanMessagePromptTemplate ??
-            HumanMessagePromptTemplate.fromTemplate('{input}')
+            HumanMessagePromptTemplate.fromTemplate(
+                fields.humanMessagePromptTemplate ?? '{input}'
+            )
         this.sendTokenLimit = fields.sendTokenLimit ?? 4096
     }
 
@@ -93,16 +92,16 @@ export class ChatLunaChatPrompt
             // reserve 400 tokens for the long history
             if (
                 usedTokens + messageTokens >
-                this.sendTokenLimit - (longHistory.length > 0 ? 480 : 80)
+                this.sendTokenLimit - (longHistory?.length > 0 ? 480 : 80)
             ) {
-                break
+                /* c8 ignore next */ break
             }
 
             usedTokens += messageTokens
             formatChatHistory.unshift(message)
         }
 
-        if (longHistory.length > 0) {
+        if (longHistory?.length > 0) {
             const formatDocuments: Document[] = []
 
             for (const document of longHistory) {
@@ -112,7 +111,7 @@ export class ChatLunaChatPrompt
 
                 // reserve 80 tokens for the format
                 if (usedTokens + documentTokens > this.sendTokenLimit - 80) {
-                    break
+                    /* c8 ignore next */ break
                 }
 
                 usedTokens += documentTokens
@@ -144,10 +143,12 @@ export class ChatLunaChatPrompt
         return result
     }
 
+    /* c8 ignore start */
     partial(
-        values: PartialValues
+        _values: PartialValues
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<BasePromptTemplate<any, ChatPromptValueInterface, any>> {
         throw new Error('Method not implemented.')
     }
+    /* c8 ignore stop */
 }

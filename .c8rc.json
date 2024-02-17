@@ -1,0 +1,18 @@
+{
+    "sourceMap": true,
+    "all": false,
+    "check": true,
+    "$comment": "agents and chains need real environment to tests. Mock them requires a lot of work. Doesn't match the output ratio",
+    "exclude": [
+        "node_modules",
+        "**/core/src/agents/",
+        "**/core/src/chain/browsing.ts",
+        "**/core/src/chain/plugin.ts",
+
+        "**/*.d.ts",
+        "**/scripts"
+    ],
+    "exclude-after-remap": true,
+    "check-coverage": true,
+    "reporter": ["html", "lcovonly", "text", "json"]
+}

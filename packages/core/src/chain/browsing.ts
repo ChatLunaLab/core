@@ -77,9 +77,9 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
 
     htmlRetriever: BaseRetrieverInterface
 
-    logger?: Logger
+    private _logger?: Logger
 
-    llm?: ChatLunaChatModel
+    private _llm?: ChatLunaChatModel
 
     constructor(
         params: ChatLunaBrowsingChainInput & {
@@ -133,9 +133,9 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             })
         }
 
-        this.llm = params.llm
+        this._llm = params.llm
 
-        this.logger = params.ctx?.logger('chatluna_browsing_chain')
+        this._logger = params.ctx?.logger('chatluna_browsing_chain')
     }
 
     static fromLLMAndTools(
@@ -153,9 +153,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             browsePage
         }: ChatLunaBrowsingChainInput
     ): ChatLunaBrowsingChain {
-        const humanMessagePromptTemplate =
-            HumanMessagePromptTemplate.fromTemplate('{input}')
-
         const conversationSummaryPrompt =
             HumanMessagePromptTemplate.fromTemplate(
                 // eslint-disable-next-line max-len
@@ -173,7 +170,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             conversationSummaryPrompt,
             messagesPlaceholder,
             tokenCounter: (text) => llm.getNumTokens(text),
-            humanMessagePromptTemplate,
+            humanMessagePromptTemplate: '{input}',
             sendTokenLimit:
                 llm.invocationParams().maxTokens ?? llm.getModelMaxContextSize()
         })
@@ -258,7 +255,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
         stream,
         events,
         params
-    }: ChatLunaLLMCallArg): Promise<ChainValues> {
+    }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
         }
@@ -290,9 +287,9 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
                     'llm-used-token-count': events['llm-used-token-count']
                 }
             )
-        )['text'] as string
+        )['content'] as string
 
-        this.logger?.debug(`new questions %c`, newQuestion)
+        this._logger?.debug(`new questions %c`, newQuestion)
 
         // search questions
 
@@ -310,7 +307,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             newQuestion
         )
 
-        this.logger?.debug('formatted search results', formattedSearchResults)
+        this._logger?.debug('formatted search results', formattedSearchResults)
 
         // format and call
 
@@ -322,7 +319,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
                   })
                 : message.content
 
-        const { text: finalResponse } = await callChatLunaChain(
+        const { content: finalResponse } = await callChatLunaChain(
             this.chain,
             {
                 ...requests,
@@ -331,10 +328,12 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             events
         )
 
-        this.logger?.debug(`final response %c`, finalResponse)
+        this._logger?.debug(`final response %c`, finalResponse)
 
         await this.historyMemory.chatHistory.addMessage(message)
-        await this.historyMemory.chatHistory.addAIChatMessage(finalResponse)
+        await this.historyMemory.chatHistory.addAIChatMessage(
+            finalResponse as string
+        )
 
         await this.chatMemory.saveContext(
             { user: message.content },
@@ -344,19 +343,17 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
         const vectorStore = this.chatMemory.vectorStoreRetriever.vectorStore
 
         if (vectorStore instanceof ChatLunaSaveableVectorStore) {
-            this.logger?.debug('saving vector store')
+            this._logger?.debug('saving vector store')
             await vectorStore.save()
         }
 
-        const aiMessage = new AIMessage(finalResponse)
+        const aiMessage = new AIMessage(finalResponse as string)
 
-        return {
-            message: aiMessage
-        }
+        return aiMessage
     }
 
     get model() {
-        return this.llm
+        return this._llm
     }
 }
 

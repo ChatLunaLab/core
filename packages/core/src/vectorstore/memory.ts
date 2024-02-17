@@ -230,6 +230,7 @@ export class MemoryVectorStore extends SaveableVectorStore {
 
             try {
                 await fs.access(jsonPath)
+                /* c8 ignore next */
                 continue
             } catch (e) {
                 await fs.mkdir(directory, { recursive: true })

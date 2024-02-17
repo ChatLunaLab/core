@@ -22,12 +22,11 @@ import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export class MockChatChain
     extends ChatLunaLLMChainWrapper
-    implements ChatLunaLLMChainWrapperInput {
-
+    implements ChatLunaLLMChainWrapperInput
+{
     chain: ChatLunaLLMChain
 
     historyMemory: BaseChatMemory
-
 
     llm: ChatLunaChatModel
 
@@ -41,7 +40,6 @@ export class MockChatChain
         super(params)
 
         const { chatMemory: longMemory, historyMemory, chain } = params
-
 
         this.historyMemory = historyMemory
 
@@ -59,10 +57,7 @@ export class MockChatChain
                 params.humanMessagePrompt ?? '{input}'
             )
 
-
         const messagesPlaceholder = new MessagesPlaceholder('chat_history')
-
-
 
         return new MockChatChain({
             ...params,
@@ -76,13 +71,12 @@ export class MockChatChain
         stream,
         events,
         params
-    }: ChatLunaLLMCallArg): Promise<ChainValues> {
+    }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
         }
         const chatHistory =
             await this.historyMemory.loadMemoryVariables(requests)
-
 
         requests['chat_history'] = chatHistory[this.historyMemory.memoryKeys[0]]
 
@@ -97,30 +91,18 @@ export class MockChatChain
             events
         )
 
-        if (response.text == null) {
+        if (response.content == null) {
             throw new Error('response.text is null')
         }
 
-        const responseString = response.text
-
-
+        const responseString = response.content as string
 
         const aiMessage = new AIMessage(responseString)
-        response.message = aiMessage
 
-        if (
-            response.extra != null &&
-            'additionalReplyMessages' in response.extra
-        ) {
-            response.additionalReplyMessages =
-                response.extra.additionalReplyMessages
-        }
-
-        return response
+        return aiMessage
     }
 
     get model() {
         return this.llm
     }
 }
-

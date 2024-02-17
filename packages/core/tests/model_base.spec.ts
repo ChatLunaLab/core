@@ -34,8 +34,6 @@ should()
 
 const app = new Context()
 
-should()
-
 describe('ChatLuna Base LLM Model', () => {
     it('request model', async function () {
         this.timeout(5000)
@@ -65,7 +63,7 @@ describe('ChatLuna Base LLM Model', () => {
 
     it('request model with stream', async function () {
         this.timeout(5000)
-        
+
         const requester = new MockModelRequester(app)
 
         await waitServiceLoad(app, ['chatluna_request'])

@@ -12,19 +12,20 @@ import {
     HumanMessagePromptTemplate,
     MessagesPlaceholder
 } from '@langchain/core/prompts'
-import { AIMessage, SystemMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
 import {
     BaseChatMemory,
     VectorStoreRetrieverMemory
 } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 
 export class ChatLunaChatChain
     extends ChatLunaLLMChainWrapper
     implements ChatLunaLLMChainWrapperInput
 {
-    chatMemory: VectorStoreRetrieverMemory
+    chatMemory?: VectorStoreRetrieverMemory
 
     chain: ChatLunaLLMChain
 
@@ -32,7 +33,7 @@ export class ChatLunaChatChain
 
     prompt: ChatLunaChatPrompt
 
-    llm: ChatLunaChatModel
+    private _llm: ChatLunaChatModel
 
     constructor(
         params: ChatLunaLLMChainWrapperInput & {
@@ -50,17 +51,14 @@ export class ChatLunaChatChain
 
         this.chain = chain
         this.prompt = params.prompt
-        this.llm = params.llm
+        this._llm = params.llm
     }
 
     static fromLLM(
         llm: ChatLunaChatModel,
         params: ChatLunaLLMChainWrapperInput
     ): ChatLunaChatChain {
-        const humanMessagePromptTemplate =
-            HumanMessagePromptTemplate.fromTemplate(
-                params.humanMessagePrompt ?? '{input}'
-            )
+        const humanMessagePromptTemplate = params.humanMessagePrompt
 
         const conversationSummaryPrompt =
             HumanMessagePromptTemplate.fromTemplate(
@@ -99,12 +97,13 @@ export class ChatLunaChatChain
         stream,
         events,
         params
-    }: ChatLunaLLMCallArg): Promise<ChainValues> {
+    }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
         }
-        const chatHistory =
+        const chatHistory = (
             await this.historyMemory.loadMemoryVariables(requests)
+        )?.[this.historyMemory.memoryKeys[0]] as BaseMessage[] | string | null
 
         const longHistory =
             this.chatMemory != null
@@ -116,8 +115,16 @@ export class ChatLunaChatChain
         this.prompt.systemPrompts =
             params?.systemPrompts ?? this.prompt.systemPrompts
 
-        requests['chat_history'] = chatHistory[this.historyMemory.memoryKeys[0]]
-        requests['long_history'] = longHistory[this.chatMemory.memoryKey]
+        if (chatHistory == null || !(chatHistory instanceof Array)) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.UNKNOWN_ERROR,
+                'The chat history is null or not an message array.'
+            )
+        }
+
+        requests['chat_history'] = chatHistory
+
+        requests['long_history'] = longHistory?.[this.chatMemory?.memoryKey]
 
         Object.assign(requests, params)
 
@@ -130,13 +137,9 @@ export class ChatLunaChatChain
             events
         )
 
-        if (response.text == null) {
-            throw new Error('response.text is null')
-        }
+        const responseString = response.content as string
 
-        const responseString = response.text
-
-        await this.chatMemory.saveContext(
+        await this.chatMemory?.saveContext(
             { user: message.content },
             { your: responseString }
         )
@@ -144,28 +147,17 @@ export class ChatLunaChatChain
         await this.historyMemory.chatHistory.addMessage(message)
         await this.historyMemory.chatHistory.addAIChatMessage(responseString)
 
-        const vectorStore = this.chatMemory.vectorStoreRetriever.vectorStore
+        const vectorStore = this.chatMemory?.vectorStoreRetriever.vectorStore
 
         if (vectorStore instanceof ChatLunaSaveableVectorStore) {
             await vectorStore.save()
         }
 
-        const aiMessage = new AIMessage(responseString)
-        response.message = aiMessage
-
-        if (
-            response.extra != null &&
-            'additionalReplyMessages' in response.extra
-        ) {
-            response.additionalReplyMessages =
-                response.extra.additionalReplyMessages
-        }
-
-        return response
+        return new AIMessage(responseString)
     }
 
     get model() {
-        return this.llm
+        return this._llm
     }
 }
 
@@ -174,6 +166,6 @@ export interface ChatLunaChatPromptInput {
     messagesPlaceholder?: MessagesPlaceholder
     tokenCounter: (text: string) => Promise<number>
     conversationSummaryPrompt: HumanMessagePromptTemplate
-    humanMessagePromptTemplate?: HumanMessagePromptTemplate
+    humanMessagePromptTemplate?: string
     sendTokenLimit?: number
 }
