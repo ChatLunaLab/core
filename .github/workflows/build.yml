@@ -128,7 +128,7 @@ jobs:
             - name: Install
               run: yarn
             - name: Unit Test
-              run: yarn test:json
+              run: yarn test:c8
             - name: Report Coverage
               uses: codecov/codecov-action@v3
               with:
