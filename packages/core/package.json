@@ -95,7 +95,7 @@
     ],
     "dependencies": {
         "@cordisjs/core": "^3.9.2",
-        "@cordisjs/logger": "^0.2.0",
+        "@cordisjs/logger": "^0.3.1",
         "@langchain/core": "^0.1.25",
         "fetch-socks": "^1.2.0",
         "https-proxy-agent": "^7.0.2",
