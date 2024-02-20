@@ -11,6 +11,10 @@ ChatLuna 核心相关库。
 
   ChatLuna 核心项目，基于 LangChain 建设的一套简易的适用于聊天机器人插件的 LLM Framework。
 
+- [@chatluna/memory](./packages/memory/README.MD)
+
+  ChatLuna 对话存储相关库，提供相关 API。基于 [minato](https://github.com/cordiverse/minato) 实现与数据库的交互。
+
 - [@chatluna/koishi](./packages/koishi/README.MD)
 
   ChatLuna 运行在 Koishi 上的核心支持库。
