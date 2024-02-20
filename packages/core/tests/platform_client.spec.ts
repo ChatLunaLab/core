@@ -23,7 +23,7 @@ import {
     ChatLunaError,
     ChatLunaErrorCode
 } from '@chatluna/core/utils'
-import { loadChatLunaCore } from '@chatluna/core'
+import { apply as chatluna_core } from '@chatluna/core'
 import { runAsync, waitServiceLoad } from './mock/utils.ts'
 import os from 'os'
 import {
@@ -148,7 +148,7 @@ app.on('ready', async () => {
     // load logger
     app.provide('logger', undefined, true)
     app.plugin(logger)
-    loadChatLunaCore(app)
+    app.plugin(chatluna_core)
 
     await setProxyAddress()
 })

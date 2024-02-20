@@ -3,7 +3,7 @@ import { expect, should } from 'chai'
 import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { describe, it, before, after } from 'mocha'
-import { loadChatLunaCore } from '@chatluna/core'
+import { apply as chatluna_core } from '@chatluna/core'
 import { IncomingMessage, Server, ServerResponse, createServer } from 'http'
 import { ProxyServer, createProxy } from 'proxy'
 import { withResolver } from '@chatluna/core/utils'
@@ -172,7 +172,7 @@ app.on('ready', async () => {
     // load logger
     app.provide('logger', undefined, true)
     app.plugin(logger)
-    loadChatLunaCore(app)
+    app.plugin(chatluna_core)
 })
 
 before(async () => {

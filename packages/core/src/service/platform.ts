@@ -223,7 +223,7 @@ export class PlatformService extends Service {
     getAllModels(type: ModelType) {
         return Object.values(this._models)
             .flatMap((f) => f)
-            .filter((m) => m.type === ModelType.all || m.type === type)
+            .filter((m) => (type === ModelType.all ? true : m.type === type))
     }
 
     get vectorStores() {

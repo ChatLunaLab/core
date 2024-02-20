@@ -7,7 +7,7 @@ import { PlatformService, RequestService } from '@chatluna/core/service'
  *
  * @param ctx parentContext
  */
-export function loadChatLunaCore(ctx: Context) {
+export function apply(ctx: Context) {
     ctx.plugin(RequestService)
     ctx.plugin(PlatformService)
 }

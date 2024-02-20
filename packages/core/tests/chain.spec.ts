@@ -26,7 +26,7 @@ import { Document } from '@langchain/core/documents'
 import { Context } from '@cordisjs/core'
 import { waitServiceLoad } from './mock/utils.ts'
 import { ModelType } from '@chatluna/core/platform'
-import { loadChatLunaCore } from '@chatluna/core'
+import { apply as chatluna_core } from '@chatluna/core'
 import { ChatLunaChatChain, ChainEvents } from '@chatluna/core/chain'
 import { tuple } from 'zod'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
@@ -238,7 +238,7 @@ app.on('ready', async () => {
     // load logger
     app.provide('logger', undefined, true)
     app.plugin(logger)
-    loadChatLunaCore(app)
+    app.plugin(chatluna_core)
 
     await setProxyAddress()
 })

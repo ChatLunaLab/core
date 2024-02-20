@@ -17,7 +17,7 @@ export type FunctionsAgentAction = AgentAction & {
     messageLog?: BaseMessage[]
 }
 
-// F** langchain
+// F*** langchain
 
 /**
  * Abstract class representing an output parser specifically for agent

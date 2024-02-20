@@ -69,9 +69,19 @@ export interface ModelInfo {
 
     maxTokens?: number
 
-    functionCall?: boolean
+    capabilities?: ModelCapability[]
 
     costPerToken?: number
+}
+
+export enum ModelCapability {
+    INPUT_TEXT,
+    INPUT_VOICE,
+    INPUT_IMAGE,
+    OUTPUT_TEXT,
+    OUTPUT_IMAGE,
+    OUTPUT_VOICE,
+    INPUT_FUNC_CALL
 }
 
 export interface CreateVectorStoreParams {
@@ -85,3 +95,22 @@ export enum ModelType {
     llm,
     embeddings
 }
+
+/* declare module '@langchain/core/messages' {
+    interface BaseMessageFields {
+        content: MessageContent
+        name?: string
+        additional_kwargs?: {
+            [key: string]: unknown
+            function_call?: FunctionCall
+            tool_calls?: ToolCall[]
+        } & {
+            input_images?: string[]
+            input_voice?: string[]
+            output_images?: string[]
+            output_voice?: string[]
+            additionalMessage?: string
+        }
+    }
+}
+ */
