@@ -70,6 +70,8 @@ export interface ModelInfo {
     maxTokens?: number
 
     functionCall?: boolean
+
+    costPerToken?: number
 }
 
 export interface CreateVectorStoreParams {

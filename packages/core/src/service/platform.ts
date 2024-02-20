@@ -66,7 +66,7 @@ export class PlatformService extends Service {
 
         const disposable = () => this._unregisterClient(platform)
 
-        return this[Context.current].effect(() => disposable)
+        return this[Context.trace].effect(() => disposable)
     }
 
     registerConfigs(
@@ -103,7 +103,7 @@ export class PlatformService extends Service {
 
         const disposable = () => this._unregisterTool(name)
 
-        return this[Context.current].effect(() => disposable)
+        return this[Context.trace].effect(() => disposable)
     }
 
     private _unregisterTool(name: string) {
@@ -168,7 +168,7 @@ export class PlatformService extends Service {
         this._vectorStore[name] = vectorStoreCreator
         this.ctx.emit('chatluna/vector-store-added', this, name)
         const disposable = () => this._unregisterVectorStore(name)
-        return this[Context.current].effect(() => disposable)
+        return this[Context.trace].effect(() => disposable)
     }
 
     async registerChatChain(
@@ -185,7 +185,7 @@ export class PlatformService extends Service {
         }
         this.ctx.emit('chatluna/chat-chain-added', this, this._chatChains[name])
         const disposable = () => this._unregisterChatChain(name)
-        return this[Context.current].effect(() => disposable)
+        return this[Context.trace].effect(() => disposable)
     }
 
     private _unregisterChatChain(name: string) {
@@ -221,19 +221,9 @@ export class PlatformService extends Service {
     }
 
     getAllModels(type: ModelType) {
-        const allModel: ModelInfo[] = []
-
-        for (const platform in this._models) {
-            const models = this._models[platform]
-
-            for (const model of models) {
-                if (type === ModelType.all || model.type === type) {
-                    allModel.push(model)
-                }
-            }
-        }
-
-        return allModel
+        return Object.values(this._models)
+            .flatMap((f) => f)
+            .filter((m) => m.type === ModelType.all || m.type === type)
     }
 
     get vectorStores() {
