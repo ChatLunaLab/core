@@ -1,4 +1,5 @@
 import { Context } from '@cordisjs/core'
+import { ChatLunaConversationService } from '@chatluna/memory/service'
 
 /**
  *
@@ -6,4 +7,6 @@ import { Context } from '@cordisjs/core'
  *
  * @param ctx parentContext
  */
-export function apply(ctx: Context) {}
+export function apply(ctx: Context) {
+    ctx.plugin(ChatLunaConversationService)
+}

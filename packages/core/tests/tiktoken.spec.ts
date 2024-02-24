@@ -14,7 +14,7 @@ import {
     calculateTokens
 } from '@chatluna/core/utils'
 import { runAsync, waitServiceLoad } from './mock/utils.ts'
-import * as logger from '@cordisjs/logger'
+import logger from '@cordisjs/logger'
 
 import os from 'os'
 

@@ -33,7 +33,7 @@ export class ChatLunaChatChain
 
     prompt: ChatLunaChatPrompt
 
-    private _llm: ChatLunaChatModel
+    private readonly _llm: ChatLunaChatModel
 
     constructor(
         params: ChatLunaLLMChainWrapperInput & {

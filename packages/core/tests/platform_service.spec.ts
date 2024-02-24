@@ -1,7 +1,7 @@
 import { expect, should } from 'chai'
 import * as chai from 'chai'
 import { describe, it, before, after } from 'mocha'
-import * as logger from '@cordisjs/logger'
+import  logger from '@cordisjs/logger'
 import { Context, ScopeStatus } from '@cordisjs/core'
 import chaiAsPromised from 'chai-as-promised'
 import {

@@ -167,7 +167,7 @@ export class ChatLunaPluginChain
             newActiveTools.filter((tool) => {
                 const include = tools.includes(tool[0])
 
-                return !include || (include && tool[1] === false)
+                return !include || (include && !tool[1])
             })
 
         if (differenceTools.length <= 0) {
@@ -178,7 +178,7 @@ export class ChatLunaPluginChain
         }
 
         for (const differenceTool of differenceTools) {
-            if (differenceTool[1] === false) {
+            if (!differenceTool[1]) {
                 const index = tools.findIndex(
                     (tool) => tool === differenceTool[0]
                 )

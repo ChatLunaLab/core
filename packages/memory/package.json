@@ -20,6 +20,11 @@
             "import": "./lib/types/index.mjs",
             "types": "./lib/types/index.d.ts"
         },
+        "./service": {
+            "require": "./lib/service/index.cjs",
+            "import": "./lib/service/index.mjs",
+            "types": "./lib/service/index.d.ts"
+        },
         "./package.json": "./package.json"
     },
     "engines": {
@@ -49,9 +54,13 @@
         "chatluna"
     ],
     "dependencies": {
-        "@cordisjs/core": "^3.11.0",
+        "@cordisjs/core": "^3.12.0",
         "@cordisjs/logger": "^0.3.1",
-        "minato": "^3.0.0-alpha.0",
-        "@langchain/core": "^0.1.30"
+        "@langchain/core": "^0.1.33",
+        "cordis": "^3.12.0",
+        "minato": "^3.0.0"
+    },
+    "peerDependencies": {
+        "@chatluna/core": "0.0.1"
     }
 }

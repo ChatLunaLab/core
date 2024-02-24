@@ -1,4 +1,4 @@
-import { Context, Service } from '@cordisjs/core'
+import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
 import {
     BasePlatformClient,
     ChatLunaChainInfo,
@@ -16,14 +16,14 @@ import {
     PlatformModelAndEmbeddingsClient,
     PlatformModelClient
 } from '@chatluna/core/platform'
-import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
+import { PickModelType } from '@chatluna/core/service'
 import {
     ChatLunaError,
     ChatLunaErrorCode,
     Option,
     parseRawModelName
 } from '@chatluna/core/utils'
-import { PickModelType } from '@chatluna/core/service'
+import { Context, Service } from '@cordisjs/core'
 import { Logger } from '@cordisjs/logger'
 
 export class PlatformService extends Service {
@@ -92,9 +92,7 @@ export class PlatformService extends Service {
 
         this._configPools[platform] = configPool
 
-        const disposable = () => delete this._configPools[platform]
-
-        return disposable
+        return () => delete this._configPools[platform]
     }
 
     registerTool(name: string, toolCreator: ChatLunaTool) {
@@ -324,7 +322,13 @@ export class PlatformService extends Service {
         platform: string,
         config: ClientConfig
     ) {
-        const isAvailable = await client.isAvailable()
+        let isAvailable: boolean
+
+        try {
+            isAvailable = await client.isAvailable()
+        } catch (e) {
+            isAvailable = false
+        }
 
         const pool = this._configPools[platform]
 

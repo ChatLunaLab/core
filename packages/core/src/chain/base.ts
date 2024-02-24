@@ -13,7 +13,7 @@ export abstract class ChatLunaLLMChainWrapper<
     T extends ChatLunaLLMChainWrapperInput = ChatLunaLLMChainWrapperInput,
     R extends ChatLunaLLMCallArg = ChatLunaLLMCallArg
 > {
-    constructor(_params: T) {}
+    protected constructor(_params: T) {}
 
     abstract call(arg: R): Promise<AIMessage>
 

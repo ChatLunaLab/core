@@ -1,2 +1,2 @@
-export * from    './types.ts'
-export * from    './openai/index.ts'
+export * from './types.ts'
+export * from './openai/index.ts'

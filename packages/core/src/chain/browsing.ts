@@ -1,14 +1,4 @@
 /* eslint-disable max-len */
-import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
-import {
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    PromptTemplate
-} from '@langchain/core/prompts'
-import { Embeddings } from '@langchain/core/embeddings'
-import { StructuredTool, Tool } from '@langchain/core/tools'
-
-import { ChainValues } from '@langchain/core/utils/types'
 import {
     callChatLunaChain,
     ChatLunaChatPrompt,
@@ -18,19 +8,29 @@ import {
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
 } from '@chatluna/core/chain'
+import {
+    BufferWindowMemory,
+    VectorStoreRetrieverMemory
+} from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
 import {
     ChatLunaSaveableVectorStore,
     MemoryVectorStore
 } from '@chatluna/core/vectorstore'
-import {
-    BufferWindowMemory,
-    VectorStoreRetrieverMemory
-} from '@chatluna/core/memory'
-import { VectorStore } from '@langchain/core/vectorstores'
-import { DocumentInterface } from '@langchain/core/documents'
-import { BaseRetrieverInterface } from '@langchain/core/retrievers'
 import { Logger } from '@cordisjs/logger'
+import { DocumentInterface } from '@langchain/core/documents'
+import { Embeddings } from '@langchain/core/embeddings'
+import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
+import {
+    HumanMessagePromptTemplate,
+    MessagesPlaceholder,
+    PromptTemplate
+} from '@langchain/core/prompts'
+import { BaseRetrieverInterface } from '@langchain/core/retrievers'
+import { StructuredTool, Tool } from '@langchain/core/tools'
+
+import { ChainValues } from '@langchain/core/utils/types'
+import { VectorStore } from '@langchain/core/vectorstores'
 
 // github.com/langchain-ai/weblangchain/blob/main/nextjs/app/api/chat/stream_log/route.ts#L81
 
@@ -214,7 +214,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
         searchResults: SearchResult[],
         question: string
     ) {
-        if (this.browsePage === false || this.browsePage == null) {
+        if (!this.browsePage) {
             return this._formatInnerResults(searchResults)
         }
 
@@ -264,13 +264,11 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             await this.historyMemory.loadMemoryVariables(requests)
         )[this.historyMemory.memoryKey] as BaseMessage[]
 
-        const longHistory = (
+        requests['long_history'] = (
             await this.chatMemory.loadMemoryVariables({
                 user: message.content
             })
         )[this.chatMemory.memoryKey]
-
-        requests['long_history'] = longHistory
         requests['chat_history'] = chatHistory
         Object.assign(requests, params)
 
@@ -347,9 +345,7 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             await vectorStore.save()
         }
 
-        const aiMessage = new AIMessage(finalResponse as string)
-
-        return aiMessage
+        return new AIMessage(finalResponse as string)
     }
 
     get model() {

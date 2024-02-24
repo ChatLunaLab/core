@@ -1,7 +1,7 @@
 import { expect, should } from 'chai'
 import * as chai from 'chai'
 import { describe, it } from 'mocha'
-import * as logger from '@cordisjs/logger'
+import logger from '@cordisjs/logger'
 import os from 'node:os'
 import {
     BaseChatMemory,
