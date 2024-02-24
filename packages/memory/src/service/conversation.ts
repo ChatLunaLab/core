@@ -53,6 +53,43 @@ export class ChatLunaConversationService extends Service {
         return queried[0]
     }
 
+    async queryConversationAdditional(
+        userId: string,
+        guildId: string | undefined = undefined,
+        defaultConversation: boolean | undefined = undefined,
+        conversationId: string | undefined = undefined
+    ): Promise<ChatLunaConversationAdditional> {
+        let selection = this._database
+            .select('chatluna_conversation_additional')
+            .where({
+                userId,
+                guildId
+            })
+
+        if (defaultConversation) {
+            selection = selection.where({
+                default: defaultConversation
+            })
+        }
+
+        if (conversationId) {
+            selection = selection.where({
+                conversationId
+            })
+        }
+
+        const queried = await selection.execute()
+
+        if (!queried || queried.length === 0 || queried.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.CONVERSATION_NOT_FOUND,
+                `The query conversation with userId ${userId} is not found or more than one`
+            )
+        }
+
+        return queried[0]
+    }
+
     async cloneConversation(
         conversation: ChatLunaConversation | string,
         extra: ChatLunaConversationAdditional
@@ -141,7 +178,7 @@ export class ChatLunaConversationService extends Service {
             }
         }
 
-        for (const prop in fuzzyConversation) {
+        for (const prop in fuzzyConversation ?? []) {
             if (fuzzyConversation[prop] !== undefined) {
                 queryContent[`chatluna_conversation.${prop}`] =
                     fuzzyConversation[prop]
@@ -169,7 +206,8 @@ export class ChatLunaConversationService extends Service {
     async updateConversationAdditional(
         conversationId: string,
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        additional_kwargs: Record<string, unknown> | undefined
+        additional_kwargs: Record<string, unknown> | undefined,
+        additional: ChatLunaConversationAdditional | undefined
     ) {
         await this._database.upsert('chatluna_conversation', [
             {
@@ -177,6 +215,15 @@ export class ChatLunaConversationService extends Service {
                 additional_kwargs
             }
         ])
+
+        if (additional) {
+            await this._database.upsert('chatluna_conversation_additional', [
+                {
+                    conversationId,
+                    ...additional
+                }
+            ])
+        }
     }
 
     async fetchAllMessages(conversationId: string): Promise<ChatLunaMessage[]> {
