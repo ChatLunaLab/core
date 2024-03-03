@@ -1,18 +1,18 @@
-import { AIMessage, BaseMessage } from '@langchain/core/messages'
+import { createOpenAIAgent } from '@chatluna/core/agents'
 import {
     ChatLunaLLMCallArg,
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
 } from '@chatluna/core/chain'
+import { BaseChatMemory, BufferWindowMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
 import { ChatLunaTool } from '@chatluna/core/platform'
+import { AgentAction, AgentFinish, AgentStep } from '@langchain/core/agents'
+import { AIMessage, BaseMessage } from '@langchain/core/messages'
+import { Runnable, RunnableSequence } from '@langchain/core/runnables'
 import { StructuredTool } from '@langchain/core/tools'
 import { ChainValues } from '@langchain/core/utils/types'
-import { createOpenAIAgent } from '@chatluna/core/agents'
-import { Runnable, RunnableSequence } from '@langchain/core/runnables'
-import { AgentAction, AgentFinish, AgentStep } from '@langchain/core/agents'
-import { BaseChatMemory, BufferWindowMemory } from '@chatluna/core/memory'
 
 export interface ChatLunaPluginChainInput extends ChatLunaLLMChainWrapperInput {
     systemPrompts?: SystemPrompts
@@ -64,6 +64,10 @@ export class ChatLunaPluginChain
     tools: ChatLunaTool[]
 
     verbose?: boolean
+
+    currentChatMemory: BaseChatMemory
+
+    baseMessages: BaseMessage[] = []
 
     constructor(
         params: ChatLunaPluginChainInput & {
@@ -119,11 +123,21 @@ export class ChatLunaPluginChain
     private async _createExecutor(
         llm: ChatLunaChatModel,
         tools: StructuredTool[],
-        {
-            historyMemory,
-            systemPrompts
-        }: Omit<ChatLunaPluginChainInput, 'embeddings' | 'createExecutor'>
+        systemPrompts: SystemPrompts
     ) {
+        if (this.currentChatMemory == null) {
+            this.currentChatMemory = new BufferWindowMemory({
+                returnMessages: true,
+                memoryKey: 'chat_history',
+                inputKey: 'input',
+                outputKey: 'output'
+            })
+
+            for (const message of this.baseMessages) {
+                await this.currentChatMemory.chatHistory.addMessage(message)
+            }
+        }
+
         return this.createExecutor({
             tags: ['openai-functions'],
             agent: createOpenAIAgent({
@@ -132,15 +146,8 @@ export class ChatLunaPluginChain
                 preset: systemPrompts
             }),
             tools,
-            memory:
-                historyMemory ??
-                new BufferWindowMemory({
-                    returnMessages: true,
-                    memoryKey: 'chat_history',
-                    inputKey: 'input',
-                    outputKey: 'output'
-                }),
-            verbose: true
+            memory: this.currentChatMemory,
+            verbose: this.verbose ?? true
         })
     }
 
@@ -171,10 +178,7 @@ export class ChatLunaPluginChain
             })
 
         if (differenceTools.length <= 0) {
-            return [
-                this.tools,
-                this.tools.some((tool) => tool?.alwaysRecreate === true)
-            ]
+            return [this.tools, this.tools.some((tool) => tool?.alwaysRecreate)]
         }
 
         for (const differenceTool of differenceTools) {
@@ -205,18 +209,20 @@ export class ChatLunaPluginChain
             input: message.content
         }
 
-        const memoryVariables =
-            await this.historyMemory.loadMemoryVariables(requests)
+        this.baseMessages =
+            this.baseMessages ??
+            (await this.historyMemory.chatHistory.getMessages())
 
-        requests['chat_history'] = memoryVariables[
-            this.historyMemory.outputKey
-        ] as BaseMessage[]
+        // requests['chat_history'] = this.baseMessages
 
         Object.assign(requests, params)
 
         const [activeTools, recreate] = this._getActiveTools(
             params['authorization'],
-            requests['chat_history'].concat(message)
+            (this.currentChatMemory != null
+                ? await this.currentChatMemory.chatHistory.getMessages()
+                : this.baseMessages
+            ).concat(message)
         )
 
         if (recreate || this.executor == null) {
@@ -233,10 +239,7 @@ export class ChatLunaPluginChain
                         )
                     )
                 ),
-                {
-                    historyMemory: this.historyMemory,
-                    systemPrompts: this.systemPrompts
-                }
+                this.systemPrompts
             )
         }
 
@@ -249,11 +252,11 @@ export class ChatLunaPluginChain
             {
                 callbacks: [
                     {
-                        handleLLMEnd(output, runId, parentRunId, tags) {
+                        handleLLMEnd(output) {
                             usedToken +=
                                 output.llmOutput?.tokenUsage?.totalTokens
                         },
-                        handleAgentAction(action, runId, parentRunId, tags) {
+                        handleAgentAction(action) {
                             events?.['llm-call-tool'](
                                 action.tool,
                                 action.toolInput
