@@ -15,6 +15,10 @@ ChatLuna 核心相关库。
 
   ChatLuna 对话存储相关库，提供相关 API。基于 [minato](https://github.com/cordiverse/minato) 实现与数据库的交互。
 
+- [@chatluna/utils](./packages/utils/README.MD)
+
+  ChatLuna 辅助库，提供一些简单的 API 如 SSE 解析，等待锁等。
+
 - [@chatluna/koishi](./packages/koishi/README.MD)
 
   ChatLuna 运行在 Koishi 上的核心支持库。
