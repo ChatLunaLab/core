@@ -1,6 +1,6 @@
-import { Context } from '@cordisjs/core'
-import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
 import { ChatHubBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
+import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
+import { Context } from '@cordisjs/core'
 
 export abstract class BasePlatformClient<
     T extends ClientConfig = ClientConfig,
@@ -40,7 +40,7 @@ export abstract class BasePlatformClient<
     protected abstract _createModel(model: string): R
 
     createModel(model: string, reCreate?: boolean): R {
-        if (!this._modelPool[model] || reCreate === true) {
+        if (!this._modelPool[model] || reCreate) {
             this._modelPool[model] = this._createModel(model)
         }
 

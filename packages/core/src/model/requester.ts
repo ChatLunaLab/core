@@ -1,6 +1,9 @@
+import { Request, RequestInit } from '@chatluna/core/service'
 import { BaseMessage } from '@langchain/core/messages'
-import { StructuredTool } from '@langchain/core/tools'
 import { ChatGeneration, ChatGenerationChunk } from '@langchain/core/outputs'
+import { StructuredTool } from '@langchain/core/tools'
+import { ClientRequestArgs } from 'http'
+import { ClientOptions, WebSocket } from 'ws'
 
 export interface BaseRequestParams {
     /**
@@ -61,13 +64,37 @@ export interface EmbeddingsRequestParams extends BaseRequestParams {
     input: string | string[]
 }
 
-export interface BaseRequester {
+export interface BaseRequester extends WithRequester {
     init(): Promise<void>
 
     dispose(): Promise<void>
 }
 
+export interface WithRequester {
+    requestService: Request
+}
+
+interface HttpRequest extends WithRequester {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _post(url: string, data: any, params: RequestInit): Promise<Response>
+
+    _get(url: string): Promise<Response>
+
+    _buildHeaders(): Record<string, string>
+
+    _concatUrl(url: string): string
+}
+
+export interface WebSocketRequest extends WithRequester {
+    _openWebSocket(
+        url: string,
+        options: ClientOptions | ClientRequestArgs
+    ): Promise<WebSocket>
+}
+
 export abstract class ModelRequester implements BaseRequester {
+    abstract requestService: Request
+
     async completion(params: ModelRequestParams): Promise<ChatGeneration> {
         const stream = this.completionStream(params)
 
@@ -85,11 +112,89 @@ export abstract class ModelRequester implements BaseRequester {
         params: ModelRequestParams
     ): AsyncGenerator<ChatGenerationChunk>
 
-    abstract init(): Promise<void>
+    async init(): Promise<void> {}
 
-    abstract dispose(): Promise<void>
+    async dispose(): Promise<void> {}
+}
+
+export abstract class HttpModelRequester
+    extends ModelRequester
+    implements HttpRequest
+{
+    abstract requestService: Request
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _post(url: string, data: any, params: RequestInit = {}) {
+        const requestUrl = this._concatUrl(url)
+
+        for (const key in data) {
+            if (data[key] === undefined) {
+                delete data[key]
+            }
+        }
+
+        const body = JSON.stringify(data)
+
+        // console.log('POST', requestUrl, body)
+
+        return this.requestService.fetch(requestUrl, {
+            body,
+            headers: this._buildHeaders(),
+            method: 'POST',
+            ...params
+        })
+    }
+
+    _get(url: string) {
+        const requestUrl = this._concatUrl(url)
+
+        return this.requestService.fetch(requestUrl, {
+            method: 'GET',
+            headers: this._buildHeaders()
+        })
+    }
+
+    _buildHeaders() {
+        return {
+            'Content-Type': 'application/json'
+        }
+    }
+
+    _concatUrl(url: string): string {
+        return url
+    }
+}
+
+export abstract class WebSocketModelRequester
+    extends ModelRequester
+    implements WebSocketRequest
+{
+    abstract requestService: Request
+
+    protected _ws: WebSocket
+
+    async _openWebSocket(
+        url: string,
+        options: ClientOptions | ClientRequestArgs
+    ): Promise<WebSocket> {
+        this._ws = await new Promise((resolve, reject) => {
+            const ws = this.requestService.ws(url, options)
+
+            ws.onopen = () => {
+                resolve(ws)
+            }
+
+            ws.onerror = (err) => {
+                reject(err)
+            }
+        })
+
+        return this._ws
+    }
 }
 
 export interface EmbeddingsRequester {
+    requestService: Request
+
     embeddings(params: EmbeddingsRequestParams): Promise<number[] | number[][]>
 }
