@@ -1,5 +1,5 @@
-import { Context } from '@cordisjs/core'
 import { ChatLunaConversationService } from '@chatluna/memory/service'
+import { Context } from 'cordis'
 
 /**
  *

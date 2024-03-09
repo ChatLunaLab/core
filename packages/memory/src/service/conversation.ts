@@ -1,15 +1,15 @@
-import { Context, Service } from 'cordis'
-import type { Logger } from '@cordisjs/logger'
-import { $, type Database, Query } from 'minato'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 import {
     ChatLunaConversation,
     ChatLunaConversationAdditional,
     ChatLunaConversationTemplate,
     ChatLunaMessage,
-    ChatLunaTables
+    ChatLunaTables,
+    PartialOptional
 } from '@chatluna/memory/types'
-import { PartialOptional } from '../types/index.js'
+import type { Logger } from '@cordisjs/logger'
+import { Context, Service } from 'cordis'
+import { $, Database, Query } from 'minato'
 
 export class ChatLunaConversationService extends Service {
     private _logger: Logger
@@ -17,6 +17,7 @@ export class ChatLunaConversationService extends Service {
     constructor(ctx: Context) {
         super(ctx, 'chatluna_conversation')
         this._logger = ctx.logger('chatluna_conversation')
+        this._defineDatabase()
     }
 
     async createConversation(
@@ -38,19 +39,25 @@ export class ChatLunaConversationService extends Service {
         return conversation
     }
 
-    async resolveConversation(id: string): Promise<ChatLunaConversation> {
+    async resolveConversation(
+        id: string,
+        throwError: boolean = true
+    ): Promise<ChatLunaConversation | undefined> {
         const queried = await this._database.get('chatluna_conversation', {
             id
         })
 
-        if (!queried || queried.length === 0 || queried.length > 1) {
+        if (
+            throwError &&
+            (!queried || queried.length === 0 || queried.length > 1)
+        ) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.CONVERSATION_NOT_FOUND,
                 `The query conversation with id ${id} is not found or more than one`
             )
         }
 
-        return queried[0]
+        return queried?.[0]
     }
 
     async queryConversationAdditional(
@@ -206,17 +213,20 @@ export class ChatLunaConversationService extends Service {
     async updateConversationAdditional(
         conversationId: string,
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        additional_kwargs: Record<string, unknown> | undefined,
-        additional: ChatLunaConversationAdditional | undefined
+        additional_kwargs: Record<string, unknown> | undefined = undefined,
+        additional: ChatLunaConversationAdditional | undefined = undefined,
+        force: boolean = false
     ) {
-        await this._database.upsert('chatluna_conversation', [
-            {
-                id: conversationId,
-                additional_kwargs
-            }
-        ])
+        if (force || additional_kwargs) {
+            await this._database.upsert('chatluna_conversation', [
+                {
+                    id: conversationId,
+                    additional_kwargs
+                }
+            ])
+        }
 
-        if (additional) {
+        if (force || additional) {
             await this._database.upsert('chatluna_conversation_additional', [
                 {
                     conversationId,
@@ -244,7 +254,7 @@ export class ChatLunaConversationService extends Service {
         >,
         needCrop: boolean = false,
         maxMessageCount: number = 1000
-    ): Promise<void> {
+    ) {
         const conversation = await this.resolveConversation(conversationId)
 
         const message: ChatLunaMessage = {
@@ -262,7 +272,7 @@ export class ChatLunaConversationService extends Service {
         await this._database.upsert('chatluna_conversation', [conversation])
 
         if (needCrop) {
-            await this.cropMessages(conversation.id, maxMessageCount)
+            return await this.cropMessages(conversation.id, maxMessageCount)
         }
     }
 
@@ -346,15 +356,28 @@ export class ChatLunaConversationService extends Service {
     }
 
     async cropMessages(conversationId: string, maxMessageCount: number) {
-        const selection = this._database
+        // 100 - 200
+        const maxMessages = await this._database
             .select('chatluna_message')
             .where({
                 conversationId
             })
             .orderBy('createdTime', 'desc')
             .limit(maxMessageCount)
+            .execute()
+            .then((result) => result.map((message) => message.id))
 
-        await this._database.remove('chatluna_message', selection.query)
+        const selection = this._database.select('chatluna_message').where({
+            id: {
+                $not: {
+                    $in: maxMessages
+                }
+            }
+        })
+
+        let removeMessagesCount = await this._database
+            .remove('chatluna_message', selection.query)
+            .then((result) => result.removed)
 
         // query first three messages
 
@@ -367,17 +390,18 @@ export class ChatLunaConversationService extends Service {
             .limit(3)
             .execute()
 
-        if (firstMessages.length < 0) {
-            return
+        if (firstMessages.length < 1) {
+            return removeMessagesCount
         }
 
         let first = firstMessages[0]
 
         if (first.role === 'ai') {
-            firstMessages.shift()
             await this._database.remove('chatluna_message', {
                 id: first.id
             })
+            firstMessages.shift()
+            removeMessagesCount++
         }
 
         first = firstMessages[0]
@@ -385,11 +409,18 @@ export class ChatLunaConversationService extends Service {
         first.parentId = undefined
 
         await this._database.upsert('chatluna_message', [first])
+
+        return removeMessagesCount
     }
 
     private get _database() {
-        return this.ctx.database as Database<ChatLunaTables, Context>
+        // return this.ctx.database as Database<ChatLunaTables>
+        // wait minato update
+
+        return this.ctx.database as unknown as Database<ChatLunaTables>
     }
+
+    private _defineDatabase() {}
 
     static inject = {
         required: ['database', 'logger']
@@ -404,4 +435,12 @@ function dateWithDays(offsetDay: number) {
     const now = new Date()
     now.setDate(now.getDate() + offsetDay)
     return now
+}
+
+// wait minato update
+declare module 'cordis' {
+    interface Context {
+        database: Database
+        chatluna_conversation: ChatLunaConversationService
+    }
 }
