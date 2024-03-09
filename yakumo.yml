@@ -1,10 +1,14 @@
 - name: yakumo
   config:
-      pipeline:
-          build:
-              - esbuild
-              - tsc
-
+    pipeline:
+      build:
+        - esbuild
+        - tsc
+  id: sengw5
 - name: yakumo-esbuild
+  id: t50vh5
 - name: yakumo-tsc
+  id: t0uiuc
 - name: yakumo-mocha
+  id: xgfeqc
+- name: yakumo/upgrade

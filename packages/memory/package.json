@@ -1,66 +1,66 @@
 {
-  "name": "@chatluna/memory",
-  "description": "chatluna memory",
-  "version": "0.0.1",
-  "main": "lib/index.cjs",
-  "module": "lib/index.mjs",
-  "typings": "lib/index.d.ts",
-  "files": [
-    "lib"
-  ],
-  "type": "module",
-  "exports": {
-    ".": {
-      "require": "./lib/index.cjs",
-      "import": "./lib/index.mjs",
-      "types": "./lib/index.d.ts"
+    "name": "@chatluna/memory",
+    "description": "chatluna memory",
+    "version": "0.0.1",
+    "main": "lib/index.cjs",
+    "module": "lib/index.mjs",
+    "typings": "lib/index.d.ts",
+    "files": [
+        "lib"
+    ],
+    "type": "module",
+    "exports": {
+        ".": {
+            "require": "./lib/index.cjs",
+            "import": "./lib/index.mjs",
+            "types": "./lib/index.d.ts"
+        },
+        "./types": {
+            "require": "./lib/types/index.cjs",
+            "import": "./lib/types/index.mjs",
+            "types": "./lib/types/index.d.ts"
+        },
+        "./service": {
+            "require": "./lib/service/index.cjs",
+            "import": "./lib/service/index.mjs",
+            "types": "./lib/service/index.d.ts"
+        },
+        "./package.json": "./package.json"
     },
-    "./types": {
-      "require": "./lib/types/index.cjs",
-      "import": "./lib/types/index.mjs",
-      "types": "./lib/types/index.d.ts"
+    "engines": {
+        "node": ">=18.0.0"
     },
-    "./service": {
-      "require": "./lib/service/index.cjs",
-      "import": "./lib/service/index.mjs",
-      "types": "./lib/service/index.d.ts"
+    "author": "dingyi222666 <dingyi222666@foxmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ChatLunaLab/core.git",
+        "directory": "packages/memory"
     },
-    "./package.json": "./package.json"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "author": "dingyi222666 <dingyi222666@foxmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ChatLunaLab/core.git",
-    "directory": "packages/memory"
-  },
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ChatLunaLab/core/issues"
-  },
-  "scripts": {
-    "build": "atsc -b"
-  },
-  "homepage": "https://github.com/ChatLunaLab/core#readme",
-  "keywords": [
-    "chatbot",
-    "llm",
-    "langchain",
-    "framework",
-    "chatgpt",
-    "gpt",
-    "chatluna"
-  ],
-  "dependencies": {
-    "@cordisjs/core": "^3.12.0",
-    "@cordisjs/logger": "^0.3.2",
-    "@langchain/core": "^0.1.38",
-    "cordis": "^3.12.0",
-    "minato": "^3.0.1"
-  },
-  "peerDependencies": {
-    "@chatluna/core": "0.0.2"
-  }
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ChatLunaLab/core/issues"
+    },
+    "scripts": {
+        "build": "atsc -b"
+    },
+    "homepage": "https://github.com/ChatLunaLab/core#readme",
+    "keywords": [
+        "chatbot",
+        "llm",
+        "langchain",
+        "framework",
+        "chatgpt",
+        "gpt",
+        "chatluna"
+    ],
+    "dependencies": {
+        "@cordisjs/core": "^3.13.3",
+        "@cordisjs/logger": "^0.3.2",
+        "@langchain/core": "^0.1.43",
+        "cordis": "^3.13.3",
+        "minato": "^3.0.1"
+    },
+    "peerDependencies": {
+        "@chatluna/core": "0.0.2"
+    }
 }
