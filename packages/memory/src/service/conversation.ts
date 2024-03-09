@@ -17,7 +17,7 @@ export class ChatLunaConversationService extends Service {
     constructor(ctx: Context) {
         super(ctx, 'chatluna_conversation')
         this._logger = ctx.logger('chatluna_conversation')
-        this._defineDatabase()
+        this._defineDatabaseModel()
     }
 
     async createConversation(
@@ -420,7 +420,191 @@ export class ChatLunaConversationService extends Service {
         return this.ctx.database as unknown as Database<ChatLunaTables>
     }
 
-    private _defineDatabase() {}
+    private _defineDatabaseModel() {
+        this._database.extend(
+            'chatluna_conversation',
+            {
+                id: {
+                    type: 'string'
+                },
+                latestMessageId: {
+                    type: 'string',
+                    nullable: true
+                },
+                updatedTime: {
+                    type: 'date'
+                },
+                additional_kwargs: {
+                    type: 'json',
+                    nullable: true
+                },
+                preset: {
+                    type: 'string'
+                },
+                model: {
+                    type: 'string'
+                },
+                chatMode: {
+                    type: 'string'
+                },
+                createdTime: {
+                    type: 'date'
+                }
+            },
+            {
+                primary: 'id',
+                foreign: {
+                    latestMessageId: ['chatluna_message', 'id']
+                }
+            }
+        )
+
+        this._database.extend(
+            'chatluna_message',
+            {
+                id: {
+                    type: 'string'
+                },
+                createdTime: {
+                    type: 'date'
+                },
+                content: {
+                    type: 'json'
+                },
+                role: {
+                    type: 'string'
+                },
+                conversationId: {
+                    type: 'string'
+                },
+                name: {
+                    type: 'string',
+                    nullable: true
+                },
+                additional_kwargs: {
+                    type: 'json',
+                    nullable: true
+                }
+            },
+            {
+                primary: 'id',
+                foreign: {
+                    conversationId: ['chatluna_conversation', 'id']
+                }
+            }
+        )
+
+        this._database.extend(
+            'chatluna_conversation_additional',
+            {
+                conversationId: {
+                    type: 'string'
+                },
+                userId: {
+                    type: 'string'
+                },
+                owner: {
+                    type: 'boolean'
+                },
+                mute: {
+                    type: 'boolean',
+                    nullable: true
+                },
+                private: {
+                    type: 'boolean',
+                    nullable: true
+                },
+                default: {
+                    type: 'boolean',
+                    nullable: true
+                }
+            },
+            {
+                foreign: {
+                    userId: ['chatluna_user', 'userId'],
+                    conversationId: ['chatluna_conversation', 'id']
+                }
+            }
+        )
+
+        this._database.extend(
+            'chatluna_user',
+            {
+                userId: {
+                    type: 'string'
+                },
+                balance: {
+                    type: 'double',
+                    nullable: true
+                },
+                chatTimeLimitPerMin: {
+                    type: 'date',
+                    nullable: true
+                },
+                lastChatTime: {
+                    type: 'date',
+                    nullable: true
+                },
+                userGroupId: {
+                    type: 'list',
+                    nullable: true
+                }
+            },
+            {
+                primary: 'userId'
+            }
+        )
+
+        this._database.extend(
+            'chatluna_user_group_additional',
+            {
+                userId: {
+                    type: 'string'
+                },
+                lastLimitPerMin: {
+                    type: 'double',
+                    nullable: true
+                },
+                lastLimitPerDay: {
+                    type: 'double',
+                    nullable: true
+                }
+            },
+            {
+                foreign: {
+                    userId: ['chatluna_user', 'userId']
+                }
+            }
+        )
+
+        this._database.extend(
+            'chatluna_user_group',
+            {
+                name: {
+                    type: 'string'
+                },
+                id: {
+                    type: 'integer'
+                },
+                limitPerMin: {
+                    type: 'integer'
+                },
+                limitPerDay: {
+                    type: 'integer'
+                },
+                costPerToken: {
+                    type: 'double'
+                },
+                supportModels: {
+                    type: 'list'
+                }
+            },
+            {
+                primary: 'id',
+                autoInc: true
+            }
+        )
+    }
 
     static inject = {
         required: ['database', 'logger']
