@@ -1,16 +1,15 @@
-import { Logger } from '@cordisjs/logger'
-import { Context } from '@cordisjs/core'
 import {
-    ChatLunaEmbeddings,
-    EmbeddingsRequestParams,
     EmbeddingsRequester,
-    ModelRequestParams,
-    ModelRequester
+    EmbeddingsRequestParams,
+    ModelRequester,
+    ModelRequestParams
 } from '@chatluna/core/model'
-import { ChatGenerationChunk } from '@langchain/core/outputs'
-import { AIMessageChunk } from '@langchain/core/messages'
-import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/utils'
 import { ClientConfig } from '@chatluna/core/platform'
+import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/utils'
+import { Context } from '@cordisjs/core'
+import { Logger } from '@cordisjs/logger'
+import { AIMessageChunk } from '@langchain/core/messages'
+import { ChatGenerationChunk } from '@langchain/core/outputs'
 
 export class MockModelRequester extends ModelRequester {
     logger?: Logger
@@ -31,7 +30,7 @@ export class MockModelRequester extends ModelRequester {
     }
 
     async *completionStream(
-        //[!code focus:3]
+        // [!code focus:3]
         params: ModelRequestParams
     ): AsyncGenerator<ChatGenerationChunk> {
         if (
@@ -81,6 +80,7 @@ export class MockModelRequester extends ModelRequester {
     }
 
     async init(): Promise<void> {}
+
     async dispose(): Promise<void> {}
 }
 
@@ -103,7 +103,7 @@ export class MockEmbeddingsRequester implements EmbeddingsRequester {
         if (typeof input === 'string') {
             const result = this._embedDocuments([input])
 
-            if (this.mode != 'default') {
+            if (this.mode !== 'default') {
                 return await result
             }
 

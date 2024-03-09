@@ -64,37 +64,13 @@ export interface EmbeddingsRequestParams extends BaseRequestParams {
     input: string | string[]
 }
 
-export interface BaseRequester extends WithRequester {
+export interface BaseRequester {
     init(): Promise<void>
 
     dispose(): Promise<void>
 }
 
-export interface WithRequester {
-    requestService: Request
-}
-
-interface HttpRequest extends WithRequester {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    _post(url: string, data: any, params: RequestInit): Promise<Response>
-
-    _get(url: string): Promise<Response>
-
-    _buildHeaders(): Record<string, string>
-
-    _concatUrl(url: string): string
-}
-
-export interface WebSocketRequest extends WithRequester {
-    _openWebSocket(
-        url: string,
-        options: ClientOptions | ClientRequestArgs
-    ): Promise<WebSocket>
-}
-
 export abstract class ModelRequester implements BaseRequester {
-    abstract requestService: Request
-
     async completion(params: ModelRequestParams): Promise<ChatGeneration> {
         const stream = this.completionStream(params)
 
@@ -115,6 +91,30 @@ export abstract class ModelRequester implements BaseRequester {
     async init(): Promise<void> {}
 
     async dispose(): Promise<void> {}
+}
+
+// The abstract class for requesters, no need to test
+/* c8 ignore next 120 */
+export interface WithRequest {
+    requestService: Request
+}
+
+interface HttpRequest extends WithRequest {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _post(url: string, data: any, params: RequestInit): Promise<Response>
+
+    _get(url: string): Promise<Response>
+
+    _buildHeaders(): Record<string, string>
+
+    _concatUrl(url: string): string
+}
+
+export interface WebSocketRequest extends WithRequest {
+    _openWebSocket(
+        url: string,
+        options: ClientOptions | ClientRequestArgs
+    ): Promise<WebSocket>
 }
 
 export abstract class HttpModelRequester
@@ -194,7 +194,5 @@ export abstract class WebSocketModelRequester
 }
 
 export interface EmbeddingsRequester {
-    requestService: Request
-
     embeddings(params: EmbeddingsRequestParams): Promise<number[] | number[][]>
 }
