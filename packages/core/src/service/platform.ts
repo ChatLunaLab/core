@@ -66,7 +66,7 @@ export class PlatformService extends Service {
 
         const disposable = () => this._unregisterClient(platform)
 
-        return this[Context.trace].effect(() => disposable)
+        return this[Context.origin].effect(() => disposable)
     }
 
     registerConfigs(
@@ -101,7 +101,7 @@ export class PlatformService extends Service {
 
         const disposable = () => this._unregisterTool(name)
 
-        return this[Context.trace].effect(() => disposable)
+        return this[Context.origin].effect(() => disposable)
     }
 
     private _unregisterTool(name: string) {
@@ -166,7 +166,7 @@ export class PlatformService extends Service {
         this._vectorStore[name] = vectorStoreCreator
         this.ctx.emit('chatluna/vector-store-added', this, name)
         const disposable = () => this._unregisterVectorStore(name)
-        return this[Context.trace].effect(() => disposable)
+        return this[Context.origin].effect(() => disposable)
     }
 
     async registerChatChain(
@@ -183,7 +183,7 @@ export class PlatformService extends Service {
         }
         this.ctx.emit('chatluna/chat-chain-added', this, this._chatChains[name])
         const disposable = () => this._unregisterChatChain(name)
-        return this[Context.trace].effect(() => disposable)
+        return this[Context.origin].effect(() => disposable)
     }
 
     private _unregisterChatChain(name: string) {
