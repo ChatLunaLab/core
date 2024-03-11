@@ -7,6 +7,7 @@ import {
     ChatLunaTables,
     PartialOptional
 } from '@chatluna/memory/types'
+import { dateWithDays, generateUUID } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
 import { $, Database, Query } from 'minato'
@@ -526,99 +527,11 @@ export class ChatLunaConversationService extends Service {
                 }
             }
         )
-
-        this._database.extend(
-            'chatluna_user',
-            {
-                userId: {
-                    type: 'string'
-                },
-                balance: {
-                    type: 'double',
-                    nullable: true
-                },
-                chatTimeLimitPerMin: {
-                    type: 'date',
-                    nullable: true
-                },
-                lastChatTime: {
-                    type: 'date',
-                    nullable: true
-                },
-                userGroupId: {
-                    type: 'list',
-                    nullable: true
-                }
-            },
-            {
-                primary: 'userId'
-            }
-        )
-
-        this._database.extend(
-            'chatluna_user_group_additional',
-            {
-                userId: {
-                    type: 'string'
-                },
-                lastLimitPerMin: {
-                    type: 'double',
-                    nullable: true
-                },
-                lastLimitPerDay: {
-                    type: 'double',
-                    nullable: true
-                }
-            },
-            {
-                foreign: {
-                    userId: ['chatluna_user', 'userId']
-                }
-            }
-        )
-
-        this._database.extend(
-            'chatluna_user_group',
-            {
-                name: {
-                    type: 'string'
-                },
-                id: {
-                    type: 'integer'
-                },
-                limitPerMin: {
-                    type: 'integer'
-                },
-                limitPerDay: {
-                    type: 'integer'
-                },
-                costPerToken: {
-                    type: 'double'
-                },
-                supportModels: {
-                    type: 'list'
-                }
-            },
-            {
-                primary: 'id',
-                autoInc: true
-            }
-        )
     }
 
     static inject = {
         required: ['database', 'logger']
     }
-}
-
-function generateUUID() {
-    return crypto.randomUUID()
-}
-
-function dateWithDays(offsetDay: number) {
-    const now = new Date()
-    now.setDate(now.getDate() + offsetDay)
-    return now
 }
 
 // wait minato update

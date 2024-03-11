@@ -25,6 +25,11 @@
             "import": "./lib/service/index.mjs",
             "types": "./lib/service/index.d.ts"
         },
+        "./utils": {
+            "require": "./lib/utils/index.cjs",
+            "import": "./lib/utils/index.mjs",
+            "types": "./lib/utils/index.d.ts"
+        },
         "./package.json": "./package.json"
     },
     "engines": {

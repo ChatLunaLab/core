@@ -51,20 +51,6 @@ export type ChatLunaConversationTemplate = Omit<
     | 'lastUpdatedTime'
 >
 
-export interface ChatLunaUser {
-    userId: string
-
-    excludeModels?: string[]
-    userGroupId?: string[]
-
-    balance?: number
-
-    // userGroup or chat limit
-    // global set
-    chatTimeLimitPerMin?: Date
-    lastChatTime?: Date
-}
-
 export type ChatLunaMessageRole = MessageType
 
 export interface ChatLunaTables {}
@@ -73,7 +59,6 @@ declare module '@chatluna/memory/types' {
     interface ChatLunaTables {
         chatluna_conversation: ChatLunaConversation
         chatluna_message: ChatLunaMessage
-        chatluna_user: ChatLunaUser
         chatluna_conversation_additional: ChatLunaConversationAdditional
     }
 }
