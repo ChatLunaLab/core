@@ -1,8 +1,12 @@
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
-import { ChatLunaTables } from '@chatluna/memory/types'
+import {
+    ChatLunaTables,
+    ChatLunaUser,
+    ChatLunaUserAdditional
+} from '@chatluna/memory/types'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
-import { Database } from 'minato'
+import { $, Database } from 'minato'
 
 export class ChatLunaUserService extends Service {
     private _logger: Logger
@@ -18,6 +22,10 @@ export class ChatLunaUserService extends Service {
             userId
         })
 
+        if (queries.length === 1) {
+            return queries[0]
+        }
+
         if (queries.length === 0 && !autoCreate) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.USER_NOT_FOUND,
@@ -30,12 +38,116 @@ export class ChatLunaUserService extends Service {
                 ChatLunaErrorCode.USER_ARE_DUPLICATE,
                 `User ${userId} is duplicate`
             )
-        } else if (queries.length === 1) {
-            return queries[0]
         } else {
-            throw new Error('TODO')
-            // return  this.createUser()
+            return await this.createUser(userId)
         }
+    }
+
+    createUser(userId: string, template?: ChatLunaUser) {
+        return this._database.create(
+            'chatluna_user',
+            Object.assign(
+                {
+                    userId,
+                    balance: 0
+                },
+                template ?? {}
+            )
+        )
+    }
+
+    async queryUserGroup(groupId: number) {
+        const queries = await this._database.get('chatluna_user_group', {
+            id: groupId
+        })
+
+        if (queries?.length === 1) {
+            return queries[0]
+        }
+
+        if (queries?.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_GROUP_ARE_DUPLICATE,
+                `Group ${groupId} is duplicate`
+            )
+        }
+
+        throw new ChatLunaError(
+            ChatLunaErrorCode.USER_GROUP_NOT_FOUND,
+            `Group ${groupId} not found`
+        )
+    }
+
+    async queryUserGroupByName(name: string) {
+        const queries = await this._database.get('chatluna_user_group', {
+            name
+        })
+
+        if (queries?.length === 1) {
+            return queries[0]
+        }
+
+        if (queries?.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_GROUP_ARE_DUPLICATE,
+                `Group ${name} is duplicate`
+            )
+        }
+
+        throw new ChatLunaError(
+            ChatLunaErrorCode.USER_GROUP_NOT_FOUND,
+            `Group ${name} not found`
+        )
+    }
+
+    async queryUserAdditional(userId: string) {
+        const queries = await this._database.get('chatluna_user_additional', {
+            userId
+        })
+
+        if (queries?.length === 1) {
+            return queries[0]
+        }
+
+        if (queries?.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_ARE_DUPLICATE,
+                `User ${userId} is duplicate`
+            )
+        }
+
+        throw new ChatLunaError(
+            ChatLunaErrorCode.USER_NOT_FOUND,
+            `User ${userId} not found`
+        )
+    }
+
+    async queryUserWithAdditional(
+        userId: string
+    ): Promise<[ChatLunaUser, ChatLunaUserAdditional]> {
+        const queries = await this._database
+            .join(
+                ['chatluna_user', 'chatluna_user_additional'] as const,
+                (user, additional) => $.eq(user.userId, additional.userId)
+            )
+            .execute()
+
+        if (queries?.length === 1) {
+            const result = queries[0]
+            return [result.chatluna_user, result.chatluna_user_additional]
+        }
+
+        if (queries?.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_ARE_DUPLICATE,
+                `User ${userId} is duplicate`
+            )
+        }
+
+        throw new ChatLunaError(
+            ChatLunaErrorCode.USER_NOT_FOUND,
+            `User ${userId} not found`
+        )
     }
 
     private get _database() {
@@ -75,7 +187,7 @@ export class ChatLunaUserService extends Service {
         )
 
         this._database.extend(
-            'chatluna_user_group_additional',
+            'chatluna_user_additional',
             {
                 userId: {
                     type: 'string'

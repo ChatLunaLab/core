@@ -48,6 +48,10 @@ export class ChatLunaConversationService extends Service {
             id
         })
 
+        if (queried?.length === 1) {
+            return queried[0]
+        }
+
         if (
             throwError &&
             (!queried || queried.length === 0 || queried.length > 1)
@@ -58,7 +62,7 @@ export class ChatLunaConversationService extends Service {
             )
         }
 
-        return queried?.[0]
+        return undefined
     }
 
     async queryConversationAdditional(

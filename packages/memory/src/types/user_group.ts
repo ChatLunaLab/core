@@ -10,7 +10,7 @@ export interface ChatLunaUserGroup {
     supportModels: string[]
 }
 
-export interface ChatLunaUserGroupAdditional {
+export interface ChatLunaUserAdditional {
     userId: string
 
     lastLimitPerMin: number
@@ -36,6 +36,6 @@ declare module '@chatluna/memory/types' {
     interface ChatLunaTables {
         chatluna_user_group: ChatLunaUserGroup
         chatluna_user: ChatLunaUser
-        chatluna_user_group_additional: ChatLunaUserGroupAdditional
+        chatluna_user_additional: ChatLunaUserAdditional
     }
 }
