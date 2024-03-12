@@ -28,7 +28,7 @@ export interface ChatLunaUser {
 
     // userGroup or chat limit
     // global set
-    chatTimeLimitPerMin?: Date
+    chatTimeLimitPerMin?: number
     lastChatTime?: Date
 }
 
