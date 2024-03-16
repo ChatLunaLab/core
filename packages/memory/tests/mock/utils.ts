@@ -34,8 +34,8 @@ export function loadPlugin(
                 resolve(fork)
             })
         },
-        name: 'chatluna_fork',
-        inject: ['chatluna_request', 'chatluna_platform', 'logger']
+        name: 'chatluna_memory_fork',
+        inject: ['chatluna_conversation', 'chatluna_user', 'logger']
     })
 
     setTimeout(() => {

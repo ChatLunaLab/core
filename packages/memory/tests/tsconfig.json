@@ -1,0 +1,16 @@
+{
+    "extends": "../../../tsconfig.base",
+    "compilerOptions": {
+        "rootDir": "./",
+        "outDir": "lib",
+        "module": "nodenext",
+        "strict": true,
+        "noImplicitAny": false,
+        "resolveJsonModule": true,
+        "noImplicitThis": false,
+        "strictFunctionTypes": false
+    },
+    "include": ["./"]
+}
+
+// vscode ??

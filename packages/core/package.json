@@ -96,18 +96,18 @@
     "dependencies": {
         "@cordisjs/core": "^3.13.3",
         "@cordisjs/logger": "^0.3.2",
-        "@langchain/core": "^0.1.43",
+        "@langchain/core": "^0.1.48",
         "fetch-socks": "^1.2.0",
         "https-proxy-agent": "^7.0.4",
         "js-tiktoken": "^1.0.10",
         "js-yaml": "^4.1.0",
         "ml-distance": "^4.0.1",
         "socks-proxy-agent": "^8.0.2",
-        "undici": "^6.7.1",
-        "user-agents": "^2.0.0-alpha.136",
+        "undici": "^6.9.0",
+        "user-agents": "^2.0.0-alpha.143",
         "useragent": "^2.3.0",
         "ws": "^8.16.0",
-        "zod": "^3.23.0-canary.20240222T232722",
+        "zod": "^3.23.0-canary.20240315T001949",
         "zod-to-json-schema": "^3.22.4"
     },
     "devDependencies": {

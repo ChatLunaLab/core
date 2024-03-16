@@ -1,4 +1,7 @@
-import { ChatLunaConversationService } from '@chatluna/memory/service'
+import {
+    ChatLunaConversationService,
+    ChatLunaUserService
+} from '@chatluna/memory/service'
 import { Context } from 'cordis'
 
 /**
@@ -9,4 +12,5 @@ import { Context } from 'cordis'
  */
 export function apply(ctx: Context) {
     ctx.plugin(ChatLunaConversationService)
+    ctx.plugin(ChatLunaUserService)
 }

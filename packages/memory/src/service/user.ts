@@ -5,10 +5,10 @@ import {
     ChatLunaUserAdditional,
     ChatLunaUserGroup
 } from '@chatluna/memory/types'
+import { startOfCurrentDay } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
 import { $, Database } from 'minato'
-import { startOfCurrentDay } from '../utils/index.js'
 
 export class ChatLunaUserService extends Service {
     private _logger: Logger
@@ -45,7 +45,28 @@ export class ChatLunaUserService extends Service {
         }
     }
 
-    async createUser(userId: string, template?: ChatLunaUser) {
+    async removeUser(userId: string) {
+        const queries = await this._database.get('chatluna_user', {
+            userId
+        })
+
+        if (queries.length === 0) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_NOT_FOUND,
+                `User ${userId} not found`
+            )
+        }
+
+        await this._database.remove('chatluna_user', {
+            userId
+        })
+
+        await this._database.remove('chatluna_user_additional', {
+            userId
+        })
+    }
+
+    async createUser(userId: string, template?: Partial<ChatLunaUser>) {
         const promise1 = this._database.create(
             'chatluna_user',
             Object.assign(
@@ -249,6 +270,17 @@ export class ChatLunaUserService extends Service {
     private _defineDatabaseModel() {
         this._database.extend(
             'chatluna_user',
+            /*  userId: string
+
+        excludeModels?: string[]
+        userGroupId?: string[]
+
+        balance?: number
+
+        // userGroup or chat limit
+        // global set
+        chatTimeLimitPerMin?: number
+        lastChatTime?: Date */
             {
                 userId: {
                     type: 'string'
@@ -265,6 +297,10 @@ export class ChatLunaUserService extends Service {
                     nullable: true
                 },
                 userGroupId: {
+                    type: 'list',
+                    nullable: true
+                },
+                excludeModels: {
                     type: 'list',
                     nullable: true
                 }
@@ -290,6 +326,8 @@ export class ChatLunaUserService extends Service {
                 }
             },
             {
+                primary: 'userId',
+
                 foreign: {
                     userId: ['chatluna_user', 'userId']
                 }

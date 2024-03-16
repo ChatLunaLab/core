@@ -1,7 +1,7 @@
 import { expect, should } from 'chai'
 import * as chai from 'chai'
 import { describe, it, before, after } from 'mocha'
-import  logger from '@cordisjs/logger'
+import logger from '@cordisjs/logger'
 import { Context } from '@cordisjs/core'
 import {
     MockEmbeddingsRequester,
@@ -163,7 +163,7 @@ after(async () => {
 
 async function setProxyAddress() {
     await waitServiceLoad(app, ['chatluna_request'])
-    if (os.homedir()?.includes('dingyi') && os.platform() === 'win32') {
+    if (os.homedir()?.includes('dingyi') && os.platform() === 'linux') {
         app.chatluna_request.root.proxyAddress = 'http://127.0.0.1:7890'
     } else {
         app.chatluna_request.root.proxyAddress = undefined

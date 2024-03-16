@@ -10,7 +10,8 @@
         "**/core/src/chain/plugin.ts",
 
         "**/*.d.ts",
-        "**/scripts"
+        "**/scripts",
+        "**/tests"
     ],
     "exclude-after-remap": true,
     "check-coverage": true,

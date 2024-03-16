@@ -522,12 +522,17 @@ export class ChatLunaConversationService extends Service {
                 default: {
                     type: 'boolean',
                     nullable: true
+                },
+                guildId: {
+                    type: 'string',
+                    nullable: true
                 }
             },
             {
+                primary: 'conversationId',
                 foreign: {
                     userId: ['chatluna_user', 'userId'],
-                    conversationId: ['chatluna_conversation', 'id']
+                    conversationId: ['chatluna_conversation', 'conversationId']
                 }
             }
         )

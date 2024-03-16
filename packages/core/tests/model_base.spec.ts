@@ -1,32 +1,27 @@
-import { expect, should } from 'chai'
-import * as chai from 'chai'
-import { describe, it, before, after } from 'mocha'
-import logger from '@cordisjs/logger'
+import { apply as chatluna_core } from '@chatluna/core'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
+import { ModelType } from '@chatluna/core/platform'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 import { Context } from '@cordisjs/core'
-import {
-    MockEmbeddingsRequester,
-    MockModelRequester
-} from './mock/mock_requester.ts'
+import logger from '@cordisjs/logger'
 import {
     AIMessage,
     FunctionMessage,
     HumanMessage,
     SystemMessage
 } from '@langchain/core/messages'
+import * as chai from 'chai'
+import { expect, should } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
-import { ModelType } from '@chatluna/core/platform'
-import { MockTool } from './mock/mock_tool.ts'
+import { after, before, describe, it } from 'mocha'
+import os from 'os'
 import { z } from 'zod'
 import {
-    withResolver,
-    ChatLunaError,
-    ChatLunaErrorCode
-} from '@chatluna/core/utils'
-import { apply as chatluna_core } from '@chatluna/core'
-import {} from '@chatluna/core/service'
-import { runAsync, waitServiceLoad } from './mock/utils.ts'
-import os from 'os'
+    MockEmbeddingsRequester,
+    MockModelRequester
+} from './mock/mock_requester.ts'
+import { MockTool } from './mock/mock_tool.ts'
+import { waitServiceLoad } from './mock/utils.ts'
 
 chai.use(chaiAsPromised)
 
@@ -497,7 +492,8 @@ after(async () => {
 
 async function setProxyAddress() {
     await waitServiceLoad(app, ['chatluna_request'])
-    if (os.homedir()?.includes('dingyi') && os.platform() === 'win32') {
+    console.log(os.homedir()?.includes('dingyi') && os.platform() === 'linux')
+    if (os.homedir()?.includes('dingyi') && os.platform() === 'linux') {
         app.chatluna_request.root.proxyAddress = 'http://127.0.0.1:7890'
     } else {
         app.chatluna_request.root.proxyAddress = undefined

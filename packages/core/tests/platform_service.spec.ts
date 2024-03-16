@@ -1,7 +1,7 @@
 import { expect, should } from 'chai'
 import * as chai from 'chai'
 import { describe, it, before, after } from 'mocha'
-import  logger from '@cordisjs/logger'
+import logger from '@cordisjs/logger'
 import { Context, ScopeStatus } from '@cordisjs/core'
 import chaiAsPromised from 'chai-as-promised'
 import {
@@ -664,7 +664,9 @@ describe('Platform Service', () => {
                 } catch (e) {
                     expect(() => {
                         throw e
-                    }).throw('使用 ChatLuna 时出现错误，错误码为 301。请联系开发者以解决此问题。')
+                    }).throw(
+                        '使用 ChatLuna 时出现错误，错误码为 301。请联系开发者以解决此问题。'
+                    )
                 }
             }
 
@@ -692,7 +694,7 @@ after(async () => {
 
 async function setProxyAddress() {
     await waitServiceLoad(app, ['chatluna_request'])
-    if (os.homedir()?.includes('dingyi') && os.platform() === 'win32') {
+    if (os.homedir()?.includes('dingyi') && os.platform() === 'linux') {
         app.chatluna_request.root.proxyAddress = 'http://127.0.0.1:7890'
     } else {
         app.chatluna_request.root.proxyAddress = undefined
