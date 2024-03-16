@@ -1,12 +1,11 @@
 import { apply } from '@chatluna/memory'
-import SQLiteDriver from '@minatojs/driver-sqlite'
+import MemoryDriver from '@minatojs/driver-memory'
 import * as chai from 'chai'
 import { should } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { Context } from 'cordis'
 import { Database } from 'minato'
 import { after, before } from 'mocha'
-import * as fs from 'node:fs/promises'
 import { waitServiceLoad } from './mock/utils.ts'
 
 const app = new Context()
@@ -32,8 +31,6 @@ describe('User service', () => {
             lastChatTime: date
         })
 
-        cons
-
         user.should.be.eql({
             userId: 'a',
             excludeModels: ['gpt'],
@@ -55,10 +52,7 @@ app.on('ready', async () => {
     const database = new Database()
     app.provide('database', database)
 
-    await app.database.connect(SQLiteDriver, {
-        path: './test/sql.db'
-    })
-    //await app.database.connect(MemoryDriver, {})
+    await app.database.connect(MemoryDriver, {})
     app.plugin(apply)
 })
 
@@ -68,5 +62,4 @@ before(async () => {
 
 after(async () => {
     await app.stop()
-    await fs.rm('./test/sql.db', { force: true })
 })

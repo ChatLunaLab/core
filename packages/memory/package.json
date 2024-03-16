@@ -68,7 +68,6 @@
         "@chatluna/core": "0.0.2"
     },
     "devDependencies": {
-        "@minatojs/driver-memory": "^3.0.0",
-        "@minatojs/driver-sqlite": "^4.0.0"
+        "@minatojs/driver-memory": "^3.0.0"
     }
 }
