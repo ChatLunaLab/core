@@ -437,7 +437,7 @@ export class ChatLunaConversationService extends Service {
                     nullable: true
                 },
                 updatedTime: {
-                    type: 'date'
+                    type: 'timestamp'
                 },
                 additional_kwargs: {
                     type: 'json',
@@ -453,7 +453,7 @@ export class ChatLunaConversationService extends Service {
                     type: 'string'
                 },
                 createdTime: {
-                    type: 'date'
+                    type: 'timestamp'
                 }
             },
             {
@@ -471,7 +471,7 @@ export class ChatLunaConversationService extends Service {
                     type: 'string'
                 },
                 createdTime: {
-                    type: 'date'
+                    type: 'timestamp'
                 },
                 content: {
                     type: 'json'

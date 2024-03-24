@@ -4,7 +4,7 @@ import { Context, ForkScope } from '@cordisjs/core'
 export function waitServiceLoad(ctx: Context, deps: string[]) {
     const { promise, resolve } = withResolver()
 
-    ctx.inject(deps, resolve)
+    ctx.inject(deps, () => resolve())
 
     return promise
 }

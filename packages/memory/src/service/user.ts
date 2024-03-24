@@ -57,13 +57,14 @@ export class ChatLunaUserService extends Service {
             )
         }
 
-        await this._database.remove('chatluna_user', {
-            userId
-        })
-
-        await this._database.remove('chatluna_user_additional', {
-            userId
-        })
+        await Promise.all([
+            this._database.remove('chatluna_user', {
+                userId
+            }),
+            this._database.remove('chatluna_user_additional', {
+                userId
+            })
+        ])
     }
 
     async createUser(userId: string, template?: Partial<ChatLunaUser>) {
@@ -72,7 +73,8 @@ export class ChatLunaUserService extends Service {
             Object.assign(
                 {
                     userId,
-                    balance: 0
+                    balance: 0,
+                    lastChatTime: new Date()
                 },
                 template ?? {}
             )
@@ -293,7 +295,7 @@ export class ChatLunaUserService extends Service {
                     type: 'integer'
                 },
                 lastChatTime: {
-                    type: 'date',
+                    type: 'timestamp',
                     nullable: true
                 },
                 userGroupId: {
