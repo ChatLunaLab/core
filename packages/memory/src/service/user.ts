@@ -3,7 +3,8 @@ import {
     ChatLunaTables,
     ChatLunaUser,
     ChatLunaUserAdditional,
-    ChatLunaUserGroup
+    ChatLunaUserGroup,
+    PartialOptional
 } from '@chatluna/memory/types'
 import { startOfCurrentDay } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
@@ -28,21 +29,14 @@ export class ChatLunaUserService extends Service {
             return queries[0]
         }
 
-        if (queries.length === 0 && !autoCreate) {
+        if (queries.length !== 1 && !autoCreate) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.USER_NOT_FOUND,
-                `User ${userId} not found`
+                `User ${userId} not found or duplicate`
             )
         }
 
-        if (queries.length > 1) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.USER_ARE_DUPLICATE,
-                `User ${userId} is duplicate`
-            )
-        } else {
-            return await this.createUser(userId)
-        }
+        return await this.createUser(userId)
     }
 
     async removeUser(userId: string) {
@@ -90,7 +84,7 @@ export class ChatLunaUserService extends Service {
         return values[0]
     }
 
-    createUserGroup(group: ChatLunaUserGroup) {
+    createUserGroup(group: PartialOptional<ChatLunaUserGroup, 'id'>) {
         return this._database.create('chatluna_user_group', group)
     }
 
@@ -101,13 +95,6 @@ export class ChatLunaUserService extends Service {
 
         if (queries?.length === 1) {
             return queries[0]
-        }
-
-        if (queries?.length > 1) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.USER_GROUP_ARE_DUPLICATE,
-                `Group ${groupId} is duplicate`
-            )
         }
 
         throw new ChatLunaError(
@@ -125,13 +112,6 @@ export class ChatLunaUserService extends Service {
             return queries[0]
         }
 
-        if (queries?.length > 1) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.USER_GROUP_ARE_DUPLICATE,
-                `Group ${name} is duplicate`
-            )
-        }
-
         throw new ChatLunaError(
             ChatLunaErrorCode.USER_GROUP_NOT_FOUND,
             `Group ${name} not found`
@@ -147,17 +127,27 @@ export class ChatLunaUserService extends Service {
             return queries[0]
         }
 
-        if (queries?.length > 1) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.USER_ARE_DUPLICATE,
-                `User ${userId} is duplicate`
-            )
-        }
-
         throw new ChatLunaError(
             ChatLunaErrorCode.USER_NOT_FOUND,
             `User ${userId} not found`
         )
+    }
+
+    async removeUserGroup(groupId: number) {
+        const queries = await this._database.get('chatluna_user_group', {
+            id: groupId
+        })
+
+        if (queries?.length === 0) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.USER_GROUP_NOT_FOUND,
+                `Group ${groupId} not found`
+            )
+        }
+
+        await this._database.remove('chatluna_user_group', {
+            id: groupId
+        })
     }
 
     async queryUserWithAdditional(
@@ -168,22 +158,17 @@ export class ChatLunaUserService extends Service {
                 ['chatluna_user', 'chatluna_user_additional'] as const,
                 (user, additional) => $.eq(user.userId, additional.userId)
             )
-            .where({
-                'chatluna_user.userId': userId,
-                'chatluna_user_additional.userId': userId
-            })
+            .where((row) =>
+                $.and(
+                    $.eq(row.chatluna_user.userId, userId),
+                    $.eq(row.chatluna_user_additional.userId, userId)
+                )
+            )
             .execute()
 
         if (queries?.length === 1) {
             const result = queries[0]
             return [result.chatluna_user, result.chatluna_user_additional]
-        }
-
-        if (queries?.length > 1) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.USER_ARE_DUPLICATE,
-                `User ${userId} is duplicate`
-            )
         }
 
         throw new ChatLunaError(
@@ -219,7 +204,7 @@ export class ChatLunaUserService extends Service {
         }
     }
 
-    async updateChatTime(userId: string, currentTime: Date) {
+    async updateChatTime(userId: string, currentTime: Date /* = new Date() */) {
         const [user, additional] = await this.queryUserWithAdditional(userId)
 
         const { lastChatTime } = user
@@ -227,7 +212,6 @@ export class ChatLunaUserService extends Service {
         const currentDayOfStart = startOfCurrentDay(currentTime).getTime()
 
         // If the last call time is not today, then all zeroed out
-
         if (lastChatTime.getTime() < currentDayOfStart) {
             additional.lastLimitPerDay = 1
             additional.lastLimitPerMin = 1
@@ -263,26 +247,12 @@ export class ChatLunaUserService extends Service {
     }
 
     private get _database() {
-        // return this.ctx.database as Database<ChatLunaTables>
-        // wait minato update
-
-        return this.ctx.database as unknown as Database<ChatLunaTables>
+        return this.ctx.database as Database<ChatLunaTables>
     }
 
     private _defineDatabaseModel() {
         this._database.extend(
             'chatluna_user',
-            /*  userId: string
-
-        excludeModels?: string[]
-        userGroupId?: string[]
-
-        balance?: number
-
-        // userGroup or chat limit
-        // global set
-        chatTimeLimitPerMin?: number
-        lastChatTime?: Date */
             {
                 userId: {
                     type: 'string'
@@ -373,7 +343,6 @@ export class ChatLunaUserService extends Service {
 // wait minato update
 declare module 'cordis' {
     interface Context {
-        database: Database
         chatluna_user: ChatLunaUserService
     }
 }

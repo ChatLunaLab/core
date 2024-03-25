@@ -419,10 +419,7 @@ export class ChatLunaConversationService extends Service {
     }
 
     private get _database() {
-        // return this.ctx.database as Database<ChatLunaTables>
-        // wait minato update
-
-        return this.ctx.database as unknown as Database<ChatLunaTables>
+        return this.ctx.database as Database<ChatLunaTables>
     }
 
     private _defineDatabaseModel() {
@@ -546,7 +543,6 @@ export class ChatLunaConversationService extends Service {
 // wait minato update
 declare module 'cordis' {
     interface Context {
-        database: Database
         chatluna_conversation: ChatLunaConversationService
     }
 }
