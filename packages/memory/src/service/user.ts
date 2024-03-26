@@ -155,7 +155,7 @@ export class ChatLunaUserService extends Service {
     ): Promise<[ChatLunaUser, ChatLunaUserAdditional]> {
         const queries = await this._database
             .join(
-                ['chatluna_user', 'chatluna_user_additional'] as const,
+                ['chatluna_user', 'chatluna_user_additional'],
                 (user, additional) => $.eq(user.userId, additional.userId)
             )
             .where((row) =>

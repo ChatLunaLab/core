@@ -1,3 +1,4 @@
+import { PartialOptional } from '@chatluna/memory/types'
 import { MessageContent, MessageType } from '@langchain/core/messages'
 
 export interface ChatLunaMessage {
@@ -42,13 +43,13 @@ export interface ChatLunaConversationAdditional {
     guildId?: string
 }
 
-export type ChatLunaConversationTemplate = Omit<
+export type ChatLunaConversationTemplate = PartialOptional<
     ChatLunaConversation,
     | 'latestMessageId'
     | 'id'
     | 'additional_kwargs'
     | 'createdTime'
-    | 'lastUpdatedTime'
+    | 'updatedTime'
 >
 
 export type ChatLunaMessageRole = MessageType

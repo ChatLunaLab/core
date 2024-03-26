@@ -10,7 +10,8 @@ import {
 import { dateWithDays, generateUUID } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
-import { $, Database, Query } from 'minato'
+import { $, Database, Eval, Query, Row } from 'minato'
+import Expr = Eval.Expr
 
 export class ChatLunaConversationService extends Service {
     private _logger: Logger
@@ -23,19 +24,32 @@ export class ChatLunaConversationService extends Service {
 
     async createConversation(
         conversationTemplate: ChatLunaConversationTemplate,
-        extra: ChatLunaConversationAdditional
+        extra: Omit<ChatLunaConversationAdditional, 'conversationId'>
     ): Promise<ChatLunaConversation> {
         const createdTime = new Date()
 
-        const conversation = {
-            id: generateUUID(),
-            createdTime,
-            updatedTime: createdTime,
-            ...conversationTemplate
-        } satisfies ChatLunaConversation
+        const conversation = Object.assign(
+            {
+                id: generateUUID(),
+                createdTime,
+                updatedTime: createdTime,
+                latestMessageId: null,
+                additional_kwargs: null
+            },
+            conversationTemplate
+        ) satisfies ChatLunaConversation
 
         await this._database.create('chatluna_conversation', conversation)
-        await this._database.create('chatluna_conversation_additional', extra)
+
+        await this._database.create(
+            'chatluna_conversation_additional',
+            Object.assign(
+                {
+                    conversationId: conversation.id
+                },
+                extra
+            )
+        )
 
         return conversation
     }
@@ -63,6 +77,41 @@ export class ChatLunaConversationService extends Service {
         }
 
         return undefined
+    }
+
+    async queryConversationsByUser(
+        userId: string,
+        guildId: string | undefined = undefined,
+        defaultConversation: boolean | undefined = undefined
+    ): Promise<[ChatLunaConversation, ChatLunaConversationAdditional][]> {
+        let selection = this._database
+            .select('chatluna_conversation_additional')
+            .where({
+                userId,
+                guildId
+            })
+
+        if (defaultConversation) {
+            selection = selection.where({
+                default: defaultConversation
+            })
+        }
+
+        const queried = await selection.execute()
+
+        const conversations = await this._database
+            .select('chatluna_conversation')
+            .where({
+                id: queried.map((additional) => additional.conversationId)
+            })
+            .execute()
+
+        return queried.map((additional) => [
+            conversations.find(
+                (conversation) => conversation.id === additional.conversationId
+            ),
+            additional
+        ])
     }
 
     async queryConversationAdditional(
@@ -130,30 +179,38 @@ export class ChatLunaConversationService extends Service {
         userId: string,
         guildId: string | undefined = undefined,
         defaultConversation: boolean | undefined = undefined,
-        lastUpdatedTime: Date = dateWithDays(1)
+        lastUpdatedTime: Date = dateWithDays(-1)
     ): Promise<[ChatLunaConversation, ChatLunaConversationAdditional]> {
+        const preparedQueries: ((rows: Rows) => Expr)[] = []
+
+        if (guildId) {
+            preparedQueries.push((rows) =>
+                $.eq(rows.chatluna_conversation_additional.guildId, guildId)
+            )
+        }
+
+        if (defaultConversation) {
+            preparedQueries.push((rows) =>
+                $.eq(rows.chatluna_conversation_additional.default, true)
+            )
+        }
+
         const queried = await this._database
             .join(
-                [
-                    'chatluna_conversation',
-                    'chatluna_conversation_additional'
-                ] as const,
+                ['chatluna_conversation', 'chatluna_conversation_additional'],
                 (conversation, conversationAdditional) =>
                     $.eq(conversation.id, conversationAdditional.conversationId)
             )
-            .where({
-                'chatluna_conversation_additional.guildId': guildId,
-                'chatluna_conversation_additional.userId': userId,
-                'chatluna_conversation.updatedTime': {
-                    $gte: lastUpdatedTime
-                },
-                ...(defaultConversation
-                    ? {
-                          'chatluna_conversation_additional.defaultConversation':
-                              true
-                      }
-                    : {})
-            })
+            .where((rows) =>
+                $.and(
+                    $.eq(rows.chatluna_conversation_additional.userId, userId),
+                    $.gte(
+                        rows.chatluna_conversation.updatedTime,
+                        lastUpdatedTime
+                    ),
+                    ...preparedQueries.map((query) => query(rows))
+                )
+            )
             .execute()
 
         if (!queried || queried.length === 0 || queried.length > 1) {
@@ -177,38 +234,44 @@ export class ChatLunaConversationService extends Service {
         fuzzyConversation:
             | Partial<ChatLunaConversationTemplate>
             | undefined = undefined,
-        lastUpdatedTime: Date = dateWithDays(1)
+        lastUpdatedTime: Date = dateWithDays(-1)
     ): Promise<[ChatLunaConversation, ChatLunaConversationAdditional][]> {
-        const queryContent: Query<{
-            chatluna_conversation: ChatLunaConversation
-            chatluna_conversation_additional: ChatLunaConversationAdditional
-        }> = {
-            'chatluna_conversation_additional.guildId': guildId,
-            'chatluna_conversation_additional.userId': userId,
-            'chatluna_conversation.updatedTime': {
-                $gte: lastUpdatedTime
-            }
-        }
+        const fuzzyQueries: ((rows: Rows) => Expr)[] = Object.keys(
+            fuzzyConversation ?? []
+        )
+            .filter((prop) => fuzzyConversation[prop] !== undefined)
+            .map((prop) => {
+                const value = fuzzyConversation[prop]
 
-        for (const prop in fuzzyConversation ?? []) {
-            if (fuzzyConversation[prop] !== undefined) {
-                queryContent[`chatluna_conversation.${prop}`] =
-                    fuzzyConversation[prop]
-            }
+                return (rows: Rows) =>
+                    $.regex(rows.chatluna_conversation[prop], value)
+            })
+
+        if (guildId != null) {
+            fuzzyQueries.push((rows) =>
+                $.eq(rows.chatluna_conversation_additional.guildId, guildId)
+            )
         }
 
         const queryResults = await this._database
             .join(
-                [
-                    'chatluna_conversation',
-                    'chatluna_conversation_additional'
-                ] as const,
+                ['chatluna_conversation', 'chatluna_conversation_additional'],
                 (conversation, conversationAdditional) =>
                     $.eq(conversation.id, conversationAdditional.conversationId)
             )
-            .where(queryContent)
+            .where((rows) =>
+                $.and(
+                    $.eq(rows.chatluna_conversation_additional.userId, userId),
+                    $.gte(
+                        rows.chatluna_conversation.updatedTime,
+                        lastUpdatedTime
+                    ),
+                    ...fuzzyQueries.map((query) => query(rows))
+                )
+            )
             .orderBy((rows) => rows.chatluna_conversation.updatedTime)
             .execute()
+
         return queryResults.map((result) => [
             result.chatluna_conversation,
             result.chatluna_conversation_additional
@@ -315,10 +378,7 @@ export class ChatLunaConversationService extends Service {
 
         const queryResults = await this._database
             .join(
-                [
-                    'chatluna_conversation',
-                    'chatluna_conversation_additional'
-                ] as const,
+                ['chatluna_conversation', 'chatluna_conversation_additional'],
                 (conversation, conversationAdditional) =>
                     $.eq(conversation.id, conversationAdditional.conversationId)
             )
@@ -540,9 +600,13 @@ export class ChatLunaConversationService extends Service {
     }
 }
 
-// wait minato update
 declare module 'cordis' {
     interface Context {
         chatluna_conversation: ChatLunaConversationService
     }
 }
+
+type Rows = Row<{
+    chatluna_conversation: ChatLunaConversation
+    chatluna_conversation_additional: ChatLunaConversationAdditional
+}>
