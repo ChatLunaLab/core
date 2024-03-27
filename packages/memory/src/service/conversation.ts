@@ -1,4 +1,4 @@
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/utils'
 import {
     ChatLunaConversation,
     ChatLunaConversationAdditional,
@@ -348,6 +348,7 @@ export class ChatLunaConversationService extends Service {
 
         await this._database.upsert('chatluna_conversation', [conversation])
 
+        await sleep(1)
         if (needCrop) {
             return await this.cropMessages(conversation.id, maxMessageCount)
         }
@@ -355,6 +356,8 @@ export class ChatLunaConversationService extends Service {
 
     async deleteAllConversation() {
         await this._database.remove('chatluna_conversation', {})
+        await this._database.remove('chatluna_conversation_additional', {})
+        await this._database.remove('chatluna_message', {})
     }
 
     async deleteConversationsByUser(
@@ -439,16 +442,14 @@ export class ChatLunaConversationService extends Service {
             .orderBy('createdTime', 'desc')
             .limit(maxMessageCount)
             .execute()
-            .then((result) => result.map((message) => message.id))
 
         let removeMessagesCount = await this._database
-            .remove('chatluna_message', {
-                id: {
-                    $not: {
-                        $in: maxMessages
-                    }
-                }
-            })
+            .remove('chatluna_message', (rows) =>
+                $.nin(
+                    rows.id,
+                    maxMessages.map((message) => message.id)
+                )
+            )
             .then((result) => result.removed)
 
         // query first three messages
@@ -458,10 +459,11 @@ export class ChatLunaConversationService extends Service {
             .where({
                 conversationId
             })
-            .orderBy('createdTime', 'desc')
+            .orderBy('createdTime', 'asc')
             .limit(3)
             .execute()
 
+        /* c8 ignore next 3 */
         if (firstMessages.length < 1) {
             return removeMessagesCount
         }

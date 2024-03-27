@@ -547,6 +547,143 @@ describe('Conversation Service', () => {
                 conversationId: conversation.id
             }
         ])
+
+        await app.chatluna_conversation.clearMessages(conversation.id)
+
+        await app.chatluna_conversation.deleteConversation(conversation)
+    })
+
+    it('Crop Messages', async () => {
+        await waitServiceLoad(app, ['chatluna_conversation'])
+
+        const messages = [
+            new SystemMessage('Hello'),
+            new HumanMessage('Hi'),
+            new AIMessage('How are you?'),
+            new AIMessage("I'm fine, thanks!"),
+            new HumanMessage('How about you?'),
+            new AIMessage("I'm good, thanks!"),
+            new HumanMessage('What do you do?'),
+            new AIMessage('I am a chatbot.')
+        ]
+
+        const conversation = await app.chatluna_conversation.createConversation(
+            {
+                preset: 'test',
+                // platform model
+                model: 'gpt-3',
+                chatMode: 'long-memory',
+                createdTime: new Date(),
+                updatedTime: new Date()
+            },
+            {
+                userId: 'a',
+                owner: true,
+                default: true
+            }
+        )
+
+        for (let i = 0; i < messages.length; i++) {
+            const message = messages[i]
+
+            await app.chatluna_conversation.addMessage(
+                conversation.id,
+                {
+                    role: message._getType(),
+                    content: message.content,
+                    conversationId: conversation.id
+                },
+                true,
+                100
+            )
+        }
+
+        // crop 4 messages
+        await app.chatluna_conversation.cropMessages(conversation.id, 4)
+
+        let savedMessages = await app.chatluna_conversation.fetchAllMessages(
+            conversation.id
+        )
+
+        savedMessages.should.to.be.containSubset([
+            {
+                role: 'human',
+                content: 'How about you?',
+                conversationId: conversation.id
+            },
+            {
+                role: 'ai',
+                content: "I'm good, thanks!",
+                conversationId: conversation.id
+            },
+            {
+                role: 'human',
+                content: 'What do you do?',
+                conversationId: conversation.id
+            },
+            {
+                role: 'ai',
+                content: 'I am a chatbot.',
+                conversationId: conversation.id
+            }
+        ])
+
+        await app.chatluna_conversation.cropMessages(conversation.id, 3)
+
+        savedMessages = await app.chatluna_conversation.fetchAllMessages(
+            conversation.id
+        )
+
+        savedMessages.should.to.be.containSubset([
+            {
+                role: 'human',
+                content: 'What do you do?',
+                conversationId: conversation.id
+            },
+            {
+                role: 'ai',
+                content: 'I am a chatbot.',
+                conversationId: conversation.id
+            }
+        ])
+
+        await app.chatluna_conversation.deleteAllConversation()
+    })
+
+    describe('Error', () => {
+        it('Resolve Conversation', async () => {
+            await waitServiceLoad(app, ['chatluna_conversation'])
+
+            await app.chatluna_conversation
+                .resolveConversation('1', false)
+                .should.eventually.to.be.eql(undefined)
+
+            await app.chatluna_conversation
+                .resolveConversation('1', true)
+                .should.rejectedWith(
+                    '使用 ChatLuna 时出现错误，错误码为 405。请联系开发者以解决此问题。'
+                )
+        })
+
+        it('Query Conversation', async () => {
+            await waitServiceLoad(app, ['chatluna_conversation'])
+
+            await app.chatluna_conversation
+                .queryConversationAdditional('1', '1', true)
+                .should.rejectedWith(
+                    '使用 ChatLuna 时出现错误，错误码为 405。请联系开发者以解决此问题。'
+                )
+        })
+
+        it('Resolve Conversation By User', async () => {
+            await waitServiceLoad(app, ['chatluna_conversation'])
+
+            await app.chatluna_conversation
+                .resolveConversationByUser('1', '1', true)
+                .should.rejectedWith(
+                    '使用 ChatLuna 时出现错误，错误码为 405。请联系开发者以解决此问题。'
+                )
+        })
     })
 })
 
