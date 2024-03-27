@@ -322,13 +322,7 @@ export class PlatformService extends Service {
         platform: string,
         config: ClientConfig
     ) {
-        let isAvailable: boolean
-
-        try {
-            isAvailable = await client.isAvailable()
-        } catch (e) {
-            isAvailable = false
-        }
+        const isAvailable = await client.isAvailable()
 
         const pool = this._configPools[platform]
 

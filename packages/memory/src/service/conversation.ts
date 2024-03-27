@@ -10,7 +10,7 @@ import {
 import { dateWithDays, generateUUID } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
-import { $, Database, Eval, Query, Row } from 'minato'
+import { $, Database, Eval, Row } from 'minato'
 import Expr = Eval.Expr
 
 export class ChatLunaConversationService extends Service {
@@ -162,15 +162,21 @@ export class ChatLunaConversationService extends Service {
                 ? await this.resolveConversation(conversation)
                 : conversation
 
-        const clonedConversation = {
+        const clonedConversation = Object.assign({}, currentConversation, {
             id: generateUUID(),
             createdTime,
             updatedTime: createdTime,
-            ...currentConversation
-        } satisfies ChatLunaConversation
+            latestMessageId: null,
+            additional_kwargs: null
+        }) satisfies ChatLunaConversation
 
         await this._database.create('chatluna_conversation', clonedConversation)
-        await this._database.create('chatluna_conversation_additional', extra)
+        await this._database.create(
+            'chatluna_conversation_additional',
+            Object.assign({}, extra, {
+                conversationId: clonedConversation.id
+            })
+        )
 
         return clonedConversation
     }
@@ -280,9 +286,12 @@ export class ChatLunaConversationService extends Service {
 
     async updateConversationAdditional(
         conversationId: string,
+        additional:
+            | Partial<ChatLunaConversationAdditional>
+            | undefined = undefined,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         additional_kwargs: Record<string, unknown> | undefined = undefined,
-        additional: ChatLunaConversationAdditional | undefined = undefined,
+        userId: string | undefined = undefined,
         force: boolean = false
     ) {
         if (force || additional_kwargs) {
@@ -294,10 +303,11 @@ export class ChatLunaConversationService extends Service {
             ])
         }
 
-        if (force || additional) {
+        if (force || (additional && userId)) {
             await this._database.upsert('chatluna_conversation_additional', [
                 {
                     conversationId,
+                    userId,
                     ...additional
                 }
             ])
@@ -310,7 +320,7 @@ export class ChatLunaConversationService extends Service {
             .where({
                 conversationId
             })
-            .orderBy('createdTime', 'desc')
+            .orderBy('createdTime', 'asc')
             .execute()
     }
 
@@ -325,13 +335,12 @@ export class ChatLunaConversationService extends Service {
     ) {
         const conversation = await this.resolveConversation(conversationId)
 
-        const message: ChatLunaMessage = {
-            ...rawMessage,
+        const message: ChatLunaMessage = Object.assign({}, rawMessage, {
             id: generateUUID(),
             conversationId,
             createdTime: new Date(),
             parentId: conversation.latestMessageId
-        }
+        })
 
         await this._database.create('chatluna_message', message)
 
@@ -351,38 +360,38 @@ export class ChatLunaConversationService extends Service {
     async deleteConversationsByUser(
         userId: string,
         guildId: string | undefined = undefined,
-        deleteDefaultConversation: boolean = false,
+        defaultConversation: boolean = false,
         lastUpdatedTime: Date | undefined = undefined
     ) {
-        const queryContent: Query<{
-            chatluna_conversation: ChatLunaConversation
-            chatluna_conversation_additional: ChatLunaConversationAdditional
-        }> = {
-            'chatluna_conversation_additional.guildId': guildId,
-            'chatluna_conversation_additional.userId': userId
+        const preparedQueries: ((rows: Rows) => Expr)[] = []
+
+        if (guildId) {
+            preparedQueries.push((rows) =>
+                $.eq(rows.chatluna_conversation_additional.guildId, guildId)
+            )
         }
 
-        if (lastUpdatedTime) {
-            queryContent['chatluna_conversation.updatedTime'] = {
-                $lte: lastUpdatedTime
-            }
+        if (defaultConversation) {
+            preparedQueries.push((rows) =>
+                $.eq(rows.chatluna_conversation_additional.default, true)
+            )
         }
-
-        if (!deleteDefaultConversation) {
-            queryContent[
-                'chatluna_conversation_additional.defaultConversation'
-            ] = {
-                $or: [undefined, false]
-            }
-        }
-
         const queryResults = await this._database
             .join(
                 ['chatluna_conversation', 'chatluna_conversation_additional'],
                 (conversation, conversationAdditional) =>
                     $.eq(conversation.id, conversationAdditional.conversationId)
             )
-            .where(queryContent)
+            .where((rows) =>
+                $.and(
+                    $.eq(rows.chatluna_conversation_additional.userId, userId),
+                    $.gte(
+                        rows.chatluna_conversation.updatedTime,
+                        lastUpdatedTime
+                    ),
+                    ...preparedQueries.map((query) => query(rows))
+                )
+            )
             .orderBy((rows) => rows.chatluna_conversation.updatedTime)
             .execute()
 
@@ -432,16 +441,14 @@ export class ChatLunaConversationService extends Service {
             .execute()
             .then((result) => result.map((message) => message.id))
 
-        const selection = this._database.select('chatluna_message').where({
-            id: {
-                $not: {
-                    $in: maxMessages
-                }
-            }
-        })
-
         let removeMessagesCount = await this._database
-            .remove('chatluna_message', selection.query)
+            .remove('chatluna_message', {
+                id: {
+                    $not: {
+                        $in: maxMessages
+                    }
+                }
+            })
             .then((result) => result.removed)
 
         // query first three messages
@@ -540,6 +547,10 @@ export class ChatLunaConversationService extends Service {
                     type: 'string'
                 },
                 name: {
+                    type: 'string',
+                    nullable: true
+                },
+                parentId: {
                     type: 'string',
                     nullable: true
                 },
