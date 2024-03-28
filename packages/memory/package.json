@@ -20,6 +20,11 @@
             "import": "./lib/types/index.mjs",
             "types": "./lib/types/index.d.ts"
         },
+        "./memory": {
+            "require": "./lib/memory/index.cjs",
+            "import": "./lib/memory/index.mjs",
+            "types": "./lib/memory/index.d.ts"
+        },
         "./service": {
             "require": "./lib/service/index.cjs",
             "import": "./lib/service/index.mjs",

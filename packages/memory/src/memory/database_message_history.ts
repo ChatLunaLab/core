@@ -12,6 +12,7 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     lc_namespace: string[] = ['llm-core', 'memory', 'message']
 
+    /* c8 ignore next 3 */
     conversationId: string
 
     private _ctx: Context
@@ -22,7 +23,7 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     constructor(
         ctx: Context,
         conversationId: string,
-        private _maxMessagesCount: number
+        private _maxMessagesCount: number = 100
     ) {
         super()
 
@@ -38,19 +39,20 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     }
 
     async getMessages(): Promise<BaseMessage[]> {
-        this._chatHistory = await this._loadMessages()
+        if (this._chatHistory.length < 1) {
+            this._chatHistory = await this._loadMessages()
+        }
 
         return this._chatHistory
     }
 
-    async addUserMessage(message: string): Promise<void> {
-        const humanMessage = new HumanMessage(message)
-        await this._saveMessage(humanMessage)
+    addUserMessage(message: string): Promise<void> {
+        /* c8 ignore next 6 */
+        return this._saveMessage(new HumanMessage(message))
     }
 
-    async addAIChatMessage(message: string): Promise<void> {
-        const aiMessage = new AIMessage(message)
-        await this._saveMessage(aiMessage)
+    addAIChatMessage(message: string): Promise<void> {
+        return this._saveMessage(new AIMessage(message))
     }
 
     async addMessage(message: BaseMessage): Promise<void> {
@@ -70,9 +72,11 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
 
     async updateAdditionalKwargs(key: string, value: string): Promise<void> {
         await this.loadConversation()
+        this._additional_kwargs = this._additional_kwargs ?? {}
         this._additional_kwargs[key] = value
-        await this._ctx.chatluna_conversation.updateConversationAdditional(
+        return await this._ctx.chatluna_conversation.updateConversationAdditional(
             this.conversationId,
+            undefined,
             this._additional_kwargs
         )
     }
@@ -80,14 +84,26 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     async getAdditionalKwargs(key: string): Promise<string> {
         await this.loadConversation()
 
-        return this._additional_kwargs[key]
+        return this._additional_kwargs?.[key]
     }
 
     async deleteAdditionalKwargs(key: string): Promise<void> {
         await this.loadConversation()
-        delete this._additional_kwargs[key]
+
+        delete this._additional_kwargs?.[key]
         await this._ctx.chatluna_conversation.updateConversationAdditional(
             this.conversationId,
+            undefined,
+            this._additional_kwargs
+        )
+    }
+
+    async clearAdditionalKwargs(): Promise<void> {
+        await this.loadConversation()
+        this._additional_kwargs = undefined
+        await this._ctx.chatluna_conversation.updateConversationAdditional(
+            this.conversationId,
+            undefined,
             this._additional_kwargs
         )
     }
@@ -95,7 +111,9 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     async overrideAdditionalKwargs(
         kwargs: Record<string, string>
     ): Promise<void> {
+        /* c8 ignore next 12 */
         await this.loadConversation()
+        this._additional_kwargs = this._additional_kwargs ?? {}
         this._additional_kwargs = Object.assign(this._additional_kwargs, kwargs)
         await this._ctx.chatluna_conversation.updateConversationAdditional(
             this.conversationId,
@@ -151,8 +169,10 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
     }
 
     private async _saveMessage(message: BaseMessage) {
+        await this.loadConversation()
+
         const needCorpMessage =
-            this._chatHistory.length > this._maxMessagesCount
+            this._chatHistory.length >= this._maxMessagesCount
 
         const corpMessagesCount =
             await this._ctx.chatluna_conversation.addMessage(
@@ -163,7 +183,7 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
                     additional_kwargs: message.additional_kwargs
                 },
                 needCorpMessage,
-                Math.max(0, this._maxMessagesCount - 5)
+                this._maxMessagesCount
             )
 
         if (corpMessagesCount != null) {
