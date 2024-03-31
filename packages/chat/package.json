@@ -1,6 +1,6 @@
 {
-    "name": "@chatluna/memory",
-    "description": "chatluna memory",
+    "name": "@chatluna/chat",
+    "description": "chatluna chat",
     "version": "0.0.1",
     "main": "lib/index.cjs",
     "module": "lib/index.mjs",
@@ -15,25 +15,10 @@
             "import": "./lib/index.mjs",
             "types": "./lib/index.d.ts"
         },
-        "./types": {
-            "require": "./lib/types/index.cjs",
-            "import": "./lib/types/index.mjs",
-            "types": "./lib/types/index.d.ts"
-        },
-        "./memory": {
-            "require": "./lib/memory/index.cjs",
-            "import": "./lib/memory/index.mjs",
-            "types": "./lib/memory/index.d.ts"
-        },
-        "./service": {
-            "require": "./lib/service/index.cjs",
-            "import": "./lib/service/index.mjs",
-            "types": "./lib/service/index.d.ts"
-        },
-        "./utils": {
-            "require": "./lib/utils/index.cjs",
-            "import": "./lib/utils/index.mjs",
-            "types": "./lib/utils/index.d.ts"
+        "./middleware": {
+            "require": "./lib/middleware/index.cjs",
+            "import": "./lib/middleware/index.mjs",
+            "types": "./lib/middleware/index.d.ts"
         },
         "./package.json": "./package.json"
     },
@@ -44,7 +29,7 @@
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ChatLunaLab/core.git",
-        "directory": "packages/memory"
+        "directory": "packages/chat"
     },
     "license": "MIT",
     "bugs": {
@@ -66,13 +51,9 @@
     "dependencies": {
         "@cordisjs/logger": "^0.3.2",
         "@langchain/core": "^0.1.51",
-        "cordis": "^3.13.4",
-        "minato": "^3.0.2"
+        "cordis": "^3.13.4"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1"
-    },
-    "devDependencies": {
-        "@minatojs/driver-memory": "^3.0.1"
     }
 }
