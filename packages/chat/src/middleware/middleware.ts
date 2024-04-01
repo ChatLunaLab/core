@@ -6,14 +6,14 @@ import {
 } from '@chatluna/chat/middleware'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class ChatMiddleware<T = any> {
+export class ChatMiddleware<T = any, R = any> {
     constructor(
-        public graph: ChatMiddlewareGraph<T>,
+        public graph: ChatMiddlewareGraph<T, R>,
         public name: keyof ChatMiddlewareName,
-        public func: ChatMiddlewareFunction<T>
+        public func: ChatMiddlewareFunction<T, R>
     ) {}
 
-    execute(session: T, ctx: ChatMiddlewareContext<T>) {
+    execute(session: T, ctx: ChatMiddlewareContext<T, R>) {
         return this.func(session, ctx)
     }
 

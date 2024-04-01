@@ -1,13 +1,13 @@
 import { ChatMiddleware } from './middleware.js'
 import { ChatMiddlewareFunction, ChatMiddlewareName } from './types.js'
 
-export class ChatMiddlewareGraph<T> {
-    private tasks: ChatMiddleware<T>[] = []
+export class ChatMiddlewareGraph<T, R> {
+    private tasks: ChatMiddleware<T, R>[] = []
     private edges: Map<string, string[]> = new Map()
 
     middleware(
         taskName: keyof ChatMiddlewareName,
-        func: ChatMiddlewareFunction<T>
+        func: ChatMiddlewareFunction<T, R>
     ): void {
         const middleware = new ChatMiddleware(this, taskName, func)
         this.tasks.push(middleware)
@@ -22,9 +22,9 @@ export class ChatMiddlewareGraph<T> {
         this.edges.get(afterTaskName)?.push(taskName)
     }
 
-    public build(): ChatMiddleware<T>[][] {
+    public build(): ChatMiddleware<T, R>[][] {
         const sortedTasks = this.topologicalSort()
-        const taskGroups: ChatMiddleware<T>[][] = []
+        const taskGroups: ChatMiddleware<T, R>[][] = []
 
         // 使用一个映射来标记任务是否已经被分组
         const grouped = new Map<string, boolean>()

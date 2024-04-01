@@ -1,17 +1,18 @@
 import { PartialOptional } from '@chatluna/memory/types'
 import { MessageContent, MessageType } from '@langchain/core/messages'
 
-export interface ChatLunaMessage {
-    id: string
-    createdTime: Date
+export interface ChatLunaSimpleMessage {
     content: MessageContent
     role: ChatLunaMessageRole
-    conversationId: string
-    name?: string
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>
+    name?: string
+}
 
+export interface ChatLunaMessage extends ChatLunaSimpleMessage {
+    id: string
+    createdTime: Date
+    conversationId: string
     parentId?: string
 }
 

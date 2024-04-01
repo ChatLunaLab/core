@@ -1,3 +1,4 @@
+import { ChatLunaMessageTransformService } from '@chatluna/chat/service'
 import { Context } from 'cordis'
 
 /**
@@ -6,4 +7,6 @@ import { Context } from 'cordis'
  *
  * @param ctx parentContext
  */
-export function apply(ctx: Context) {}
+export function apply(ctx: Context) {
+    ctx.plugin(ChatLunaMessageTransformService)
+}

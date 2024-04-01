@@ -1,7 +1,41 @@
-export interface ChatMiddlewareName {}
+export interface ChatMiddlewareName {
+    /**
+     * lifecycle of the middleware execution, it mean the check chain can continue to execute if the middleware return true
+     */
+    'lifecycle-check': never
+    /**
+     * lifecycle of the middleware execution, it mean the middleware will be prepare some data for the next middleware
+     */
+    'lifecycle-prepare': never
+    /**
+     * lifecycle of the middleware execution, it mean the middleware will be request to the model
+     */
+    'lifecycle-request_model': never
+    /**
+     * lifecycle of the middleware execution, it mean the middleware will be send message
+     */
+    'lifecycle-send': never
+
+    /**
+     * lifecycle of the middleware execution, it mean the middleware will be handle command
+     */
+    'lifecycle-handle_command': never
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type h = string | any | any[]
+export type h<T = any> = T
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PlatformElement<T> =
+    | h<T>
+    | {
+          type: string
+          props: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              [key: string]: any
+          }
+          children: PlatformElement<T>[]
+      }
 
 export enum ChatMiddlewareRunStatus {
     SKIPPED = 0,
@@ -10,19 +44,19 @@ export enum ChatMiddlewareRunStatus {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ChatMiddlewareFunction<T = any> = (
+export type ChatMiddlewareFunction<T = any, R = any> = (
     session: T,
     context: ChatMiddlewareContext<T>
-) => Promise<string | h[] | h[][] | ChatMiddlewareRunStatus | undefined>
+) => Promise<string | h<R>[] | h<R>[][] | ChatMiddlewareRunStatus | undefined>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ChatMiddlewareContext<T = any> {
+export interface ChatMiddlewareContext<T = any, R = any> {
     session: T
-    message: string | h[] | h[][]
+    message: string | h<R>[] | h<R>[][]
     options?: ChatMiddlewareContextOptions
     command?: string
     recallThinkingMessage?: () => Promise<void>
-    send: (message: h[][] | h[] | h | string) => Promise<void>
+    send: (message: h<R>[][] | h<R>[] | h<R> | string) => Promise<void>
 }
 
 export interface ChatMiddlewareContextOptions {
