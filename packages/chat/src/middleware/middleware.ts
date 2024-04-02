@@ -19,9 +19,11 @@ export class ChatMiddleware<T = any, R = any> {
 
     before<K extends keyof ChatMiddlewareName>(name: K) {
         this.graph.before(this.name, name)
+        return this
     }
 
     after<K extends keyof ChatMiddlewareName>(name: K) {
         this.graph.after(this.name, name)
+        return this
     }
 }

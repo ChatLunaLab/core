@@ -8,10 +8,11 @@ export class ChatMiddlewareGraph<T, R> {
     middleware(
         taskName: keyof ChatMiddlewareName,
         func: ChatMiddlewareFunction<T, R>
-    ): void {
+    ) {
         const middleware = new ChatMiddleware(this, taskName, func)
         this.tasks.push(middleware)
         this.edges.set(taskName, [])
+        return middleware
     }
 
     public before(taskName: string, beforeTaskName: string): void {
@@ -22,52 +23,76 @@ export class ChatMiddlewareGraph<T, R> {
         this.edges.get(afterTaskName)?.push(taskName)
     }
 
-    public build(): ChatMiddleware<T, R>[][] {
-        const sortedTasks = this.topologicalSort()
-        const taskGroups: ChatMiddleware<T, R>[][] = []
+    /*  public build(): ChatMiddleware<T, R>[][] {
+         const sortedTasks = this.topologicalSort()
+         const taskGroups: ChatMiddleware<T, R>[][] = []
 
-        // 使用一个映射来标记任务是否已经被分组
-        const grouped = new Map<string, boolean>()
+         // 使用一个映射来标记任务是否已经被分组
+         const grouped = new Map<string, boolean>()
+         this.tasks.forEach((task) => {
+             grouped.set(task.name, false)
+         })
+
+         // 遍历排序后的任务列表，创建分组
+         sortedTasks.forEach((taskName) => {
+             if (!grouped.get(taskName)) {
+                 // 如果任务尚未分组，则创建新组
+                 const nextTasks = this.edges.get(taskName) || []
+                 const canRunInParallel =
+                     nextTasks.filter((nextTask) => !grouped.get(nextTask))
+                         .length > 1
+                 const group = [
+                     this.tasks.find((task) => task.name === taskName)
+                 ]
+
+                 // 标记任务已经分组
+                 grouped.set(taskName, true)
+
+                 // 如果只有一个后续任务，它必须在当前任务后面执行
+                 if (!canRunInParallel) {
+                     nextTasks.forEach((nextTaskName) => {
+                         if (!grouped.get(nextTaskName)) {
+                             const nextTask = this.tasks.find(
+                                 (task) => task.name === nextTaskName
+                             )
+                             if (nextTask) {
+                                 group.push(nextTask)
+                                 grouped.set(nextTaskName, true)
+                             }
+                         }
+                     })
+                 }
+
+                 // 添加到任务组列表
+                 taskGroups.push(group as ChatMiddleware<T>[])
+             }
+         })
+
+         return taskGroups
+     } */
+
+    public build(): ChatMiddleware<T, R>[] {
+        const sortedTasks = this.topologicalSort()
+        const taskArray: ChatMiddleware<T, R>[] = []
+
+        // 使用一个映射来标记任务是否已经被处理
+        const processed = new Map<string, boolean>()
         this.tasks.forEach((task) => {
-            grouped.set(task.name, false)
+            processed.set(task.name, false)
         })
 
-        // 遍历排序后的任务列表，创建分组
+        // 遍历排序后的任务列表
         sortedTasks.forEach((taskName) => {
-            if (!grouped.get(taskName)) {
-                // 如果任务尚未分组，则创建新组
-                const nextTasks = this.edges.get(taskName) || []
-                const canRunInParallel =
-                    nextTasks.filter((nextTask) => !grouped.get(nextTask))
-                        .length > 1
-                const group = [
-                    this.tasks.find((task) => task.name === taskName)
-                ]
-
-                // 标记任务已经分组
-                grouped.set(taskName, true)
-
-                // 如果只有一个后续任务，它必须在当前任务后面执行
-                if (!canRunInParallel) {
-                    nextTasks.forEach((nextTaskName) => {
-                        if (!grouped.get(nextTaskName)) {
-                            const nextTask = this.tasks.find(
-                                (task) => task.name === nextTaskName
-                            )
-                            if (nextTask) {
-                                group.push(nextTask)
-                                grouped.set(nextTaskName, true)
-                            }
-                        }
-                    })
+            if (!processed.get(taskName)) {
+                const task = this.tasks.find((t) => t.name === taskName)
+                if (task) {
+                    taskArray.push(task)
+                    processed.set(taskName, true)
                 }
-
-                // 添加到任务组列表
-                taskGroups.push(group as ChatMiddleware<T>[])
             }
         })
 
-        return taskGroups
+        return taskArray
     }
 
     private topologicalSort(): string[] {

@@ -75,10 +75,10 @@ export class ChatLunaRawMessageRender extends ChatLunaMessageRender<string> {
  */
 export interface ChatLunaMessageRenderOptions {
     // 如果type为voice，那么这个值不可为空
-    voice?: {
+    voiceOptions?: {
         speakerId?: number
     }
-    split?: boolean
+    splitMessage?: boolean
     type: MessageRenderType
 }
 
@@ -87,4 +87,10 @@ export type MessageRenderType = 'raw' | 'voice' | 'text' | 'image' | 'mixed'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ChatLunaRenderedMessage<T> {
     element: PlatformElement<T> | PlatformElement<T>[]
+}
+
+declare module 'cordis' {
+    interface Context {
+        chatluna_message_render: ChatLunaMessageRenderService
+    }
 }
