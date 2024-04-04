@@ -1,16 +1,21 @@
-import { ChatMiddlewareGraph } from '@chatluna/chat/middleware'
-import { Logger } from '@cordisjs/logger'
-import { Context } from 'cordis'
 import {
     ChatMiddlewareContext,
     ChatMiddlewareFunction,
+    ChatMiddlewareGraph,
     ChatMiddlewareName,
+    ChatMiddlewareRunStatus,
     PlatformElement
-} from './types.js'
+} from '@chatluna/chat/middleware'
+import { ChatLunaError } from '@chatluna/core/utils'
+import { Logger } from '@cordisjs/logger'
+import { Context } from 'cordis'
+import { ChatExecutorSender } from './types.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatMiddlewareExecutor<T = any, R = any> {
     private _logger: Logger
+
+    private _senders: ChatExecutorSender<T, R>[] = []
 
     constructor(
         public ctx: Context,
@@ -27,8 +32,72 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
         return this.graph.middleware(taskName, func)
     }
 
-    async execute(session: T, ctx: ChatMiddlewareContext<T, R>) {
-        return this.graph.execute(session, ctx)
+    async receiveMessage(
+        session: T,
+        message: ChatMiddlewareContext['message'],
+        ctx?: Context
+    ) {
+        const context: ChatMiddlewareContext = {
+            message,
+            ctx: ctx ?? this.ctx,
+            session,
+            options: {},
+            send: (message) => this.sendMessage(session, message),
+            recallThinkingMessage: async () => {}
+        }
+
+        context.recallThinkingMessage = context.recallThinkingMessage =
+            this._createRecallThinkingMessage(context)
+
+        const result = await this._runMiddleware(session, context)
+
+        await context.recallThinkingMessage()
+
+        return result
+    }
+
+    async receiveCommand(
+        session: T,
+        command: string,
+        options: ChatMiddlewareContext['options'] = {}
+    ) {
+        const context: ChatMiddlewareContext = {
+            message: options?.message,
+            ctx: this.ctx,
+            session,
+            command,
+            send: (message) => this.sendMessage(session, message),
+            recallThinkingMessage: async () => {},
+            options
+        }
+
+        context.recallThinkingMessage =
+            this._createRecallThinkingMessage(context)
+
+        const result = await this._runMiddleware(session, context)
+
+        await context.recallThinkingMessage()
+
+        return result
+    }
+
+    private _createRecallThinkingMessage(context: ChatMiddlewareContext<T, R>) {
+        return async () => {
+            if (context.options.thinkingTimeoutObject) {
+                clearTimeout(context.options.thinkingTimeoutObject.timeout!)
+                if (context.options.thinkingTimeoutObject.recallFunc) {
+                    await context.options.thinkingTimeoutObject.recallFunc()
+                }
+                if (context.options?.thinkingTimeoutObject?.timeout) {
+                    context.options.thinkingTimeoutObject.timeout = null
+                }
+                context.options.thinkingTimeoutObject = undefined
+            }
+        }
+    }
+
+    sender(sender: ChatExecutorSender<T, R>) {
+        this._senders.push(sender)
     }
 
     private async _runMiddleware(
@@ -45,10 +114,10 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
 
         let isOutputLog = false
 
-        type h = PlatformElement<R>
+        type h = R
 
         for (const middleware of runList) {
-            let result: ChatMiddlewareContext | h[] | h | h[][] | string
+            let result: ChatMiddlewareRunStatus | h[] | h | h[][] | string
 
             let executedTime = Date.now()
 
@@ -56,20 +125,23 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
                 result = await middleware.execute(session, context)
 
                 executedTime = Date.now() - executedTime
-            } catch (error) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
                 if (error instanceof ChatLunaError) {
                     await this.sendMessage(session, error.message)
                     return false
                 }
 
-                logger.error(`chat-chain: ${middleware.name} error ${error}`)
+                this._logger.error(
+                    `chat-chain: ${middleware.name} error ${error}`
+                )
 
-                logger.error(error)
+                this._logger.error(error)
 
                 if (error.cause) {
-                    logger.error(error.cause)
+                    this._logger.error(error.cause)
                 }
-                logger.debug('-'.repeat(20) + '\n')
+                this._logger.debug('-'.repeat(20) + '\n')
 
                 await this.sendMessage(
                     session,
@@ -81,11 +153,11 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
 
             if (
                 !middleware.name.startsWith('lifecycle-') &&
-                ChainMiddlewareRunStatus.SKIPPED !== result &&
-                middleware.name !== 'allow_reply' &&
+                ChatMiddlewareRunStatus.SKIPPED !== result &&
+                middleware.name.toString() !== 'allow_reply' &&
                 executedTime > 10
             ) {
-                logger.debug(
+                this._logger.debug(
                     `middleware %c executed in %d ms`,
                     middleware.name,
                     executedTime
@@ -93,7 +165,7 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
                 isOutputLog = true
             }
 
-            if (result === ChainMiddlewareRunStatus.STOP) {
+            if (result === ChatMiddlewareRunStatus.STOP) {
                 // 中间件说这里不要继续执行了
                 if (
                     context.message != null &&
@@ -104,7 +176,7 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
                 }
 
                 if (isOutputLog) {
-                    logger.debug('-'.repeat(20) + '\n')
+                    this._logger.debug('-'.repeat(20) + '\n')
                 }
 
                 return false
@@ -114,7 +186,7 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
         }
 
         if (isOutputLog) {
-            logger.debug('-'.repeat(20) + '\n')
+            this._logger.debug('-'.repeat(20) + '\n')
         }
 
         if (context.message != null && context.message !== originMessage) {
@@ -138,9 +210,9 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
         const messages: (PlatformElement<R>[] | PlatformElement<R> | string)[] =
             message instanceof Array ? message : [message]
 
-        /*  for (const sender of this._senders) {
-             await sender(session, messages)
-         } */
+        for (const sender of this._senders) {
+            await sender(session, messages)
+        }
     }
 
     private _initLifecycleMiddleware() {

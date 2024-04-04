@@ -1,3 +1,5 @@
+import { Context } from 'cordis'
+
 export interface ChatMiddlewareName {
     /**
      * lifecycle of the middleware execution, it mean the check chain can continue to execute if the middleware return true
@@ -27,7 +29,7 @@ export type h<T = any> = T
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PlatformElement<T> =
-    | h<T>
+    | T
     | {
           type: string
           props: {
@@ -52,6 +54,7 @@ export type ChatMiddlewareFunction<T = any, R = any> = (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ChatMiddlewareContext<T = any, R = any> {
     session: T
+    ctx: Context
     message: string | h<R>[] | h<R>[][]
     options?: ChatMiddlewareContextOptions
     command?: string
@@ -63,3 +66,8 @@ export interface ChatMiddlewareContextOptions {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any
 }
+
+export type ChatExecutorSender<T, R> = (
+    session: T,
+    message: (PlatformElement<R>[] | PlatformElement<R> | string)[]
+) => Promise<void>
