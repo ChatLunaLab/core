@@ -2,7 +2,6 @@
 
 ChatLuna 核心相关库。
 
-[![codecov](https://img.shields.io/codecov/c/github/ChatLunaLab/core)](https://codecov.io/gh/ChatLunaLab/core)
 [![npm](https://img.shields.io/npm/v/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core) [![npm](https://img.shields.io/npm/dm/@chatluna/core)](https://www.npmjs.com/package/@chatluna/core)
 
 ## 项目结构

@@ -8,24 +8,14 @@ import {
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
 } from '@chatluna/core/chain'
-import {
-    BufferWindowMemory,
-    VectorStoreRetrieverMemory
-} from '@chatluna/core/memory'
+import { BufferWindowMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
-import {
-    ChatLunaSaveableVectorStore,
-    MemoryVectorStore
-} from '@chatluna/core/vectorstore'
+import { ChatLunaSaveableVectorStore, MemoryVectorStore } from '@chatluna/core/vectorstore'
 import { Logger } from '@cordisjs/logger'
 import { DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
-import {
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    PromptTemplate
-} from '@langchain/core/prompts'
+import { HumanMessagePromptTemplate, MessagesPlaceholder, PromptTemplate } from '@langchain/core/prompts'
 import { BaseRetrieverInterface } from '@langchain/core/retrievers'
 import { StructuredTool, Tool } from '@langchain/core/tools'
 
@@ -39,7 +29,6 @@ export interface ChatLunaBrowsingChainInput
     botName: string
     systemPrompts?: SystemPrompts
     embeddings: Embeddings
-    chatMemory: VectorStoreRetrieverMemory
     htmlMemory?: VectorStore
     historyMemory: BufferWindowMemory
     htmlLoader?: (url: string) => Promise<DocumentInterface[]>
@@ -64,8 +53,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
     historyMemory: BufferWindowMemory
 
     systemPrompts?: SystemPrompts
-
-    chatMemory: VectorStoreRetrieverMemory
 
     formatQuestionChain: ChatLunaLLMChain
 
@@ -98,7 +85,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             systemPrompts,
             chain,
             tools,
-            chatMemory,
             formatQuestionChain,
             htmlMemory,
             browsePage,
@@ -110,8 +96,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
 
         this.embeddings = embeddings
 
-        // use memory
-        this.chatMemory = chatMemory
         this.historyMemory = historyMemory
         this.formatQuestionChain = formatQuestionChain
 
@@ -146,7 +130,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             embeddings,
             historyMemory,
             systemPrompts,
-            chatMemory,
             htmlRetriever,
             htmlLoader,
             htmlMemory,
@@ -188,7 +171,6 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             chain,
             tools,
             llm,
-            chatMemory,
             htmlLoader,
             htmlMemory,
             htmlRetriever,
@@ -254,7 +236,8 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
         message,
         stream,
         events,
-        params
+        params,
+        chatMemory
     }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
@@ -265,10 +248,10 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
         )[this.historyMemory.memoryKey] as BaseMessage[]
 
         requests['long_history'] = (
-            await this.chatMemory.loadMemoryVariables({
+            await chatMemory.loadMemoryVariables({
                 user: message.content
             })
-        )[this.chatMemory.memoryKey]
+        )[chatMemory.memoryKey]
         requests['chat_history'] = chatHistory
         Object.assign(requests, params)
 
@@ -333,12 +316,12 @@ export class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper {
             finalResponse as string
         )
 
-        await this.chatMemory.saveContext(
+        await chatMemory.saveContext(
             { user: message.content },
             { your: finalResponse }
         )
 
-        const vectorStore = this.chatMemory.vectorStoreRetriever.vectorStore
+        const vectorStore = chatMemory.vectorStoreRetriever.vectorStore
 
         if (vectorStore instanceof ChatLunaSaveableVectorStore) {
             this._logger?.debug('saving vector store')

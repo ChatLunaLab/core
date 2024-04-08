@@ -7,26 +7,21 @@ import {
     ChatLunaLLMChainWrapperInput,
     SystemPrompts
 } from '@chatluna/core/chain'
-import { ChainValues } from '@langchain/core/utils/types'
+import { BaseChatMemory } from '@chatluna/core/memory'
+import { ChatLunaChatModel } from '@chatluna/core/model'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
+import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
 import {
     HumanMessagePromptTemplate,
     MessagesPlaceholder
 } from '@langchain/core/prompts'
-import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
-import {
-    BaseChatMemory,
-    VectorStoreRetrieverMemory
-} from '@chatluna/core/memory'
-import { ChatLunaChatModel } from '@chatluna/core/model'
-import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChainValues } from '@langchain/core/utils/types'
 
 export class ChatLunaChatChain
     extends ChatLunaLLMChainWrapper
     implements ChatLunaLLMChainWrapperInput
 {
-    chatMemory?: VectorStoreRetrieverMemory
-
     chain: ChatLunaLLMChain
 
     historyMemory: BaseChatMemory
@@ -44,9 +39,8 @@ export class ChatLunaChatChain
     ) {
         super(params)
 
-        const { chatMemory: longMemory, historyMemory, chain } = params
+        const { historyMemory, chain } = params
 
-        this.chatMemory = longMemory
         this.historyMemory = historyMemory
 
         this.chain = chain
@@ -96,7 +90,8 @@ export class ChatLunaChatChain
         message,
         stream,
         events,
-        params
+        params,
+        chatMemory
     }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
@@ -106,8 +101,8 @@ export class ChatLunaChatChain
         )?.[this.historyMemory.memoryKeys[0]] as BaseMessage[] | string | null
 
         const longHistory =
-            this.chatMemory != null
-                ? await this.chatMemory.loadMemoryVariables({
+            chatMemory != null
+                ? await chatMemory.loadMemoryVariables({
                       user: message.content
                   })
                 : undefined
@@ -124,7 +119,7 @@ export class ChatLunaChatChain
 
         requests['chat_history'] = chatHistory
 
-        requests['long_history'] = longHistory?.[this.chatMemory?.memoryKey]
+        requests['long_history'] = longHistory?.[chatMemory?.memoryKey]
 
         Object.assign(requests, params)
 
@@ -139,7 +134,7 @@ export class ChatLunaChatChain
 
         const responseString = response.content as string
 
-        await this.chatMemory?.saveContext(
+        await chatMemory?.saveContext(
             { user: message.content },
             { your: responseString }
         )
@@ -147,7 +142,7 @@ export class ChatLunaChatChain
         await this.historyMemory.chatHistory.addMessage(message)
         await this.historyMemory.chatHistory.addAIChatMessage(responseString)
 
-        const vectorStore = this.chatMemory?.vectorStoreRetriever.vectorStore
+        const vectorStore = chatMemory?.vectorStoreRetriever.vectorStore
 
         if (vectorStore instanceof ChatLunaSaveableVectorStore) {
             await vectorStore.save()

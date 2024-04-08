@@ -10,6 +10,7 @@ import { startOfCurrentDay } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
 import { $, Database } from 'minato'
+import { ChatLunaUserPresetAdditional } from '../types/index.js'
 
 export class ChatLunaUserService extends Service {
     private _logger: Logger
@@ -204,6 +205,70 @@ export class ChatLunaUserService extends Service {
         }
     }
 
+    async updateUserGroup(
+        groupId: number,
+        template: Partial<ChatLunaUserGroup>
+    ) {
+        await this._database.upsert('chatluna_user_group', [
+            Object.assign(
+                {
+                    id: groupId
+                },
+                template
+            )
+        ])
+    }
+
+    async queryUserPresets(userId: string) {
+        const queries = await this._database.get(
+            'chatluna_user_preset_additional',
+            {
+                userId
+            }
+        )
+
+        if (queries?.length === 0) {
+            return []
+        }
+
+        return queries
+    }
+
+    async queryUserPreset(userId: string, presetId: string) {
+        const queries = await this._database.get(
+            'chatluna_user_preset_additional',
+            {
+                userId,
+                presetId
+            }
+        )
+
+        if (queries?.length === 1) {
+            return queries[0]
+        }
+
+        throw new ChatLunaError(
+            ChatLunaErrorCode.USER_NOT_FOUND,
+            `Preset ${presetId} not found`
+        )
+    }
+
+    async updateUserPreset(
+        userId: string,
+        presetId: string,
+        template: Partial<ChatLunaUserPresetAdditional>
+    ) {
+        await this._database.upsert('chatluna_user_preset_additional', [
+            Object.assign(
+                {
+                    userId,
+                    presetId
+                },
+                template
+            )
+        ])
+    }
+
     async updateChatTime(userId: string, currentTime: Date /* = new Date() */) {
         const [user, additional] = await this.queryUserWithAdditional(userId)
 
@@ -230,20 +295,6 @@ export class ChatLunaUserService extends Service {
         await this.updateUser(userId, user, additional)
 
         return [user, additional]
-    }
-
-    async updateUserGroup(
-        groupId: number,
-        templateUserGroup: Partial<ChatLunaUserGroup>
-    ) {
-        await this._database.upsert('chatluna_user_group', [
-            Object.assign(
-                {
-                    id: groupId
-                },
-                templateUserGroup
-            )
-        ])
     }
 
     private get _database() {
@@ -333,6 +384,18 @@ export class ChatLunaUserService extends Service {
                 autoInc: true
             }
         )
+
+        this._database.extend('chatluna_user_preset_additional', {
+            userId: {
+                type: 'string'
+            },
+            presetId: {
+                type: 'string'
+            },
+            additional_kwargs: {
+                type: 'json'
+            }
+        })
     }
 
     static inject = {

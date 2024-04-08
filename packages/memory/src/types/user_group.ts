@@ -32,10 +32,18 @@ export interface ChatLunaUser {
     lastChatTime?: Date
 }
 
+export interface ChatLunaUserPresetAdditional {
+    userId: string
+    presetId: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    additional_kwargs?: Record<string, any>
+}
+
 declare module '@chatluna/memory/types' {
     interface ChatLunaTables {
         chatluna_user_group: ChatLunaUserGroup
         chatluna_user: ChatLunaUser
         chatluna_user_additional: ChatLunaUserAdditional
+        chatluna_user_preset_additional: ChatLunaUserPresetAdditional
     }
 }

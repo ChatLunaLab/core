@@ -1,13 +1,13 @@
 import {
+    BaseChatMemory,
+    VectorStoreRetrieverMemory
+} from '@chatluna/core/memory'
+import { Context } from '@cordisjs/core'
+import {
     BaseMessage,
     BaseMessageChunk,
     HumanMessage
 } from '@langchain/core/messages'
-import { Context } from '@cordisjs/core'
-import {
-    BaseChatMemory,
-    VectorStoreRetrieverMemory
-} from '@chatluna/core/memory'
 import { Runnable, RunnableConfig } from '@langchain/core/runnables'
 import { ChainValues } from '@langchain/core/utils/types'
 
@@ -15,6 +15,7 @@ export interface ChatLunaLLMCallArg {
     message: HumanMessage
     events?: ChainEvents
     stream?: boolean
+    chatMemory?: VectorStoreRetrieverMemory
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     params?: Record<string, any>
 }
@@ -22,7 +23,6 @@ export interface ChatLunaLLMCallArg {
 export interface ChatLunaLLMChainWrapperInput {
     ctx?: Context
     systemPrompts?: SystemPrompts
-    chatMemory?: VectorStoreRetrieverMemory
     humanMessagePrompt?: string
     historyMemory: BaseChatMemory
     verbose?: boolean
