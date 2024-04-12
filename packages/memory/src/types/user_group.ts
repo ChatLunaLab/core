@@ -5,7 +5,8 @@ export interface ChatLunaUserGroup {
     limitPerMin: number
     limitPerDay: number
 
-    costPerToken: number
+    costPerInputToken: number
+    costPerOutputToken: number
 
     supportModels: string[]
 }

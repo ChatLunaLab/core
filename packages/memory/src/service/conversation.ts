@@ -488,7 +488,7 @@ export class ChatLunaConversationService extends Service {
     }
 
     private get _database() {
-        return this.ctx.database as Database<ChatLunaTables>
+        return this.ctx.database as Database<Context, ChatLunaTables>
     }
 
     private _defineDatabaseModel() {

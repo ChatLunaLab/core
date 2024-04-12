@@ -298,7 +298,7 @@ export class ChatLunaUserService extends Service {
     }
 
     private get _database() {
-        return this.ctx.database as Database<ChatLunaTables>
+        return this.ctx.database as Database<Context, ChatLunaTables>
     }
 
     private _defineDatabaseModel() {
@@ -372,7 +372,10 @@ export class ChatLunaUserService extends Service {
                 limitPerDay: {
                     type: 'integer'
                 },
-                costPerToken: {
+                costPerInputToken: {
+                    type: 'double'
+                },
+                costPerOutputToken: {
                     type: 'double'
                 },
                 supportModels: {
