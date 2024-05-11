@@ -65,14 +65,14 @@
     ],
     "dependencies": {
         "@cordisjs/logger": "^0.3.2",
-        "@langchain/core": "^0.1.57",
-        "cordis": "^3.13.4",
-        "minato": "^3.1.1"
+        "@langchain/core": "^0.1.62",
+        "cordis": "^3.14.0",
+        "minato": "^3.2.0"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1"
     },
     "devDependencies": {
-        "@minatojs/driver-memory": "^3.1.0"
+        "@minatojs/driver-memory": "^3.2.0"
     }
 }

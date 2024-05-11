@@ -94,21 +94,21 @@
         "chatluna"
     ],
     "dependencies": {
-        "@cordisjs/core": "^3.13.4",
+        "@cordisjs/core": "^3.14.0",
         "@cordisjs/logger": "^0.3.2",
-        "@langchain/core": "^0.1.57",
+        "@langchain/core": "^0.1.62",
         "fetch-socks": "^1.3.0",
         "https-proxy-agent": "^7.0.4",
-        "js-tiktoken": "^1.0.10",
+        "js-tiktoken": "^1.0.11",
         "js-yaml": "^4.1.0",
         "ml-distance": "^4.0.1",
         "socks-proxy-agent": "^8.0.3",
-        "undici": "^6.13.0",
-        "user-agents": "^2.0.0-alpha.170",
+        "undici": "^6.16.1",
+        "user-agents": "^2.0.0-alpha.199",
         "useragent": "^2.3.0",
-        "ws": "^8.16.0",
-        "zod": "^3.23.0-canary.20240412T032517",
-        "zod-to-json-schema": "^3.22.5"
+        "ws": "^8.17.0",
+        "zod": "^3.24.0-canary.20240508T190620",
+        "zod-to-json-schema": "^3.23.0"
     },
     "devDependencies": {
         "@types/js-yaml": "^4.0.9",
