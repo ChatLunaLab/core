@@ -55,8 +55,8 @@
     ],
     "dependencies": {
         "@cordisjs/logger": "^0.3.2",
-        "@langchain/core": "^0.2.1",
-        "cordis": "^3.14.0"
+        "@langchain/core": "^0.2.5",
+        "cordis": "^3.16.0"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1",
