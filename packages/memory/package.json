@@ -65,7 +65,7 @@
     ],
     "dependencies": {
         "@cordisjs/logger": "^0.3.2",
-        "@langchain/core": "^0.1.62",
+        "@langchain/core": "^0.2.1",
         "cordis": "^3.14.0",
         "minato": "^3.2.0"
     },
