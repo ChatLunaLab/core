@@ -31,7 +31,7 @@
         "chai-as-promised": "^7.1.2",
         "chai-subset": "^1.6.0",
         "cross-env": "^7.0.3",
-        "esbuild": "^0.21.4",
+        "esbuild": "^0.22.0",
         "eslint": "^8.57.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-config-standard": "^17.1.0",
