@@ -1,5 +1,4 @@
 // @ts-ignore
-import { ModelRequestParams } from '@chatluna/core/model'
 import { apply } from '@chatluna/memory'
 import {
     AIMessage,

@@ -178,7 +178,7 @@ describe('Conversation Service', () => {
 
         const currentTime = new Date()
 
-        let conversation = await app.chatluna_conversation.createConversation(
+        const conversation = await app.chatluna_conversation.createConversation(
             {
                 preset: 'test',
                 // platform model

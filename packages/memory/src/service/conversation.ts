@@ -4,13 +4,12 @@ import {
     ChatLunaConversationAdditional,
     ChatLunaConversationTemplate,
     ChatLunaMessage,
-    ChatLunaTables,
     PartialOptional
 } from '@chatluna/memory/types'
 import { dateWithDays, generateUUID } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
-import { $, Database, Eval, Row } from 'minato'
+import { $, Eval, Row } from 'minato'
 import Expr = Eval.Expr
 
 export class ChatLunaConversationService extends Service {
@@ -488,7 +487,7 @@ export class ChatLunaConversationService extends Service {
     }
 
     private get _database() {
-        return this.ctx.database as Database<Context, ChatLunaTables>
+        return this.ctx.database
     }
 
     private _defineDatabaseModel() {
@@ -608,9 +607,7 @@ export class ChatLunaConversationService extends Service {
         )
     }
 
-    static inject = {
-        required: ['database', 'logger']
-    }
+    static inject = ['database', 'logger']
 }
 
 declare module 'cordis' {

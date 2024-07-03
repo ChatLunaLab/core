@@ -1,16 +1,15 @@
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
 import {
-    ChatLunaTables,
     ChatLunaUser,
     ChatLunaUserAdditional,
+    ChatLunaUserPresetAdditional,
     ChatLunaUserGroup,
     PartialOptional
 } from '@chatluna/memory/types'
 import { startOfCurrentDay } from '@chatluna/memory/utils'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
-import { $, Database } from 'minato'
-import { ChatLunaUserPresetAdditional } from '../types/index.js'
+import { $ } from 'minato'
 
 export class ChatLunaUserService extends Service {
     private _logger: Logger
@@ -298,7 +297,7 @@ export class ChatLunaUserService extends Service {
     }
 
     private get _database() {
-        return this.ctx.database as Database<Context, ChatLunaTables>
+        return this.ctx.database
     }
 
     private _defineDatabaseModel() {
@@ -401,9 +400,7 @@ export class ChatLunaUserService extends Service {
         })
     }
 
-    static inject = {
-        required: ['database', 'logger']
-    }
+    static inject = ['database', 'logger']
 }
 
 // wait minato update

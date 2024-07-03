@@ -16,9 +16,7 @@ export function loadPlugin(
 ): Promise<ForkScope> {
     const { resolve, reject, promise } = withResolver<ForkScope>()
 
-    let fork: ForkScope
-
-    fork = ctx.plugin({
+    const fork = ctx.plugin({
         apply: (pluginCtx) => {
             pluginCtx.on('ready', async () => {
                 try {

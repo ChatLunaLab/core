@@ -40,8 +40,8 @@ export interface ChatLunaUserPresetAdditional {
     additional_kwargs?: Record<string, any>
 }
 
-declare module '@chatluna/memory/types' {
-    interface ChatLunaTables {
+declare module 'cordis' {
+    interface Tables {
         chatluna_user_group: ChatLunaUserGroup
         chatluna_user: ChatLunaUser
         chatluna_user_additional: ChatLunaUserAdditional

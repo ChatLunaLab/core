@@ -41,8 +41,9 @@ export class PlatformService extends Service {
 
     private logger: Logger
 
-    constructor(ctx: Context) {
-        super(ctx, 'chatluna_platform')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(ctx: Context, config: any) {
+        super(ctx, 'chatluna_platform', true)
         this.logger = ctx.logger('chatluna_platform')
     }
 
@@ -436,7 +437,5 @@ export class PlatformService extends Service {
         return `${config.platform}/${config.apiKey}/${config.apiEndpoint}/${config.maxRetries}/${config.concurrentMaxSize}/${config.timeout}`
     }
 
-    static inject = {
-        optional: ['chatluna_request']
-    }
+    static inject = ['chatluna_request']
 }

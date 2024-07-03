@@ -55,10 +55,8 @@ export type ChatLunaConversationTemplate = PartialOptional<
 
 export type ChatLunaMessageRole = MessageType
 
-export interface ChatLunaTables {}
-
-declare module '@chatluna/memory/types' {
-    interface ChatLunaTables {
+declare module 'cordis' {
+    interface Tables {
         chatluna_conversation: ChatLunaConversation
         chatluna_message: ChatLunaMessage
         chatluna_conversation_additional: ChatLunaConversationAdditional

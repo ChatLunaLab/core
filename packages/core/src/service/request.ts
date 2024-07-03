@@ -101,7 +101,7 @@ export class RequestService extends Service {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
-        super(ctx, 'chatluna_request')
+        super(ctx, 'chatluna_request', false)
         this._root = new DefaultRequest(ctx.logger('chatluna_root_request'))
     }
 

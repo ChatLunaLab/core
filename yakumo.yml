@@ -1,14 +1,19 @@
-- name: yakumo
+- id: sengw5
+  name: yakumo
   config:
     pipeline:
       build:
         - esbuild
         - tsc
-  id: sengw5
-- name: yakumo-esbuild
-  id: t50vh5
-- name: yakumo-tsc
-  id: t0uiuc
-- name: yakumo-mocha
-  id: xgfeqc
-- name: yakumo/upgrade
+      clean:
+        - tsc --clean
+- id: t50vh5
+  name: yakumo-esbuild
+- id: t0uiuc
+  name: yakumo-tsc
+- id: xgfeqc
+  name: yakumo-mocha
+- id: r4mswd
+  name: yakumo/upgrade
+- id: mhfp3c
+  name: yakumo/version
