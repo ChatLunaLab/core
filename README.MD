@@ -16,7 +16,7 @@ ChatLuna 核心相关库。
 
 - [@chatluna/chat](./packages/chat/README.MD)
 
-  ChatLuna 聊天相关基础库，提供有向环图的依赖性中间件模块，抽象化发送与接收模块，新 LLM 思考引擎。
+  ChatLuna 聊天相关基础库，提供有向环图的依赖性中间件模块，抽象化发送与接收模块，流式消息解析。
 
 - [@chatluna/koishi](./packages/koishi/README.MD)
 
