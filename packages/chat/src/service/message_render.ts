@@ -1,5 +1,5 @@
 import { PlatformElement } from '@chatluna/chat/middleware'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { ChatLunaSimpleMessage } from '@chatluna/memory/types'
 import { Context, Service } from 'cordis'
 

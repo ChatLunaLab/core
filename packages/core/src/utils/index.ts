@@ -1,5 +1,3 @@
-export * from './error.ts'
-export * from './promise.ts'
 export * from './count_tokens.ts'
 export * from './tiktoken.ts'
 export * from './openai.ts'

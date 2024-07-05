@@ -6,7 +6,7 @@ import {
     InputValues,
     OutputValues
 } from '@langchain/core/memory'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 
 /**
  * Interface for the input parameters of the BaseChatMemory class.

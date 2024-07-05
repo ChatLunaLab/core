@@ -60,3 +60,41 @@ export function sleep(ms: number) {
 
     return promise
 }
+
+// eslint-disable-next-line generator-star-spacing
+export async function* asyncGeneratorTimeout<T>(
+    source: AsyncIterable<T>,
+    ms: number,
+    timeoutFunction: (reject: (error: Error) => void) => void
+): AsyncIterable<T> {
+    const ita = source[Symbol.asyncIterator]()
+    let clock: NodeJS.Timeout
+
+    try {
+        while (true) {
+            // eslint-disable-next-line promise/param-names
+            const timeout = new Promise((_, reject) => {
+                clock = setTimeout(() => {
+                    timeoutFunction(reject)
+                }, ms)
+            })
+            const next = <IteratorResult<T>>(
+                await Promise.race([ita.next(), timeout])
+            )
+
+            clearTimeout(clock)
+
+            if (next.done) {
+                return
+            }
+
+            yield next.value
+        }
+    } catch (err) {
+        clearTimeout(clock)
+        ita.return()
+        throw err
+    } finally {
+        clearTimeout(clock)
+    }
+}

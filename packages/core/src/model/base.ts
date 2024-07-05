@@ -7,15 +7,11 @@ import {
 import { ModelInfo } from '@chatluna/core/platform'
 import { Request } from '@chatluna/core/service'
 import {
-    asyncGeneratorTimeout,
     calculateTokens,
-    ChatLunaError,
-    ChatLunaErrorCode,
     chunkArray,
     getModelContextSize,
     getModelNameForTiktoken,
-    messageTypeToOpenAIRole,
-    withResolver
+    messageTypeToOpenAIRole
 } from '@chatluna/core/utils'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { Embeddings, EmbeddingsParams } from '@langchain/core/embeddings'
@@ -32,6 +28,12 @@ import {
 import { StructuredTool } from '@langchain/core/tools'
 import { Tiktoken } from 'js-tiktoken'
 import { Context } from '@cordisjs/core'
+import {
+    asyncGeneratorTimeout,
+    ChatLunaError,
+    ChatLunaErrorCode,
+    withResolver
+} from '@chatluna/utils'
 
 export interface ChatLunaModelCallOptions extends BaseChatModelCallOptions {
     model?: string

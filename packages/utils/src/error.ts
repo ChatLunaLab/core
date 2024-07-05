@@ -1,21 +1,24 @@
 // eslint-disable-next-line prefer-const
-export let ERROR_FORMAT_TEMPLATE =
+let ERROR_FORMAT_TEMPLATE =
     '使用 ChatLuna 时出现错误，错误码为 %s。请联系开发者以解决此问题。'
-
-export const setErrorFormatTemplate = (template: string | null) => {
-    if (template) {
-        ERROR_FORMAT_TEMPLATE = template
-    }
+export function setErrorFormatTemplate(template: string | null) {
+    ERROR_FORMAT_TEMPLATE =
+        template ??
+        '使用 ChatLuna 时出现错误，错误码为 %s。请联系开发者以解决此问题。'
 }
-
 export class ChatLunaError extends Error {
     constructor(
         public errorCode: ChatLunaErrorCode = ChatLunaErrorCode.UNKNOWN_ERROR,
-        public originError?: Error
+        public originError?: Error | string
     ) {
         super(ERROR_FORMAT_TEMPLATE.replace('%s', errorCode.toString()))
 
         this.name = 'ChatLunaError'
+
+        if (originError instanceof Error) {
+            this.cause = originError.cause
+            this.stack = originError.stack
+        }
     }
 
     public toString() {
@@ -44,14 +47,15 @@ export enum ChatLunaErrorCode {
     MODEL_CONVERSION_INIT_ERROR = 308,
     MODEL_RESPONSE_IS_EMPTY = 309,
     PRESET_LOAD_ERROR = 311,
+    ADD_EXISTING_CONFIG = 312,
     MODEL_DEPOSE_ERROR = 310,
-    MEMBER_NOT_IN_ROOM = 400,
-    ROOM_NOT_JOINED = 401,
-    ROOM_NOT_FOUND_MASTER = 402,
-    ROOM_TEMPLATE_INVALID = 403,
-    THE_NAME_FIND_IN_MULTIPLE_ROOMS = 404,
-    ROOM_NOT_FOUND = 405,
-    INIT_ROOM = 406,
+    MEMBER_NOT_IN_CONVERSATION = 400,
+    CONVERSATION_NOT_JOINED = 401,
+    CONVERSATION_NOT_FOUND_MASTER = 402,
+    CONVERSATION_TEMPLATE_INVALID = 403,
+    THE_NAME_FIND_IN_MULTIPLE_CONVERSATIONS = 404,
+    CONVERSATION_NOT_FOUND = 405,
+    INIT_CONVERSATION_ERROR = 406,
     KNOWLEDGE_CONFIG_INVALID = 500,
     KNOWLEDGE_DOC_NOT_FOUND = 501,
     KNOWLEDGE_LOOP_INCLUDE = 502,
@@ -59,8 +63,8 @@ export enum ChatLunaErrorCode {
     KNOWLEDGE_EXIST_FILE = 504,
     KNOWLEDGE_VECTOR_NOT_FOUND = 505,
     USER_NOT_FOUND = 600,
-    AUTH_GROUP_NOT_FOUND = 601,
-    AUTH_GROUP_NOT_JOINED = 602,
-    AUTH_GROUP_ALREADY_JOINED = 603,
+    USER_ARE_DUPLICATE = 601,
+    USER_GROUP_NOT_FOUND = 602,
+    USER_GROUP_ARE_DUPLICATE = 603,
     UNKNOWN_ERROR = 999
 }

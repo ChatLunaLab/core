@@ -9,7 +9,7 @@ import {
 } from '@chatluna/core/chain'
 import { BaseChatMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
 import {

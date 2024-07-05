@@ -14,6 +14,7 @@
         "dep": "yarn yakumo upgrade",
         "pub": "yarn yakumo publish",
         "lint": "yarn eslint --ext=ts --cache",
+        "lint-fix": "yarn eslint --ext=ts --cache --fix",
         "test": "yarn build && yarn yakumo mocha -r tsx/cjs",
         "test:c8": "shx rm -rf coverage && c8 yarn test"
     },

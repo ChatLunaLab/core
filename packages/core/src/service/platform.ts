@@ -17,14 +17,10 @@ import {
     PlatformModelClient
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
-import {
-    ChatLunaError,
-    ChatLunaErrorCode,
-    Option,
-    parseRawModelName
-} from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
 import { Context, Service } from '@cordisjs/core'
 import { Logger } from '@cordisjs/logger'
+import { parseRawModelName } from '../utils/count_tokens.ts'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}

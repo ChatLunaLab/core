@@ -16,11 +16,11 @@ ChatLuna 核心相关库。
 
 - [@chatluna/chat](./packages/chat/README.MD)
 
-  ChatLuna 聊天相关基础库，提供有向环图的依赖性中间件模块，抽象化发送与接收模块，流式消息解析。
+  ChatLuna 聊天相关基础库，提供有向环图的依赖性中间件模块，抽象化发送与接收模块，流式消息解析，组合对话存储与聊天模式实现与模型聊天功能。
 
-- [@chatluna/koishi](./packages/koishi/README.MD)
+- [@chatluna/service](./packages/service/README.MD)
 
-  ChatLuna 运行在 Koishi 上的核心支持库。
+  ChatLuna 的 Service 实现，chatluna 核心服务。
 
 - [@chatluna/utils](./packages/utils/README.MD)
 

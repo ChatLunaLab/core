@@ -24,7 +24,7 @@
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ChatLunaLab/core.git",
-        "directory": "packages/chat"
+        "directory": "packages/utils"
     },
     "license": "MIT",
     "bugs": {
@@ -43,13 +43,5 @@
         "gpt",
         "chatluna"
     ],
-    "dependencies": {
-        "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.2.12",
-        "cordis": "^3.17.4"
-    },
-    "peerDependencies": {
-        "@chatluna/core": "^0.0.1",
-        "@chatluna/memory": "^0.0.1"
-    }
+    "dependencies": {}
 }

@@ -1,8 +1,8 @@
 import { type TiktokenModel } from 'js-tiktoken/lite'
 import { encodingForModel } from './tiktoken.ts'
-import { ChatLunaError, ChatLunaErrorCode } from './error.ts'
 import { Context } from '@cordisjs/core'
 import { Request } from '@chatluna/core/service'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 
 // https://www.npmjs.com/package/js-tiktoken
 

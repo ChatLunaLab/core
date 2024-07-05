@@ -1,5 +1,5 @@
 import { PlatformElement } from '@chatluna/chat/middleware'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { ChatLunaSimpleMessage } from '@chatluna/memory/types'
 import type { Logger } from '@cordisjs/logger'
 import { Context, Service } from 'cordis'
@@ -19,7 +19,8 @@ export class ChatLunaMessageTransformService<T = any, R = any> extends Service {
             content: '',
             role: 'human',
             additional_kwargs: {}
-        }
+        },
+        quoteMessage?: QuoteMessage<R>
     ): Promise<ChatLunaSimpleMessage> {
         for (const rawElement of elements) {
             const element = rawElement as {
@@ -45,6 +46,58 @@ export class ChatLunaMessageTransformService<T = any, R = any> extends Service {
                         message
                     )
                 }
+            }
+        }
+
+        if (quoteMessage) {
+            let quoteBuildedMessage: ChatLunaSimpleMessage
+            try {
+                quoteBuildedMessage = await this.transform(
+                    session,
+                    quoteMessage.elements,
+                    {
+                        content: '',
+                        additional_kwargs: {},
+                        role: 'human'
+                    }
+                )
+            } catch (error) {
+                console.error('Error transforming message:', error)
+                // 根据实际情况处理错误，例如回退操作、记录日志或向用户反馈
+                return // 或者返回一个错误提示等
+            }
+
+            // 验证返回的对象格式
+            if (
+                !quoteBuildedMessage ||
+                typeof quoteBuildedMessage.content !== 'string' ||
+                !Array.isArray(quoteBuildedMessage.additional_kwargs?.images)
+            ) {
+                console.error('Invalid format of quoteBuildedMessage')
+                return
+            }
+
+            // merge images
+            if (quoteBuildedMessage.content.length > 1) {
+                // 优化字符串拼接
+                const parts = [
+                    `There is quote message: ${quoteBuildedMessage.content}.`,
+                    'If the user ask about the quote message, please generate a response based on the quote message.',
+                    message.content
+                ]
+                message.content = parts.join('\n')
+            }
+
+            if (
+                quoteBuildedMessage.additional_kwargs.images &&
+                quoteBuildedMessage.additional_kwargs.images.length > 0
+            ) {
+                // 优化数组合并逻辑
+                message.additional_kwargs.images =
+                    message.additional_kwargs.images || []
+                message.additional_kwargs.images.push(
+                    ...quoteBuildedMessage.additional_kwargs.images
+                )
             }
         }
 
@@ -83,6 +136,10 @@ export type MessageTransformFunction<T = any, R = any> = (
     element: PlatformElement<R>,
     message: ChatLunaSimpleMessage
 ) => Promise<boolean | void>
+
+export interface QuoteMessage<R> {
+    elements: PlatformElement<R>[]
+}
 
 declare module 'cordis' {
     interface Context {

@@ -6,7 +6,7 @@ import {
     ChatMiddlewareRunStatus,
     PlatformElement
 } from '@chatluna/chat/middleware'
-import { ChatLunaError } from '@chatluna/core/utils'
+import { ChatLunaError } from '@chatluna/utils'
 import { Logger } from '@cordisjs/logger'
 import { Context } from 'cordis'
 import { ChatExecutorSender } from './types.js'

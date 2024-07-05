@@ -1,9 +1,5 @@
 import { Request } from '@chatluna/core/service'
-import {
-    ChatLunaError,
-    ChatLunaErrorCode,
-    withResolver
-} from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode, withResolver } from '@chatluna/utils'
 import { Context } from '@cordisjs/core'
 import {
     getEncodingNameForModel,

@@ -8,7 +8,7 @@ import { ClientRequestArgs } from 'http'
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import UserAgents from 'user-agents'
 import useragent from 'useragent'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { Context, Service } from '@cordisjs/core'
 import { Logger } from '@cordisjs/logger'
 
