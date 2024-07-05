@@ -1,3 +1,3 @@
-# ChatLuna Memory
+# ChatLuna Chat
 
-ChatLuna 对话设计，存储相关库。
+聊天相关基础库，提供有向环图的依赖性中间件模块，抽象化发送与接收模块，流式消息解析。

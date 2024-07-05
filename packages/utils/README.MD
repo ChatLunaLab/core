@@ -1,3 +1,3 @@
-# ChatLuna Memory
+# ChatLuna Utils
 
-ChatLuna 对话设计，存储相关库。
+ChatLuna 辅助库，提供一些简单的 API 如 SSE 解析，等待锁等。

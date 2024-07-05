@@ -1,4 +1,7 @@
-import { ChatLunaMessageRenderService, ChatLunaMessageTransformService } from '@chatluna/chat/service'
+import {
+    ChatLunaMessageRenderService,
+    ChatLunaMessageTransformService
+} from '@chatluna/chat/service'
 import { Context } from 'cordis'
 
 /**
