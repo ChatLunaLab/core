@@ -1,4 +1,4 @@
-import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/core/utils'
+import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/utils'
 import {
     ChatLunaConversation,
     ChatLunaConversationAdditional,

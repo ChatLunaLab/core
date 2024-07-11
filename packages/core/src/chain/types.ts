@@ -16,6 +16,7 @@ export interface ChatLunaLLMCallArg {
     events?: ChainEvents
     stream?: boolean
     chatMemory?: VectorStoreRetrieverMemory
+    signal?: AbortSignal
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     params?: Record<string, any>
 }

@@ -30,6 +30,11 @@
             "import": "./lib/utils/index.mjs",
             "types": "./lib/utils/index.d.ts"
         },
+        "./chat": {
+            "require": "./lib/chat/index.cjs",
+            "import": "./lib/chat/index.mjs",
+            "types": "./lib/chat/index.d.ts"
+        },
         "./package.json": "./package.json"
     },
     "engines": {
@@ -67,5 +72,10 @@
     "peerDependencies": {
         "@chatluna/core": "^0.0.1",
         "@chatluna/memory": "^0.0.1"
+    },
+    "peerDependenciesMeta": {
+        "@chatluna/memory": {
+            "optional": true
+        }
     }
 }

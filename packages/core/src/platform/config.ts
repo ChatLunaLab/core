@@ -12,6 +12,7 @@ export interface ClientConfig {
 export interface ClientConfigWrapper<T extends ClientConfig = ClientConfig> {
     value: T
     isAvailable: boolean
+    key: string
 }
 
 export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
@@ -160,8 +161,13 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
     private _createWrapperConfig(config: T): ClientConfigWrapper<T> {
         return {
             value: config,
-            isAvailable: true
+            isAvailable: true,
+            key: this._getClientConfigAsKey(config)
         }
+    }
+
+    private _getClientConfigAsKey(config: ClientConfig) {
+        return `${config.platform}/${config.apiKey}/${config.apiEndpoint}/${config.maxRetries}/${config.concurrentMaxSize}/${config.timeout}`
     }
 }
 

@@ -258,9 +258,15 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 options,
                 runManager
             )
+            let temp: ChatGenerationChunk
             for await (const chunk of stream) {
-                response = chunk
+                if (response == null) {
+                    temp = chunk
+                } else {
+                    temp = temp.concat(chunk)
+                }
             }
+            response = temp
         } else {
             response = await this._completionWithRetry({
                 ...options,
@@ -305,8 +311,11 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
      ** @returns A streaming request.
      */
     private _createStreamWithRetry(params: ModelRequestParams) {
-        return this.caller.call(async () =>
-            this._requester.completionStream(params)
+        return this.caller.callWithOptions(
+            {
+                signal: params.signal
+            },
+            async () => this._requester.completionStream(params)
         )
     }
 
@@ -319,7 +328,12 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             )
             return result
         }
-        return this.caller.call(makeCompletionRequest)
+        return this.caller.callWithOptions(
+            {
+                signal: params.signal
+            },
+            makeCompletionRequest
+        )
     }
 
     async cropMessages(
@@ -599,56 +613,60 @@ export class ChatLunaEmbeddings extends ChatHubBaseEmbeddings {
 
     private _embeddingWithRetry(request: EmbeddingsRequestParams) {
         request.timeout = request.timeout ?? this.timeout ?? 1000 * 30
-        return this.caller.call(async (request: EmbeddingsRequestParams) => {
-            const { promise, resolve, reject } = withResolver<
-                number[] | number[][]
-            >()
+        return this.caller.callWithOptions(
+            { signal: request.signal },
+            async (request: EmbeddingsRequestParams) => {
+                const { promise, resolve, reject } = withResolver<
+                    number[] | number[][]
+                >()
 
-            const timeout = setTimeout(() => {
-                reject(
-                    new ChatLunaError(
-                        ChatLunaErrorCode.API_REQUEST_TIMEOUT,
-                        `timeout when calling ${this.modelName} embeddings`
-                    )
-                )
-            }, request.timeout)
-
-            ;(async () => {
-                let data: number[] | number[][]
-
-                try {
-                    data = await this._client.embeddings(request)
-                } catch (e) {
-                    if (e instanceof ChatLunaError) {
-                        reject(e)
-                    } else {
-                        reject(
-                            new ChatLunaError(
-                                ChatLunaErrorCode.API_REQUEST_FAILED,
-                                e as Error
-                            )
+                const timeout = setTimeout(() => {
+                    reject(
+                        new ChatLunaError(
+                            ChatLunaErrorCode.API_REQUEST_TIMEOUT,
+                            `timeout when calling ${this.modelName} embeddings`
                         )
-                    }
-                }
-
-                clearTimeout(timeout)
-
-                if (data) {
-                    resolve(data)
-                    return
-                }
-
-                reject(
-                    new ChatLunaError(
-                        ChatLunaErrorCode.API_REQUEST_FAILED,
-
-                        `error when calling ${this.modelName} embeddings, Result: ` +
-                            JSON.stringify(data)
                     )
-                )
-            })()
+                }, request.timeout)
 
-            return promise
-        }, request)
+                ;(async () => {
+                    let data: number[] | number[][]
+
+                    try {
+                        data = await this._client.embeddings(request)
+                    } catch (e) {
+                        if (e instanceof ChatLunaError) {
+                            reject(e)
+                        } else {
+                            reject(
+                                new ChatLunaError(
+                                    ChatLunaErrorCode.API_REQUEST_FAILED,
+                                    e as Error
+                                )
+                            )
+                        }
+                    }
+
+                    clearTimeout(timeout)
+
+                    if (data) {
+                        resolve(data)
+                        return
+                    }
+
+                    reject(
+                        new ChatLunaError(
+                            ChatLunaErrorCode.API_REQUEST_FAILED,
+
+                            `error when calling ${this.modelName} embeddings, Result: ` +
+                                JSON.stringify(data)
+                        )
+                    )
+                })()
+
+                return promise
+            },
+            request
+        )
     }
 }
