@@ -22,8 +22,6 @@ export class ChatLunaChatChain
     extends ChatLunaLLMChainWrapper
     implements ChatLunaLLMChainWrapperInput
 {
-    chain: ChatLunaLLMChain
-
     historyMemory: BaseChatMemory
 
     prompt: ChatLunaChatPrompt
@@ -32,18 +30,16 @@ export class ChatLunaChatChain
 
     constructor(
         params: ChatLunaLLMChainWrapperInput & {
-            chain: ChatLunaLLMChain
             prompt: ChatLunaChatPrompt
             llm: ChatLunaChatModel
         }
     ) {
         super(params)
 
-        const { historyMemory, chain } = params
+        const { historyMemory } = params
 
         this.historyMemory = historyMemory
 
-        this.chain = chain
         this.prompt = params.prompt
         this._llm = params.llm
     }
@@ -76,11 +72,8 @@ export class ChatLunaChatChain
                 llm.invocationParams().maxTokens ?? llm.getModelMaxContextSize()
         })
 
-        const chain = prompt.pipe(llm)
-
         return new ChatLunaChatChain({
             ...params,
-            chain,
             prompt,
             llm
         })
@@ -91,7 +84,8 @@ export class ChatLunaChatChain
         stream,
         events,
         params,
-        chatMemory
+        chatMemory,
+        signal
     }: ChatLunaLLMCallArg): Promise<AIMessage> {
         const requests: ChainValues = {
             input: message
@@ -124,7 +118,7 @@ export class ChatLunaChatChain
         Object.assign(requests, params)
 
         const response = await callChatLunaChain(
-            this.chain,
+            this.createChain({ signal }),
             {
                 ...requests,
                 stream
@@ -149,6 +143,10 @@ export class ChatLunaChatChain
         }
 
         return new AIMessage(responseString)
+    }
+
+    createChain(arg: Partial<ChatLunaLLMCallArg>): ChatLunaLLMChain {
+        return this.prompt.pipe(this._llm.bind({ signal: arg.signal }))
     }
 
     get model() {

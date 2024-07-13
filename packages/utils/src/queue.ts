@@ -9,26 +9,42 @@ export class RequestQueue {
     // 200 queue
     private _maxQueueSize = 50
 
-    public async add(key: string, requestId: string) {
+    add(key: string, requestId: string): Promise<AbortController>
+    add(key: string, requestId: string, signal: AbortSignal): Promise<void>
+
+    public async add(
+        key: string,
+        requestId: string,
+        signal?: AbortSignal
+    ): Promise<void | AbortController> {
         const id = await this._lock.lock()
         if (!this._queue[key]) {
             this._queue[key] = []
+        }
+
+        let abortController: AbortController | undefined
+
+        if (signal == null) {
+            abortController = new AbortController()
+            signal = abortController.signal
         }
 
         if (this._queue[key].length >= this._maxQueueSize) {
             throw new ChatLunaError(ChatLunaErrorCode.QUEUE_OVERFLOW)
         }
 
-        const abortController = new AbortController()
         this._queue[key].push({
             requestId,
-            abortController
+            signal
         })
-        abortController.signal.addEventListener('abort', () => {
+        signal.addEventListener('abort', () => {
             this.remove(key, requestId)
         })
         await this._lock.unlock(id)
-        return abortController
+
+        if (abortController != null) {
+            return abortController
+        }
     }
 
     public async remove(key: string, requestId: string) {
@@ -86,5 +102,5 @@ interface RequestInfo {
      */
     requestId: string
 
-    abortController: AbortController
+    signal: AbortSignal
 }

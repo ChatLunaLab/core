@@ -31,6 +31,7 @@ import {
     inMemoryVectorStoreRetrieverProvider
 } from '@chatluna/core/vectorstore'
 import { ScoreThresholdRetriever } from '@chatluna/core/retriever'
+import { ChatLunaConversation } from '@chatluna/memory/types'
 
 export class ChatInterface {
     private _input: ChatInterfaceInput
@@ -186,7 +187,8 @@ export class ChatInterface {
 
     async delete(
         ctx: Context,
-        conversationId: string = this._input.conversationId
+        conversationId: string | ChatLunaConversation = this._input
+            .conversationId
     ): Promise<void> {
         await this._chatHistory.getMessages()
         await this._chatHistory.clear()

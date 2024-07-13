@@ -20,6 +20,8 @@ export abstract class ChatLunaLLMChainWrapper<
     abstract historyMemory: BaseChatMemory
 
     abstract get model(): ChatLunaChatModel
+
+    abstract createChain(arg: Partial<R>): ChatLunaLLMChain
 }
 
 export async function callChatLunaChain(
@@ -31,7 +33,7 @@ export async function callChatLunaChain(
 
     let response: BaseMessageChunk
 
-    const callback = {
+    const options = {
         callbacks: [
             {
                 /* c8 ignore next 3 */
@@ -47,16 +49,20 @@ export async function callChatLunaChain(
 
     if (values.stream) {
         /* c8 ignore start */
-        const streamIterable = await chain.stream(values, callback)
+        const streamIterable = await chain.stream(values, options)
 
         for await (const chunk of streamIterable) {
-            response = chunk
+            if (response == null) {
+                response = chunk
+            } else {
+                response = response.concat(chunk)
+            }
         }
 
         await events?.['llm-used-token-count'](usedToken)
         /* c8 ignore end */
     } else {
-        response = await chain.invoke(values, callback)
+        response = await chain.invoke(values, options)
     }
 
     await events?.['llm-used-token-count'](usedToken)
