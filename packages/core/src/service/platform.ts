@@ -166,7 +166,7 @@ export class PlatformService extends Service {
         return this.ctx.effect(() => disposable)
     }
 
-    async registerChatChain(
+    registerChatChain(
         name: string,
         description: string,
         createChatChainFunction: (

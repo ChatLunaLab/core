@@ -2,17 +2,194 @@ import { Context, Service } from 'cordis'
 import { PlatformService } from '@chatluna/core/service'
 import { ChatLunaConversation } from '@chatluna/memory/types'
 import { ChatInterface, ChatInterfaceInput } from '@chatluna/chat/chat'
-import { RequestQueue } from '@chatluna/utils'
+import { ObjectLock, RequestQueue } from '@chatluna/utils'
 import crypto from 'crypto'
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
-import { ChainEvents } from '@chatluna/core/chain'
+import { ChainEvents, ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
 import { VectorStoreRetrieverMemory } from '@chatluna/core/memory'
-import { parseRawModelName } from '@chatluna/core/utils'
+import { parseRawModelName, PromiseLikeDisposable } from '@chatluna/core/utils'
+import {
+    BasePlatformClient,
+    ChatLunaTool,
+    ClientConfig,
+    ClientConfigPool,
+    ClientConfigPoolMode,
+    CreateChatLunaLLMChainParams,
+    CreateVectorStoreFunction,
+    ModelType
+} from '@chatluna/core/platform'
+import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatLunaService extends Service {
+    private _platformPlugins: ChatLunaPlatformPlugin[] = []
+    private _chatInterfaceWrapper: Record<string, ChatInterfaceWrapper> = {}
+    private _lock = new ObjectLock()
+    private readonly _chatMiddlewareExecutor: ChatMiddlewareExecutor
+
     constructor(ctx: Context) {
         super(ctx, 'chatluna')
+    }
+}
+
+export class ChatLunaPlatformPlugin<
+    R extends ClientConfig = ClientConfig,
+    T extends ChatLunaPlatformPlugin.Config = ChatLunaPlatformPlugin.Config
+> {
+    private _disposables: PromiseLikeDisposable[] = []
+
+    private _supportModels: string[] = []
+
+    private readonly _platformConfigPool: ClientConfigPool<R>
+
+    private _platformService: PlatformService
+
+    constructor(
+        protected ctx: Context,
+        public readonly config: T,
+        public platformName: string,
+        createConfigPool: boolean = true
+    ) {
+        ctx.once('dispose', async () => {
+            // await ctx.chatluna.unregisterPlugin(this)
+        })
+
+        // inject to root ctx
+        ctx.runtime.inject['cache'] = {
+            required: true
+        }
+
+        if (createConfigPool) {
+            this._platformConfigPool = new ClientConfigPool<R>(
+                config.configMode === 'default'
+                    ? ClientConfigPoolMode.AlwaysTheSame
+                    : ClientConfigPoolMode.LoadBalancing
+            )
+        }
+
+        this._platformService = ctx.chatluna_platform
+    }
+
+    parseConfig(f: (config: T) => R[]) {
+        const configs = f(this.config)
+
+        for (const config of configs) {
+            this._platformConfigPool.addConfig(config)
+        }
+    }
+
+    async initClients() {
+        this._platformService.registerConfigPool(
+            this.platformName,
+            this._platformConfigPool
+        )
+
+        try {
+            await this._platformService.createClients(this.platformName)
+        } catch (e) {
+            await this.onDispose()
+            // await this.ctx.chatluna.unregisterPlugin(this)
+
+            throw e
+        }
+
+        this._supportModels = this._supportModels.concat(
+            this._platformService
+                .getModels(this.platformName, ModelType.llm)
+                .map((model) => `${this.platformName}/${model.name}`)
+        )
+
+        //  this.ctx.chatluna.registerPlugin(this)
+    }
+
+    async initClientsWithPool<A extends ClientConfig = R>(
+        platformName: string,
+        pool: ClientConfigPool<A>,
+        createConfigFunc: (config: T) => A[]
+    ) {
+        const configs = createConfigFunc(this.config)
+
+        for (const config of configs) {
+            pool.addConfig(config)
+        }
+
+        this._platformService.registerConfigPool(platformName, pool)
+
+        try {
+            await this._platformService.createClients(platformName)
+        } catch (e) {
+            await this.onDispose()
+
+            throw e
+        }
+
+        this._supportModels = this._supportModels.concat(
+            this._platformService
+                .getModels(platformName, ModelType.llm)
+                .map((model) => `${platformName}/${model.name}`)
+        )
+    }
+
+    get supportedModels(): readonly string[] {
+        return this._supportModels
+    }
+
+    async onDispose(): Promise<void> {
+        while (this._disposables.length > 0) {
+            const disposable = this._disposables.pop()
+            await disposable()
+        }
+    }
+
+    registerConfigPool(platformName: string, configPool: ClientConfigPool) {
+        this._platformService.registerConfigPool(platformName, configPool)
+    }
+
+    async registerClient(
+        func: (
+            ctx: Context,
+            config: R
+        ) => BasePlatformClient<R, ChatLunaEmbeddings | ChatLunaChatModel>,
+        platformName: string = this.platformName
+    ) {
+        const disposable = this._platformService.registerClient(
+            platformName,
+            func
+        )
+
+        this._disposables.push(disposable)
+    }
+
+    async registerVectorStore(name: string, func: CreateVectorStoreFunction) {
+        const disposable = this._platformService.registerVectorStore(name, func)
+        this._disposables.push(disposable)
+    }
+
+    async registerTool(name: string, tool: ChatLunaTool) {
+        const disposable = this._platformService.registerTool(name, tool)
+        this._disposables.push(disposable)
+    }
+
+    async registerChatChainProvider(
+        name: string,
+        description: string,
+        func: (
+            params: CreateChatLunaLLMChainParams
+        ) => Promise<ChatLunaLLMChainWrapper>
+    ) {
+        const disposable = this._platformService.registerChatChain(
+            name,
+            description,
+            func
+        )
+        this._disposables.push(disposable)
+    }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace ChatLunaPlatformPlugin {
+    export interface Config {
+        configMode: string
     }
 }
 
@@ -59,8 +236,8 @@ class ChatInterfaceWrapper {
         const currentQueueLength =
             await this._modelQueue.getQueueLength(platform)
 
-        await this._conversationQueue.add(conversationId, requestId)
-        await this._modelQueue.add(platform, requestId)
+        await this._conversationQueue.add(conversationId, requestId, signal)
+        await this._modelQueue.add(platform, requestId, signal)
 
         await event['llm-queue-waiting'](currentQueueLength)
 
