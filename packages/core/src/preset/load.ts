@@ -25,6 +25,16 @@ function loadYamlPreset(rawText: string): PresetTemplate {
         )
     }
 
+    const clonedOfJson = Object.assign({}, rawJson, {
+        keywords: undefined,
+        prompts: undefined,
+        format_user_prompt: undefined
+    })
+
+    delete clonedOfJson.keywords
+    delete clonedOfJson.prompts
+    delete clonedOfJson.format_user_prompt
+
     return {
         triggerKeyword: rawJson.keywords,
         rawText,
@@ -39,6 +49,7 @@ function loadYamlPreset(rawText: string): PresetTemplate {
                 throw new Error(`Unknown role: ${message.role}`)
             }
         }),
-        formatUserPromptString: rawJson.format_user_prompt
+        formatUserPromptString: rawJson.format_user_prompt,
+        ...clonedOfJson
     }
 }
