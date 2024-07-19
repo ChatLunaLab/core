@@ -1,4 +1,4 @@
-import { Context, Service } from 'cordis'
+import { Context, Schema, Service } from 'cordis'
 import { PlatformService } from '@chatluna/core/service'
 import { ChatLunaConversation } from '@chatluna/memory/types'
 import { ChatInterface, ChatInterfaceInput } from '@chatluna/chat/chat'
@@ -290,7 +290,7 @@ export class ChatLunaPlatformPlugin<
         try {
             await this._platformService.createClients(platformName)
         } catch (e) {
-            await this.uninstall()
+            this.uninstall()
 
             throw e
         }
@@ -362,8 +362,63 @@ export class ChatLunaPlatformPlugin<
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace ChatLunaPlatformPlugin {
     export interface Config {
+        chatConcurrentMaxSize?: number
+        timeout?: number
         configMode: string
+        maxRetries: number
+        proxyMode: string
+        proxyAddress: string
     }
+
+    export const Config: Schema<ChatLunaPlatformPlugin.Config> =
+        Schema.intersect([
+            Schema.object({
+                chatConcurrentMaxSize: Schema.number()
+                    .min(1)
+                    .max(8)
+                    .default(3)
+                    .description('当前适配器模型的最大并发数'),
+
+                configMode: Schema.union([
+                    Schema.const('default').description(
+                        '顺序配置（当配置无效后自动弹出配置，切换到下一个可用配置）'
+                    ),
+                    Schema.const('balance').description(
+                        '负载均衡（所有可用配置轮询使用）'
+                    )
+                ])
+                    .default('default')
+                    .description('请求配置模式'),
+                maxRetries: Schema.number()
+                    .description('请求失败后的最大重试次数')
+                    .min(1)
+                    .max(6)
+                    .default(3),
+                timeout: Schema.number()
+                    .description('模型请求超时时间(ms)')
+                    .default(300 * 1000),
+
+                proxyMode: Schema.union([
+                    Schema.const('system').description('跟随全局代理'),
+                    Schema.const('off').description('不使用代理'),
+                    Schema.const('on').description('覆盖全局代理')
+                ])
+                    .description('代理设置模式')
+                    .default('system')
+            }).description('全局设置'),
+            Schema.union([
+                Schema.object({
+                    proxyMode: Schema.const('on').required(),
+                    proxyAddress: Schema.string()
+                        .description(
+                            '网络请求的代理地址，填写后当前插件的网络服务都将使用该代理地址。如不填写会尝试使用全局配置里的代理设置'
+                        )
+                        .default('')
+                }).description('代理设置'),
+                Schema.object({})
+            ])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ]) as any
 }
 
 type ChatLunaChatBridgerInfo = {
