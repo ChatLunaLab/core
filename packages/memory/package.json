@@ -63,12 +63,20 @@
         "gpt",
         "chatluna"
     ],
+    "cordis": {
+        "service": {
+            "implements": [
+                "chatluna",
+                "chatluna_preset"
+            ]
+        }
+    },
     "dependencies": {
+        "@chatluna/utils": "^0.0.1",
         "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.2.12",
-        "cordis": "^3.17.4",
-        "minato": "^3.4.3",
-        "@chatluna/utils": "^0.0.1"
+        "@langchain/core": "^0.2.17",
+        "cordis": "^3.17.6",
+        "minato": "^3.4.3"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1"

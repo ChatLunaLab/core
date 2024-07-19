@@ -1,5 +1,5 @@
 import { withResolver } from '@chatluna/core/utils'
-import { Context, ForkScope } from '@cordisjs/core'
+import { Context, ForkScope } from 'cordis'
 
 export function waitServiceLoad(ctx: Context, deps: string[]) {
     const { promise, resolve } = withResolver()

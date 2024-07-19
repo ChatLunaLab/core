@@ -66,8 +66,16 @@
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
         "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.2.12",
-        "cordis": "^3.17.4"
+        "@langchain/core": "^0.2.17",
+        "cordis": "^3.17.6"
+    },
+    "cordis": {
+        "service": {
+            "implements": [
+                "chatluna_message_render",
+                "chatluna_message_transform"
+            ]
+        }
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1",
