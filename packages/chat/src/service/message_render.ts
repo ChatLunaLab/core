@@ -5,7 +5,7 @@ import { Context, Service } from 'cordis'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatLunaMessageRenderService<T = any> extends Service {
-    private _renders: Record<string, ChatLunaMessageRender<T>>
+    private _renders: Record<string, ChatLunaMessageRender<T>> = {}
 
     private _defaultOptions: ChatLunaMessageRenderOptions
 

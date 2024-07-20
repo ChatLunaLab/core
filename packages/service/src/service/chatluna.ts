@@ -368,6 +368,7 @@ export namespace ChatLunaPlatformPlugin {
         maxRetries: number
         proxyMode: string
         proxyAddress: string
+        platform: string
     }
 
     export const Config: Schema<ChatLunaPlatformPlugin.Config> =
@@ -377,7 +378,7 @@ export namespace ChatLunaPlatformPlugin {
                     .min(1)
                     .max(8)
                     .default(3)
-                    .description('当前适配器模型的最大并发数'),
+                    .description('请求的最大并发数'),
 
                 configMode: Schema.union([
                     Schema.const('default').description(
@@ -395,7 +396,7 @@ export namespace ChatLunaPlatformPlugin {
                     .max(6)
                     .default(3),
                 timeout: Schema.number()
-                    .description('模型请求超时时间(ms)')
+                    .description('模型请求超时时间(毫秒)')
                     .default(300 * 1000),
 
                 proxyMode: Schema.union([
@@ -406,6 +407,7 @@ export namespace ChatLunaPlatformPlugin {
                     .description('代理设置模式')
                     .default('system')
             }).description('全局设置'),
+
             Schema.union([
                 Schema.object({
                     proxyMode: Schema.const('on').required(),

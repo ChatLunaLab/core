@@ -387,17 +387,24 @@ export class ChatLunaUserService extends Service {
             }
         )
 
-        this._database.extend('chatluna_user_preset_additional', {
-            userId: {
-                type: 'string'
+        this._database.extend(
+            'chatluna_user_preset_additional',
+            {
+                userId: {
+                    type: 'string'
+                },
+                presetId: {
+                    type: 'string'
+                },
+                additional_kwargs: {
+                    type: 'json'
+                }
             },
-            presetId: {
-                type: 'string'
-            },
-            additional_kwargs: {
-                type: 'json'
+            {
+                primary: ['userId', 'presetId'],
+                autoInc: true
             }
-        })
+        )
     }
 
     static inject = ['database', 'logger']
