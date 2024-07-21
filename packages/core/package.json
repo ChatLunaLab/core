@@ -1,114 +1,114 @@
 {
-    "name": "@chatluna/core",
-    "description": "chatluna core",
-    "version": "0.0.1",
-    "main": "lib/index.cjs",
-    "module": "lib/index.mjs",
-    "typings": "lib/index.d.ts",
-    "files": [
-        "lib"
-    ],
-    "type": "module",
-    "exports": {
-        ".": {
-            "require": "./lib/index.cjs",
-            "import": "./lib/index.mjs",
-            "types": "./lib/index.d.ts"
-        },
-        "./chain": {
-            "require": "./lib/chain/index.cjs",
-            "import": "./lib/chain/index.mjs",
-            "types": "./lib/chain/index.d.ts"
-        },
-        "./memory": {
-            "require": "./lib/memory/index.cjs",
-            "import": "./lib/memory/index.mjs",
-            "types": "./lib/memory/index.d.ts"
-        },
-        "./utils": {
-            "require": "./lib/utils/index.cjs",
-            "import": "./lib/utils/index.mjs",
-            "types": "./lib/utils/index.d.ts"
-        },
-        "./preset": {
-            "require": "./lib/preset/index.cjs",
-            "import": "./lib/preset/index.mjs",
-            "types": "./lib/preset/index.d.ts"
-        },
-        "./retriever": {
-            "require": "./lib/retriever/index.cjs",
-            "import": "./lib/retriever/index.mjs",
-            "types": "./lib/retriever/index.d.ts"
-        },
-        "./platform": {
-            "require": "./lib/platform/index.cjs",
-            "import": "./lib/platform/index.mjs",
-            "types": "./lib/platform/index.d.ts"
-        },
-        "./service": {
-            "require": "./lib/service/index.cjs",
-            "import": "./lib/service/index.mjs",
-            "types": "./lib/service/index.d.ts"
-        },
-        "./model": {
-            "require": "./lib/model/index.cjs",
-            "import": "./lib/model/index.mjs",
-            "types": "./lib/model/index.d.ts"
-        },
-        "./vectorstore": {
-            "require": "./lib/vectorstore/index.cjs",
-            "import": "./lib/vectorstore/index.mjs",
-            "types": "./lib/vectorstore/index.d.ts"
-        },
-        "./package.json": "./package.json"
+  "name": "@chatluna/core",
+  "description": "chatluna core",
+  "version": "0.0.1",
+  "main": "lib/index.cjs",
+  "module": "lib/index.mjs",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": "./lib/index.cjs",
+      "import": "./lib/index.mjs",
+      "types": "./lib/index.d.ts"
     },
-    "engines": {
-        "node": ">=18.0.0"
+    "./chain": {
+      "require": "./lib/chain/index.cjs",
+      "import": "./lib/chain/index.mjs",
+      "types": "./lib/chain/index.d.ts"
     },
-    "author": "dingyi222666 <dingyi222666@foxmail.com>",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ChatLunaLab/core.git",
-        "directory": "packages/core"
+    "./memory": {
+      "require": "./lib/memory/index.cjs",
+      "import": "./lib/memory/index.mjs",
+      "types": "./lib/memory/index.d.ts"
     },
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/ChatLunaLab/core/issues"
+    "./utils": {
+      "require": "./lib/utils/index.cjs",
+      "import": "./lib/utils/index.mjs",
+      "types": "./lib/utils/index.d.ts"
     },
-    "scripts": {
-        "build": "atsc -b"
+    "./preset": {
+      "require": "./lib/preset/index.cjs",
+      "import": "./lib/preset/index.mjs",
+      "types": "./lib/preset/index.d.ts"
     },
-    "homepage": "https://github.com/ChatLunaLab/core#readme",
-    "keywords": [
-        "chatbot",
-        "llm",
-        "langchain",
-        "framework",
-        "chatgpt",
-        "gpt",
-        "chatluna"
-    ],
-    "dependencies": {
-        "@chatluna/utils": "^0.0.1",
-        "@cordisjs/core": "^3.17.6",
-        "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.2.17",
-        "fetch-socks": "^1.3.0",
-        "https-proxy-agent": "^7.0.5",
-        "js-tiktoken": "^1.0.12",
-        "js-yaml": "^4.1.0",
-        "ml-distance": "^4.0.1",
-        "socks-proxy-agent": "^8.0.4",
-        "undici": "^6.19.2",
-        "user-agents": "^2.0.0-alpha.268",
-        "useragent": "^2.3.0",
-        "ws": "^8.18.0",
-        "zod": "^3.24.0-canary.20240701T200529",
-        "zod-to-json-schema": "^3.23.1"
+    "./retriever": {
+      "require": "./lib/retriever/index.cjs",
+      "import": "./lib/retriever/index.mjs",
+      "types": "./lib/retriever/index.d.ts"
     },
-    "devDependencies": {
-        "@types/js-yaml": "^4.0.9",
-        "@types/useragent": "^2",
-        "proxy": "^2.2.0"
-    }
+    "./platform": {
+      "require": "./lib/platform/index.cjs",
+      "import": "./lib/platform/index.mjs",
+      "types": "./lib/platform/index.d.ts"
+    },
+    "./service": {
+      "require": "./lib/service/index.cjs",
+      "import": "./lib/service/index.mjs",
+      "types": "./lib/service/index.d.ts"
+    },
+    "./model": {
+      "require": "./lib/model/index.cjs",
+      "import": "./lib/model/index.mjs",
+      "types": "./lib/model/index.d.ts"
+    },
+    "./vectorstore": {
+      "require": "./lib/vectorstore/index.cjs",
+      "import": "./lib/vectorstore/index.mjs",
+      "types": "./lib/vectorstore/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "dingyi222666 <dingyi222666@foxmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChatLunaLab/core.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ChatLunaLab/core/issues"
+  },
+  "scripts": {
+    "build": "atsc -b"
+  },
+  "homepage": "https://github.com/ChatLunaLab/core#readme",
+  "keywords": [
+    "chatbot",
+    "llm",
+    "langchain",
+    "framework",
+    "chatgpt",
+    "gpt",
+    "chatluna"
+  ],
+  "dependencies": {
+    "@chatluna/utils": "^0.0.1",
+    "@cordisjs/core": "^3.17.6",
+    "@cordisjs/logger": "^0.3.3",
+    "@langchain/core": "^0.2.17",
+    "fetch-socks": "^1.3.0",
+    "https-proxy-agent": "^7.0.5",
+    "js-tiktoken": "^1.0.12",
+    "js-yaml": "^4.1.0",
+    "ml-distance": "^4.0.1",
+    "socks-proxy-agent": "^8.0.4",
+    "undici": "^6.19.2",
+    "user-agents": "^2.0.0-alpha.269",
+    "useragent": "^2.3.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0-canary.20240701T200529",
+    "zod-to-json-schema": "^3.23.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/useragent": "^2",
+    "proxy": "^2.2.0"
+  }
 }

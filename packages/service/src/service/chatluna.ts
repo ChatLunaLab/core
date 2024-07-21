@@ -48,19 +48,22 @@ export class ChatLunaService extends Service {
         this._createTempDir()
     }
 
-    async installPlatformPlugin(plugin: ChatLunaPlatformPlugin) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async installPlatformPlugin(plugin: ChatLunaPlatformPlugin<any, any>) {
         this._platformPlugins.push(plugin)
         this.ctx.logger.success(`register plugin %c`, plugin.platformName)
     }
 
-    async removePlatformPlugin(plugin: ChatLunaPlatformPlugin) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async removePlatformPlugin(plugin: ChatLunaPlatformPlugin<any, any>) {
         this._platformPlugins.splice(this._platformPlugins.indexOf(plugin), 1)
 
         this.ctx.logger.success('unregister plugin %c', plugin.platformName)
     }
 
     findPlugin(
-        fun: (plugin: ChatLunaPlatformPlugin) => boolean
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fun: (plugin: ChatLunaPlatformPlugin<any, any>) => boolean
     ): ChatLunaPlatformPlugin {
         return this._platformPlugins.find(fun)
     }
@@ -212,12 +215,20 @@ export class ChatLunaPlatformPlugin<
 
     private _platformService: PlatformService
 
+    public platformName: string
+
     constructor(
         protected ctx: Context,
         public readonly config: T,
-        public platformName: string,
         createConfigPool: boolean = true
     ) {
+        if (config.platform == null || config.platform.length < 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.UNKNOWN_ERROR,
+                new Error('Cannot find any platform')
+            )
+        }
+
         ctx.once('dispose', async () => {
             ctx.chatluna.removePlatformPlugin(this)
         })
@@ -236,6 +247,7 @@ export class ChatLunaPlatformPlugin<
         }
 
         this._platformService = ctx.chatluna_platform
+        this.platformName = config.platform
     }
 
     parseConfig(f: (config: T) => R[]) {

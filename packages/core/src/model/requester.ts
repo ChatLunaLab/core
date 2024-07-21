@@ -1,4 +1,6 @@
 import { Request, RequestInit } from '@chatluna/core/service'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
+import { Logger } from '@cordisjs/logger'
 import { BaseMessage } from '@langchain/core/messages'
 import { ChatGeneration, ChatGenerationChunk } from '@langchain/core/outputs'
 import { StructuredTool } from '@langchain/core/tools'
@@ -122,9 +124,15 @@ export abstract class HttpModelRequester
     implements HttpRequest
 {
     abstract requestService: Request
+    abstract _logger?: Logger
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    _post(url: string, data: any, params: RequestInit = {}) {
+    _post(
+        url: string,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any,
+        params: RequestInit = {},
+        headers: Record<string, string> = this._buildHeaders()
+    ) {
         const requestUrl = this._concatUrl(url)
 
         for (const key in data) {
@@ -139,18 +147,18 @@ export abstract class HttpModelRequester
 
         return this.requestService.fetch(requestUrl, {
             body,
-            headers: this._buildHeaders(),
+            headers,
             method: 'POST',
             ...params
         })
     }
 
-    _get(url: string) {
+    _get(url: string, headers: Record<string, string> = this._buildHeaders()) {
         const requestUrl = this._concatUrl(url)
 
         return this.requestService.fetch(requestUrl, {
             method: 'GET',
-            headers: this._buildHeaders()
+            headers
         })
     }
 
@@ -162,6 +170,31 @@ export abstract class HttpModelRequester
 
     _concatUrl(url: string): string {
         return url
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected async _runCatch<T>(
+        func: () => Promise<T>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any
+    ): Promise<T> {
+        try {
+            return await func()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            if (e instanceof ChatLunaError) {
+                throw e
+            }
+            const error = new Error(
+                'error when request, Result: ' + JSON.stringify(data)
+            )
+
+            error.stack = e.stack
+            error.cause = e.cause
+            this._logger.debug(e)
+
+            throw new ChatLunaError(ChatLunaErrorCode.API_REQUEST_FAILED, error)
+        }
     }
 }
 

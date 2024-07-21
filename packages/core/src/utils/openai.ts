@@ -1,6 +1,7 @@
 import {
     AIMessageChunk,
     BaseMessage,
+    BaseMessageChunk,
     ChatMessageChunk,
     FunctionMessageChunk,
     HumanMessageChunk,
@@ -134,7 +135,7 @@ export function convertOpenAIDeltaToMessageChunk(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delta: Record<string, any>,
     defaultRole?: OpenAIMessageRole
-) {
+): BaseMessageChunk {
     const role = (
         (delta.role?.length ?? 0) > 0 ? delta.role : defaultRole
     ).toLowerCase()
