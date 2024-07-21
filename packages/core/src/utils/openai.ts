@@ -82,7 +82,7 @@ export function langchainMessageToOpenAIMessage(
             (model?.includes('vision') ||
                 model?.startsWith('gpt-4o') ||
                 model?.startsWith('claude-3') ||
-                model.includes('gemini-1.5')) &&
+                model?.includes('gemini-1.5')) &&
             images != null
         ) {
             msg.content = [

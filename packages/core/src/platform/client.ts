@@ -1,10 +1,10 @@
-import { ChatHubBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
+import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
 import { Context } from '@cordisjs/core'
 
 export abstract class BasePlatformClient<
     T extends ClientConfig = ClientConfig,
-    R = ChatLunaChatModel | ChatHubBaseEmbeddings
+    R = ChatLunaChatModel | ChatLunaBaseEmbeddings
 > {
     private _modelPool: Record<string, R> = {}
 
@@ -60,7 +60,7 @@ export abstract class BasePlatformClient<
 
 export abstract class ClearContextPlatformClient<
     T extends ClientConfig = ClientConfig,
-    R = ChatLunaChatModel | ChatHubBaseEmbeddings
+    R = ChatLunaChatModel | ChatLunaBaseEmbeddings
 > extends BasePlatformClient<T, R> {
     async clearContext(): Promise<void> {}
 }
@@ -71,11 +71,11 @@ export abstract class PlatformModelClient<
 
 export abstract class PlatformEmbeddingsClient<
     T extends ClientConfig = ClientConfig
-> extends BasePlatformClient<T, ChatHubBaseEmbeddings> {}
+> extends BasePlatformClient<T, ChatLunaBaseEmbeddings> {}
 
 export abstract class PlatformModelAndEmbeddingsClient<
     T extends ClientConfig = ClientConfig
 > extends ClearContextPlatformClient<
     T,
-    ChatLunaChatModel | ChatHubBaseEmbeddings
+    ChatLunaChatModel | ChatLunaBaseEmbeddings
 > {}

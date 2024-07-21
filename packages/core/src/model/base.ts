@@ -68,7 +68,7 @@ export interface ChatLunaModelCallOptions extends BaseChatModelCallOptions {
 
     tools?: StructuredTool[]
 
-    tool_choice?: string | number
+    tool_choice?: string
 }
 
 export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
@@ -550,9 +550,9 @@ export interface ChatLunaBaseEmbeddingsParams extends EmbeddingsParams {
     model?: string
 }
 
-export abstract class ChatHubBaseEmbeddings extends Embeddings {}
+export abstract class ChatLunaBaseEmbeddings extends Embeddings {}
 
-export class ChatLunaEmbeddings extends ChatHubBaseEmbeddings {
+export class ChatLunaEmbeddings extends ChatLunaBaseEmbeddings {
     modelName = 'text-embedding-ada-002'
 
     batchSize = 256

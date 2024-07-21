@@ -3,7 +3,7 @@ import { EmbeddingsParams } from '@langchain/core/embeddings'
 import { MemoryVectorStore } from '@chatluna/core/vectorstore'
 
 import { ScoreThresholdRetriever } from '@chatluna/core/retriever'
-import { ChatHubBaseEmbeddings } from '@chatluna/core/model'
+import { ChatLunaBaseEmbeddings } from '@chatluna/core/model'
 import { CreateVectorStoreParams } from '@chatluna/core/platform'
 
 class InMemoryVectorStoreRetrieverProvider {
@@ -24,7 +24,7 @@ class InMemoryVectorStoreRetrieverProvider {
     }
 }
 
-export class EmptyEmbeddings extends ChatHubBaseEmbeddings {
+export class EmptyEmbeddings extends ChatLunaBaseEmbeddings {
     constructor(params?: EmbeddingsParams) {
         super(params ?? {})
     }

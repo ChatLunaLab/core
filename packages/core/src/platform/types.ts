@@ -1,4 +1,4 @@
-import { ChatHubBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
+import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { VectorStore } from '@langchain/core/vectorstores'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage } from '@langchain/core/messages'
@@ -20,19 +20,19 @@ export interface ChatLunaChainInfo {
 
 export interface CreateToolParams {
     model: ChatLunaChatModel
-    embeddings: ChatHubBaseEmbeddings
+    embeddings: ChatLunaBaseEmbeddings
 }
 
 export interface CreateVectorStoreParams {
     key?: string
-    embeddings: ChatHubBaseEmbeddings
+    embeddings: ChatLunaBaseEmbeddings
     //  topK?: number
 }
 
 export interface CreateChatLunaLLMChainParams {
     botName: string
     model: ChatLunaChatModel
-    embeddings?: ChatHubBaseEmbeddings
+    embeddings?: ChatLunaBaseEmbeddings
     longMemory?: VectorStoreRetrieverMemory
     historyMemory: BufferWindowMemory
     systemPrompt?: SystemPrompts
@@ -86,7 +86,7 @@ export enum ModelCapability {
 
 export interface CreateVectorStoreParams {
     key?: string
-    embeddings: ChatHubBaseEmbeddings
+    embeddings: ChatLunaBaseEmbeddings
     //  topK?: number
 }
 

@@ -18,11 +18,7 @@ import {
     CreateVectorStoreFunction,
     ModelType
 } from '@chatluna/core/platform'
-import {
-    ChatHubBaseEmbeddings,
-    ChatLunaChatModel,
-    ChatLunaEmbeddings
-} from '@chatluna/core/model'
+import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import {
     ChatMiddlewareExecutor,
     ChatMiddlewareGraph
@@ -169,7 +165,7 @@ export class ChatLunaService extends Service {
 
         const model = client.createModel(modelName)
 
-        if (model instanceof ChatHubBaseEmbeddings) {
+        if (model instanceof ChatLunaBaseEmbeddings) {
             return model
         }
 
@@ -334,7 +330,7 @@ export class ChatLunaPlatformPlugin<
         func: (
             ctx: Context,
             config: R
-        ) => BasePlatformClient<R, ChatLunaEmbeddings | ChatLunaChatModel>,
+        ) => BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>,
         platformName: string = this.platformName
     ) {
         const disposable = this._platformService.registerClient(
