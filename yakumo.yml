@@ -17,3 +17,5 @@
   name: yakumo/upgrade
 - id: mhfp3c
   name: yakumo/version
+- id: 93yp32
+  name: yakumo/publish

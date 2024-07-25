@@ -11,7 +11,7 @@ import {
     VectorStoreRetrieverMemory
 } from '@chatluna/core/memory'
 import {} from '@chatluna/memory/service'
-import { ChatHubBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
+import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 import {
     ClientConfig,
@@ -216,7 +216,7 @@ export class ChatInterface {
 
     private async _initEmbeddings(
         service: PlatformService
-    ): Promise<ChatHubBaseEmbeddings> {
+    ): Promise<ChatLunaBaseEmbeddings> {
         if (
             this._input.longMemory !== true &&
             this._input.chatMode === 'chat'

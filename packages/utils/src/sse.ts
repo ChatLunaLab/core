@@ -1,3 +1,4 @@
+import { ReadableStreamDefaultReader } from 'stream/web'
 import { ChatLunaError, ChatLunaErrorCode } from './error.ts'
 
 const BOM = 0xfeff
