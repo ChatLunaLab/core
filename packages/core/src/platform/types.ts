@@ -74,6 +74,10 @@ export interface ModelInfo {
     costPerToken?: number
 }
 
+export interface PlatformModelInfo extends ModelInfo {
+    platform: string
+}
+
 export enum ModelCapability {
     INPUT_TEXT,
     INPUT_VOICE,

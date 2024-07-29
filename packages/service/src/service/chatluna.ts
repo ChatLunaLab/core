@@ -46,6 +46,17 @@ export class ChatLunaService extends Service {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async installPlatformPlugin(plugin: ChatLunaPlatformPlugin<any, any>) {
+        if (
+            this._platformPlugins.find(
+                (p) => p.platformName === plugin.platformName
+            )
+        ) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.UNKNOWN_ERROR,
+                new Error(`The plugin ${plugin.platformName} already installed`)
+            )
+        }
+
         this._platformPlugins.push(plugin)
         this.ctx.logger.success(`register plugin %c`, plugin.platformName)
     }
@@ -335,7 +346,8 @@ export class ChatLunaPlatformPlugin<
     ) {
         const disposable = this._platformService.registerClient(
             platformName,
-            func
+            func,
+            false
         )
 
         this._disposables.push(disposable)

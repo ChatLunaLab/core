@@ -14,7 +14,8 @@ import {
     ModelType,
     PlatformEmbeddingsClient,
     PlatformModelAndEmbeddingsClient,
-    PlatformModelClient
+    PlatformModelClient,
+    PlatformModelInfo
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
 import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
@@ -46,18 +47,18 @@ export class PlatformService extends Service {
     registerClient(
         platform: string,
         createClientFunction: CreateClientFunction,
-        ctx: Context = this.ctx
+        registerConfigPool: boolean = true
     ) {
         if (this._createClientFunctions[platform]) {
             throw new Error(`Client ${platform} already exists`)
         }
 
         this._createClientFunctions[platform] = {
-            ctx,
+            ctx: this.ctx,
             value: createClientFunction
         }
 
-        if (!this._configPools[platform]) {
+        if (!this._configPools[platform] && registerConfigPool) {
             this._configPools[platform] = new ClientConfigPool()
         }
 
@@ -216,8 +217,10 @@ export class PlatformService extends Service {
     }
 
     getAllModels(type: ModelType) {
-        return Object.values(this._models)
-            .flatMap((f) => f)
+        return Object.entries(this._models)
+            .flatMap((t) =>
+                t[1].map((m) => ({ ...m, platform: t[0] }) as PlatformModelInfo)
+            )
             .filter((m) => (type === ModelType.all ? true : m.type === type))
     }
 
