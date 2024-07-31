@@ -1,19 +1,22 @@
-import { fetch, ProxyAgent } from 'undici'
-import * as fetchType from 'undici/types'
-import { ClientOptions, WebSocket } from 'ws'
-import { HttpsProxyAgent } from 'https-proxy-agent'
-import { SocksProxyAgent } from 'socks-proxy-agent'
-import { socksDispatcher } from 'fetch-socks'
+import type * as fetchType from 'undici/types'
+import type { ClientOptions, WebSocket } from 'ws'
 import { ClientRequestArgs } from 'http'
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import UserAgents from 'user-agents'
 import useragent from 'useragent'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
-import { Context, Service } from '@cordisjs/core'
+import { Context, Inject, Service } from 'cordis'
 import { Logger } from '@cordisjs/logger'
+import type {} from '@cordisjs/plugin-http'
 
 export class DefaultRequest implements Request {
-    constructor(private _logger?: Logger) {}
+    private _logger: Logger
+    private _cordis: boolean
+
+    constructor(private ctx?: Context) {
+        this._logger = ctx?.logger('chatluna_request')
+        this._cordis = ctx != null
+    }
 
     private _proxyAddress: string = undefined
 
@@ -23,10 +26,14 @@ export class DefaultRequest implements Request {
             return
         }
 
-        if (url.startsWith('socks://') || url.match(/^https?:\/\//)) {
+        // match socks4/socks4a/socks5/socks5h/http/https
+        if (url.match(/^socks[4a|4|5|5h]?:\/\//) || url.match(/^https?:\/\//)) {
             this._proxyAddress = url
+
+            this.importProxyAgent()
             return
         }
+
         throw new ChatLunaError(
             ChatLunaErrorCode.UNSUPPORTED_PROXY_PROTOCOL,
             'Unsupported proxy protocol'
@@ -40,26 +47,58 @@ export class DefaultRequest implements Request {
     /**
      * package ws, and with proxy support
      */
-    ws(url: string, options?: ClientOptions | ClientRequestArgs) {
-        if (this._proxyAddress && !options?.agent) {
-            options = options || {}
-            options.agent = createProxyAgent(this._proxyAddress)
+    async ws(url: string, options?: ClientOptions | ClientRequestArgs) {
+        if (!this._cordis) {
+            const ws = await this.importWs()
+            // eslint-disable-next-line new-cap
+            return new ws.default(url, options)
         }
-        return new WebSocket(url, options)
+
+        return this.ctx.http.ws(
+            url,
+            Object.assign(options || {}, {
+                headers: options?.headers,
+                proxyAgent: this._proxyAddress
+            }) as never
+        ) as WebSocket
     }
 
     /**
      * package undici, and with proxy support
      * @returns
      */
-    async fetch(info: RequestInfo, init?: RequestInit): Promise<Response> {
-        if (this._proxyAddress != null && !init?.dispatcher) {
-            init = createProxyAgentForFetch(init || {}, this._proxyAddress)
+    async fetch(info: string, init?: RequestInit): Promise<Response> {
+        if (!this._cordis) {
+            try {
+                // ???
+                return (await fetch(info, init)) as unknown as Response
+            } catch (e) {
+                if (e instanceof Error && e.cause) {
+                    this._logger?.error(e.stack)
+                }
+
+                throw new ChatLunaError(
+                    ChatLunaErrorCode.NETWORK_ERROR,
+                    e as Error | string
+                )
+            }
         }
 
         try {
             // ???
-            return (await fetch(info, init)) as unknown as Response
+            const response = await this.ctx.http(
+                info,
+                Object.assign(init, {
+                    responseType: 'raw',
+                    method: init?.method ?? 'GET',
+                    proxyAgent: this._proxyAddress
+                }) as {
+                    responseType: 'raw'
+                    proxyAgent: string
+                }
+            )
+
+            return response.data.data
         } catch (e) {
             if (e instanceof Error && e.cause) {
                 this._logger?.error(e.stack)
@@ -94,6 +133,43 @@ export class DefaultRequest implements Request {
 
         return result
     }
+
+    async importProxyAgent() {
+        try {
+            await import('@cordisjs/plugin-proxy-agent')
+        } catch (e) {
+            const message =
+                'Please install @cordisjs/plugin-proxy-agent to use proxy, e.g. npm install @cordisjs/plugin-proxy-agent.'
+
+            if (this._logger) {
+                this._logger.warn(message)
+            } else {
+                console.warn(message)
+            }
+        }
+
+        if (!this._cordis) {
+            const message =
+                'Please use plugin-proxy-agent in Cordis environment.'
+
+            if (this._logger) {
+                this._logger.warn(message)
+            } else {
+                console.warn(message)
+            }
+        }
+    }
+
+    async importWs() {
+        try {
+            return await import('ws')
+        } catch (e) {
+            const message =
+                'Please install ws to use WebSocket, e.g. npm install ws'
+
+            throw new ChatLunaError(ChatLunaErrorCode.NETWORK_ERROR, message)
+        }
+    }
 }
 
 export class RequestService extends Service {
@@ -102,7 +178,17 @@ export class RequestService extends Service {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
         super(ctx, 'chatluna_request', false)
-        this._root = new DefaultRequest(ctx.logger('chatluna_root_request'))
+        this._root = new DefaultRequest(ctx)
+
+        ctx.http.decoder('raw', (raw) => {
+            return {
+                data: raw,
+                url: raw.url,
+                status: raw.status,
+                statusText: raw.statusText,
+                headers: raw.headers
+            }
+        })
     }
 
     get root() {
@@ -110,48 +196,21 @@ export class RequestService extends Service {
     }
 
     create(ctx: Context, proxyAddress?: string) {
-        const request = new DefaultRequest(ctx.logger('chatluna_request'))
+        const request = new DefaultRequest(ctx)
 
         request.proxyAddress = proxyAddress ?? this._root.proxyAddress
 
         return request
     }
-}
 
-export function createProxyAgentForFetch(
-    init: fetchType.RequestInit,
-    proxyAddress?: string
-): fetchType.RequestInit {
-    if (init.dispatcher || proxyAddress == null) {
-        return init
-    }
-
-    const proxyAddressURL = new URL(proxyAddress)
-
-    if (proxyAddress.startsWith('socks://')) {
-        init.dispatcher = socksDispatcher({
-            type: 5,
-            host: proxyAddressURL.hostname,
-            port: proxyAddressURL.port ? parseInt(proxyAddressURL.port) : 1080
-        })
-        // match http/https
-    } else if (proxyAddress.match(/^https?:\/\//)) {
-        init.dispatcher = new ProxyAgent({
-            uri: proxyAddress
-        })
-    }
-
-    return init
-}
-
-function createProxyAgent(
-    proxyAddress: string
-): HttpsProxyAgent<string> | SocksProxyAgent {
-    if (proxyAddress.startsWith('socks://')) {
-        return new SocksProxyAgent(proxyAddress)
-    } else if (proxyAddress.match(/^https?:\/\//)) {
-        return new HttpsProxyAgent(proxyAddress)
-    }
+    static inject = {
+        '@cordisjs/plugin-http': {
+            required: false
+        },
+        '@cordisjs/plugin-proxy-agent': {
+            required: false
+        }
+    } satisfies Inject
 }
 
 export type RequestInfo = fetchType.RequestInfo
@@ -162,9 +221,21 @@ export interface Request {
     set proxyAddress(url: string | undefined)
     get proxyAddress()
 
-    ws(url: string, options?: ClientOptions | ClientRequestArgs): WebSocket
+    ws(
+        url: string,
+        options?: ClientOptions | ClientRequestArgs
+    ): Promise<WebSocket>
 
-    fetch(info: RequestInfo, init?: RequestInit): Promise<Response>
+    fetch(info: string, init?: RequestInit): Promise<Response>
 
     randomUA(): string
+}
+
+declare module '@cordisjs/plugin-http' {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    export namespace HTTP {
+        export interface ResponseTypes {
+            raw: Response
+        }
+    }
 }

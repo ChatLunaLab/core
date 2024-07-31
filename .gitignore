@@ -28,3 +28,5 @@ packages/*/lib
 
 coverage
 test/
+
+packages/event-stream

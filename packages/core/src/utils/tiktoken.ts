@@ -1,6 +1,6 @@
 import { Request } from '@chatluna/core/service'
 import { ChatLunaError, ChatLunaErrorCode, withResolver } from '@chatluna/utils'
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
 import {
     getEncodingNameForModel,
     Tiktoken,
@@ -8,7 +8,6 @@ import {
     TiktokenEncoding,
     TiktokenModel
 } from 'js-tiktoken/lite'
-import { fetch } from 'undici'
 
 globalThis.chatluna_tiktoken_cache = globalThis.chatluna_tiktoken_cache ?? {}
 
@@ -28,6 +27,7 @@ export async function getEncoding(
             return request.fetch(input, init)
         }
 
+        // switch to default nodejs fetch
         return fetch(input, init)
     }
 

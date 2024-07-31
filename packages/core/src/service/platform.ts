@@ -19,8 +19,7 @@ import {
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
 import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
-import { Context, Service } from '@cordisjs/core'
-import { Logger } from '@cordisjs/logger'
+import { Context, Service } from 'cordis'
 import { parseRawModelName } from '../utils/count_tokens.ts'
 
 export class PlatformService extends Service {
@@ -36,12 +35,9 @@ export class PlatformService extends Service {
     private _chatChains: Record<string, ChatLunaChainInfo> = {}
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
 
-    private logger: Logger
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
         super(ctx, 'chatluna_platform', true)
-        this.logger = ctx.logger('chatluna_platform')
     }
 
     registerClient(
@@ -111,7 +107,7 @@ export class PlatformService extends Service {
         const configPool = this._configPools[platform]
 
         if (!configPool) {
-            this.logger?.warn(`Config pool ${platform} not found`)
+            this.ctx.logger?.warn(`Config pool ${platform} not found`)
         }
 
         const configs = configPool?.getConfigs() ?? []
