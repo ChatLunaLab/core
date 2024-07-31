@@ -18,6 +18,7 @@ export interface ChatLunaMessage extends ChatLunaSimpleMessage {
 
 export interface ChatLunaConversation {
     id: string
+    name?: string
     latestMessageId?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>

@@ -519,6 +519,10 @@ export class ChatLunaConversationService extends Service {
                 },
                 createdTime: {
                     type: 'timestamp'
+                },
+                name: {
+                    type: 'string',
+                    nullable: true
                 }
             },
             {
