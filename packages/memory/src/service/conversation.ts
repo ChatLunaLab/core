@@ -42,12 +42,9 @@ export class ChatLunaConversationService extends Service {
 
         await this._database.create(
             'chatluna_conversation_additional',
-            Object.assign(
-                {
-                    conversationId: conversation.id
-                },
-                extra
-            )
+            Object.assign({}, extra, {
+                conversationId: conversation.id
+            })
         )
 
         return conversation
@@ -76,6 +73,29 @@ export class ChatLunaConversationService extends Service {
         }
 
         return undefined
+    }
+
+    async resolveConversationAdditional(
+        id: string,
+        throwError: boolean = true
+    ): Promise<ChatLunaConversationAdditional | undefined> {
+        const queried = await this._database.get(
+            'chatluna_conversation_additional',
+            {
+                conversationId: id
+            }
+        )
+
+        if (queried?.length === 1) {
+            return queried[0]
+        }
+
+        if (
+            throwError &&
+            (!queried || queried.length === 0 || queried.length > 1)
+        ) {
+            throw new ChatLunaError(ChatLunaErrorCode.CONVERSATION_NOT_FOUND)
+        }
     }
 
     async queryConversationsByUser(
