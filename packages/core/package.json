@@ -60,6 +60,11 @@
             "import": "./lib/vectorstore/index.mjs",
             "types": "./lib/vectorstore/index.d.ts"
         },
+        "./agent": {
+            "require": "./lib/agent/index.cjs",
+            "import": "./lib/agent/index.mjs",
+            "types": "./lib/agent/index.d.ts"
+        },
         "./package.json": "./package.json"
     },
     "engines": {
@@ -96,6 +101,7 @@
         "js-tiktoken": "^1.0.14",
         "js-yaml": "^4.1.0",
         "ml-distance": "^4.0.1",
+        "undici-types": "^6.19.8",
         "user-agents": "^2.0.0-alpha.305",
         "useragent": "^2.3.0",
         "ws": "^8.18.0",
@@ -118,7 +124,6 @@
         "@types/js-yaml": "^4.0.9",
         "@types/useragent": "^2",
         "@types/ws": "^8.5.12",
-        "undici": "^6.19.8",
         "ws": "^8.18.0"
     }
 }

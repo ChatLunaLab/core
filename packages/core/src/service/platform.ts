@@ -1,12 +1,9 @@
-import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
 import {
     BasePlatformClient,
-    ChatLunaChainInfo,
     ChatLunaTool,
     ClientConfig,
     ClientConfigPool,
     ContextWrapper,
-    CreateChatLunaLLMChainParams,
     CreateClientFunction,
     CreateVectorStoreFunction,
     CreateVectorStoreParams,
@@ -20,7 +17,8 @@ import {
 import { PickModelType } from '@chatluna/core/service'
 import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
 import { Context, Service } from 'cordis'
-import { parseRawModelName } from '../utils/count_tokens.ts'
+import { parseRawModelName } from '@chatluna/core/utils'
+import { AgentTypeRunner } from '@chatluna/core/agent'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}
@@ -32,7 +30,8 @@ export class PlatformService extends Service {
     private _configPools: Record<string, ClientConfigPool> = {}
     private _tools: Record<string, ChatLunaTool> = {}
     private _models: Record<string, ModelInfo[]> = {}
-    private _chatChains: Record<string, ChatLunaChainInfo> = {}
+
+    private _agentRunners: Record<string, AgentTypeRunner> = {}
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,27 +162,17 @@ export class PlatformService extends Service {
         return this.ctx.effect(() => disposable)
     }
 
-    registerChatChain(
-        name: string,
-        description: string,
-        createChatChainFunction: (
-            params: CreateChatLunaLLMChainParams
-        ) => Promise<ChatLunaLLMChainWrapper>
-    ) {
-        this._chatChains[name] = {
-            name,
-            description,
-            createFunction: createChatChainFunction
-        }
-        this.ctx.emit('chatluna/chat-chain-added', this, this._chatChains[name])
-        const disposable = () => this._unregisterChatChain(name)
+    registerAgentRunner(agentRunner: AgentTypeRunner) {
+        const name = agentRunner.type
+        this._agentRunners[name] = agentRunner
+        this.ctx.emit('chatluna/agent-runner-added', this, name, agentRunner)
+        const disposable = () => this._unregisterAgentRunner(name)
         return this.ctx.effect(() => disposable)
     }
 
-    private _unregisterChatChain(name: string) {
-        const chain = this._chatChains[name]
-        delete this._chatChains[name]
-        this.ctx.emit('chatluna/chat-chain-removed', this, chain)
+    private _unregisterAgentRunner(name: string) {
+        delete this._agentRunners[name]
+        this.ctx.emit('chatluna/agent-runner-removed', this, name)
     }
 
     getModels(platform: string, type: ModelType) {
@@ -224,8 +213,8 @@ export class PlatformService extends Service {
         return Object.keys(this._vectorStore)
     }
 
-    get chatChains() {
-        return Object.values(this._chatChains)
+    get agentRunners(): Readonly<Record<string, AgentTypeRunner>> {
+        return Object.freeze({ ...this._agentRunners })
     }
 
     makeConfigStatus(config: ClientConfig, isAvailable: boolean) {
@@ -297,7 +286,7 @@ export class PlatformService extends Service {
         if (modelInfo.type !== modelType && modelType !== ModelType.all) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.MODEL_NOT_FOUND,
-                `the model ${fullModelName} is not a ${modelType} model`
+                `The model ${fullModelName} is not a ${modelType} model`
             )
         }
 
@@ -416,16 +405,6 @@ export class PlatformService extends Service {
 
     getTool(name: string) {
         return this._tools[name]
-    }
-
-    createChatChain(name: string, params: CreateChatLunaLLMChainParams) {
-        const chatChain = this._chatChains[name]
-
-        if (!chatChain || params == null) {
-            throw new Error(`Chat chain ${name} not found or params is null`)
-        }
-
-        return chatChain.createFunction(params)
     }
 
     private _getClientConfigAsKey(config: ClientConfig) {

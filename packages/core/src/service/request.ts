@@ -1,4 +1,4 @@
-import type * as fetchType from 'undici/types'
+import type * as fetchType from 'undici-types'
 import type { ClientOptions, WebSocket } from 'ws'
 import { ClientRequestArgs } from 'http'
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -98,7 +98,7 @@ export class DefaultRequest implements Request {
                 }
             )
 
-            return response.data.data
+            return response.data
         } catch (e) {
             if (e instanceof Error && e.cause) {
                 this._logger?.error(e.stack)
@@ -181,13 +181,7 @@ export class RequestService extends Service {
         this._root = new DefaultRequest(ctx)
 
         ctx.http.decoder('raw', (raw) => {
-            return {
-                data: raw,
-                url: raw.url,
-                status: raw.status,
-                statusText: raw.statusText,
-                headers: raw.headers
-            }
+            return raw as fetchType.Response
         })
     }
 
@@ -235,7 +229,7 @@ declare module '@cordisjs/plugin-http' {
     // eslint-disable-next-line @typescript-eslint/no-namespace
     export namespace HTTP {
         export interface ResponseTypes {
-            raw: Response
+            raw: fetchType.Response
         }
     }
 }

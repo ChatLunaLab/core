@@ -27,7 +27,7 @@ import {
 } from '@langchain/core/outputs'
 import { StructuredTool } from '@langchain/core/tools'
 import { Tiktoken } from 'js-tiktoken'
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
 import {
     asyncGeneratorTimeout,
     ChatLunaError,

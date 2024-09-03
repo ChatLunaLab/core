@@ -19,3 +19,5 @@
   name: yakumo/version
 - id: 93yp32
   name: yakumo/publish
+- id: dj8emu
+  name: yakumo/run

@@ -210,8 +210,9 @@ export abstract class WebSocketModelRequester
         url: string,
         options: ClientOptions | ClientRequestArgs
     ): Promise<WebSocket> {
-        this._ws = await new Promise((resolve, reject) => {
-            const ws = this.requestService.ws(url, options)
+        // eslint-disable-next-line no-async-promise-executor
+        this._ws = await new Promise(async (resolve, reject) => {
+            const ws = await this.requestService.ws(url, options)
 
             ws.onopen = () => {
                 resolve(ws)
