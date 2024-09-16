@@ -1,4 +1,4 @@
-import { RawAgent } from './types.ts'
+import { RawAgent } from '@chatluna/core/agent'
 import { load } from 'js-yaml'
 
 export function loadAgentFile(source: string): RawAgent {

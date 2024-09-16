@@ -1,4 +1,8 @@
-import { AgentDataNode, NodeConnection, NodePortGetter } from './index.ts'
+import {
+    AgentDataNode,
+    NodeConnection,
+    NodePortGetter
+} from '@chatluna/core/agent'
 
 export class NodeGraph {
     nodes: Map<string, AgentDataNode> = new Map()
