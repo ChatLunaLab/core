@@ -1,11 +1,11 @@
 import { Context, Schema, Service } from 'cordis'
-import { PlatformService } from '@chatluna/core/service'
+import { PlatformService, Request } from '@chatluna/core/service'
 import { ChatLunaConversation } from '@chatluna/memory/types'
 import { ChatInterface, ChatInterfaceInput } from '@chatluna/chat/chat'
 import { ChatLunaError, ChatLunaErrorCode, RequestQueue } from '@chatluna/utils'
 import crypto from 'crypto'
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
-import { ChainEvents, ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
+import { ChainEvents } from '@chatluna/core/chain'
 import { VectorStoreRetrieverMemory } from '@chatluna/core/memory'
 import { parseRawModelName } from '@chatluna/core/utils'
 import {
@@ -14,7 +14,6 @@ import {
     ClientConfig,
     ClientConfigPool,
     ClientConfigPoolMode,
-    CreateChatLunaLLMChainParams,
     CreateVectorStoreFunction,
     ModelType
 } from '@chatluna/core/platform'
@@ -23,12 +22,11 @@ import {
     ChatMiddlewareExecutor,
     ChatMiddlewareGraph
 } from '@chatluna/chat/middleware'
-import path from 'path'
-import fs from 'fs'
+import { AgentTypeRunner } from '@chatluna/core/agent'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatLunaService extends Service {
-    private _platformPlugins: ChatLunaPlatformPlugin[] = []
+    private _plugins: ChatLunaPlugin[] = []
     private _chatInterfaceWrapper: Record<string, ChatInterfaceWrapper> = {}
     // private _lock = new ObjectLock()
     private readonly _chatMiddlewareExecutor: ChatMiddlewareExecutor
@@ -45,34 +43,32 @@ export class ChatLunaService extends Service {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async installPlatformPlugin(plugin: ChatLunaPlatformPlugin<any, any>) {
-        if (
-            this._platformPlugins.find(
-                (p) => p.platformName === plugin.platformName
-            )
-        ) {
+    async installPlugin(plugin: ChatLunaPlugin<any>) {
+        if (this._plugins.find((p) => p.name === plugin.name)) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.UNKNOWN_ERROR,
-                new Error(`The plugin ${plugin.platformName} already installed`)
+                new Error(`The plugin ${plugin.name} already installed`)
             )
         }
 
-        this._platformPlugins.push(plugin)
-        this.ctx.logger.success(`register plugin %c`, plugin.platformName)
+        this._plugins.push(plugin)
+        this.ctx.logger.success(`register plugin %c`, plugin.name)
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async removePlatformPlugin(plugin: ChatLunaPlatformPlugin<any, any>) {
-        this._platformPlugins.splice(this._platformPlugins.indexOf(plugin), 1)
+    async removePlugin(plugin: ChatLunaPlugin<any>) {
+        this._plugins.splice(this._plugins.indexOf(plugin), 1)
 
-        this.ctx.logger.success('unregister plugin %c', plugin.platformName)
+        plugin.dispose()
+
+        this.ctx.logger.success('unregister plugin %c', plugin.name)
     }
 
     findPlugin(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        fun: (plugin: ChatLunaPlatformPlugin<any, any>) => boolean
-    ): ChatLunaPlatformPlugin {
-        return this._platformPlugins.find(fun)
+        fun: (plugin: ChatLunaPlugin<any>) => boolean
+    ): ChatLunaPlugin {
+        return this._plugins.find(fun)
     }
 
     chat(
@@ -196,12 +192,21 @@ export class ChatLunaService extends Service {
         return chatBridger
     }
 
-    private _createTempDir() {
-        // create dir data/chathub/temp use fs
-        // ?
-        const tempPath = path.resolve(this.ctx.baseDir, 'data/chatluna/temp')
-        if (!fs.existsSync(tempPath)) {
-            fs.mkdirSync(tempPath, { recursive: true })
+    private async _createTempDir() {
+        try {
+            const path = await import('path')
+            const fs = await import('fs')
+            // create dir data/chathub/temp use fs
+            // ?
+            const tempPath = path.resolve(
+                this.ctx.baseDir,
+                'data/chatluna/temp'
+            )
+            if (!fs.existsSync(tempPath)) {
+                fs.mkdirSync(tempPath, { recursive: true })
+            }
+        } catch (e) {
+            this.ctx.logger.error(e)
         }
     }
 
@@ -210,19 +215,72 @@ export class ChatLunaService extends Service {
     }
 }
 
-export class ChatLunaPlatformPlugin<
-    R extends ClientConfig = ClientConfig,
-    T extends ChatLunaPlatformPlugin.Config = ChatLunaPlatformPlugin.Config
-> {
-    private _disposables: (() => void)[] = []
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export abstract class ChatLunaPlugin<T = any> {
+    protected disposables: (() => void)[] = []
 
+    abstract name: string
+
+    protected platformService: PlatformService
+
+    constructor(
+        protected ctx: Context,
+        public readonly config: T
+    ) {
+        this.platformService = ctx.chatluna_platform
+
+        ctx.on('ready', async () => {
+            await this.start()
+        })
+    }
+
+    dispose() {
+        this.disposables.forEach((disposable) => disposable())
+        this.disposables.length = 0
+    }
+
+    abstract start(): Promise<void>
+
+    registerVectorStore(name: string, func: CreateVectorStoreFunction) {
+        const disposable = this.platformService.registerVectorStore(name, func)
+        this.disposables.push(disposable)
+    }
+
+    registerTool(name: string, tool: ChatLunaTool) {
+        const disposable = this.platformService.registerTool(name, tool)
+        this.disposables.push(disposable)
+    }
+
+    registerAgentTypeRunner(runner: AgentTypeRunner) {
+        const disposable = this.platformService.registerAgentRunner(runner)
+        this.disposables.push(disposable)
+    }
+
+    async install() {
+        await this.ctx.chatluna.installPlugin(this)
+    }
+
+    async uninstall() {
+        await this.ctx.chatluna.removePlugin(this)
+        this.dispose()
+    }
+
+    static inject = ['chatluna_platform', 'chatluna_request', 'chatluna']
+}
+
+export abstract class ChatLunaPlatformPlugin<
+    R extends ClientConfig = ClientConfig,
+    T extends ChatLunaPlatformPluginConfig = ChatLunaPlatformPluginConfig
+> extends ChatLunaPlugin<T> {
     private _supportModels: string[] = []
 
-    private readonly _platformConfigPool: ClientConfigPool<R>
+    protected readonly _platformConfigPool: ClientConfigPool<R>
 
-    private _platformService: PlatformService
+    public name: string
 
-    public platformName: string
+    protected createConfigPool = true
+
+    protected _request: Request
 
     constructor(
         protected ctx: Context,
@@ -236,9 +294,7 @@ export class ChatLunaPlatformPlugin<
             )
         }
 
-        ctx.once('dispose', async () => {
-            ctx.chatluna.removePlatformPlugin(this)
-        })
+        super(ctx, config)
 
         // inject to root ctx
         ctx.runtime.inject['cache'] = {
@@ -253,30 +309,24 @@ export class ChatLunaPlatformPlugin<
             )
         }
 
-        this._platformService = ctx.chatluna_platform
-        this.platformName = config.platform
+        this.name = config.platform
     }
 
-    parseConfig(f: (config: T) => R[]) {
-        const configs = f(this.config)
+    abstract parseConfig(config: T): R[]
 
-        for (const config of configs) {
-            this._platformConfigPool.addConfig(config)
-        }
-    }
-
-    install() {
-        this.ctx.chatluna.installPlatformPlugin(this)
-    }
+    abstract createClient(
+        ctx: Context,
+        config: R
+    ): BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>
 
     async initClients() {
-        this._platformService.registerConfigPool(
-            this.platformName,
+        this.platformService.registerConfigPool(
+            this.name,
             this._platformConfigPool
         )
 
         try {
-            await this._platformService.createClients(this.platformName)
+            await this.platformService.createClients(this.name)
         } catch (e) {
             this.uninstall()
             // await this.ctx.chatluna.unregisterPlugin(this)
@@ -285,9 +335,9 @@ export class ChatLunaPlatformPlugin<
         }
 
         this._supportModels = this._supportModels.concat(
-            this._platformService
-                .getModels(this.platformName, ModelType.llm)
-                .map((model) => `${this.platformName}/${model.name}`)
+            this.platformService
+                .getModels(this.name, ModelType.llm)
+                .map((model) => `${this.name}/${model.name}`)
         )
 
         this.install()
@@ -304,10 +354,10 @@ export class ChatLunaPlatformPlugin<
             pool.addConfig(config)
         }
 
-        this._platformService.registerConfigPool(platformName, pool)
+        this.platformService.registerConfigPool(platformName, pool)
 
         try {
-            await this._platformService.createClients(platformName)
+            await this.platformService.createClients(platformName)
         } catch (e) {
             this.uninstall()
 
@@ -315,7 +365,7 @@ export class ChatLunaPlatformPlugin<
         }
 
         this._supportModels = this._supportModels.concat(
-            this._platformService
+            this.platformService
                 .getModels(platformName, ModelType.llm)
                 .map((model) => `${platformName}/${model.name}`)
         )
@@ -325,16 +375,8 @@ export class ChatLunaPlatformPlugin<
         return this._supportModels
     }
 
-    uninstall() {
-        while (this._disposables.length > 0) {
-            const disposable = this._disposables.pop()
-            disposable()
-        }
-        this.ctx.chatluna.removePlatformPlugin(this)
-    }
-
     registerConfigPool(platformName: string, configPool: ClientConfigPool) {
-        this._platformService.registerConfigPool(platformName, configPool)
+        this.platformService.registerConfigPool(platformName, configPool)
     }
 
     async registerClient(
@@ -342,106 +384,126 @@ export class ChatLunaPlatformPlugin<
             ctx: Context,
             config: R
         ) => BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>,
-        platformName: string = this.platformName
+        platformName: string = this.name
     ) {
-        const disposable = this._platformService.registerClient(
+        const disposable = this.platformService.registerClient(
             platformName,
             func,
             false
         )
 
-        this._disposables.push(disposable)
+        this.disposables.push(disposable)
+    }
+
+    async start() {
+        const parsedConfigs = this.parseConfig(this.config)
+
+        if (parsedConfigs.length > 0 && !this.createConfigPool) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.UNKNOWN_ERROR,
+                new Error('The config pool is not created')
+            )
+        }
+
+        this._platformConfigPool.addConfigs(...parsedConfigs)
+
+        switch (this.config.proxyMode) {
+            case 'on':
+                this._request = this.ctx.chatluna_request.create(
+                    this.ctx,
+                    this.config.proxyAddress
+                )
+                break
+            case 'off':
+                this._request = this.ctx.chatluna_request.create(this.ctx)
+                break
+            case 'system':
+                this._request = this.ctx.chatluna_request.root
+                break
+            default:
+                this._request = this.ctx.chatluna_request.root
+        }
+
+        await this.registerClient((ctx, clientConfig) => {
+            return this.createClient(ctx, clientConfig)
+        })
+
+        await this.initClients()
     }
 
     registerVectorStore(name: string, func: CreateVectorStoreFunction) {
-        const disposable = this._platformService.registerVectorStore(name, func)
-        this._disposables.push(disposable)
+        const disposable = this.platformService.registerVectorStore(name, func)
+        this.disposables.push(disposable)
     }
 
     registerTool(name: string, tool: ChatLunaTool) {
-        const disposable = this._platformService.registerTool(name, tool)
-        this._disposables.push(disposable)
-    }
-
-    registerChatChainProvider(
-        name: string,
-        description: string,
-        func: (
-            params: CreateChatLunaLLMChainParams
-        ) => Promise<ChatLunaLLMChainWrapper>
-    ) {
-        const disposable = this._platformService.registerChatChain(
-            name,
-            description,
-            func
-        )
-        this._disposables.push(disposable)
+        const disposable = this.platformService.registerTool(name, tool)
+        this.disposables.push(disposable)
     }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace ChatLunaPlatformPlugin {
-    export interface Config {
-        chatConcurrentMaxSize?: number
-        timeout?: number
-        configMode: string
-        maxRetries: number
-        proxyMode: string
-        proxyAddress: string
-        platform: string
-    }
 
-    export const Config: Schema<ChatLunaPlatformPlugin.Config> =
-        Schema.intersect([
-            Schema.object({
-                chatConcurrentMaxSize: Schema.number()
-                    .min(1)
-                    .max(8)
-                    .default(3)
-                    .description('请求的最大并发数'),
-
-                configMode: Schema.union([
-                    Schema.const('default').description(
-                        '顺序配置（当配置无效后自动弹出配置，切换到下一个可用配置）'
-                    ),
-                    Schema.const('balance').description(
-                        '负载均衡（所有可用配置轮询使用）'
-                    )
-                ])
-                    .default('default')
-                    .description('请求配置模式'),
-                maxRetries: Schema.number()
-                    .description('请求失败后的最大重试次数')
-                    .min(1)
-                    .max(6)
-                    .default(3),
-                timeout: Schema.number()
-                    .description('模型请求超时时间(毫秒)')
-                    .default(300 * 1000),
-
-                proxyMode: Schema.union([
-                    Schema.const('system').description('跟随全局代理'),
-                    Schema.const('off').description('不使用代理'),
-                    Schema.const('on').description('覆盖全局代理')
-                ])
-                    .description('代理设置模式')
-                    .default('system')
-            }).description('全局设置'),
-
-            Schema.union([
-                Schema.object({
-                    proxyMode: Schema.const('on').required(),
-                    proxyAddress: Schema.string()
-                        .description(
-                            '网络请求的代理地址，填写后当前插件的网络服务都将使用该代理地址。如不填写会尝试使用全局配置里的代理设置'
-                        )
-                        .default('')
-                }).description('代理设置'),
-                Schema.object({})
-            ])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ]) as any
+export interface ChatLunaPlatformPluginConfig {
+    chatConcurrentMaxSize?: number
+    timeout?: number
+    configMode: string
+    maxRetries: number
+    proxyMode: string
+    proxyAddress: string
+    platform: string
 }
+
+export const ChatLunaPlatformPluginConfig: Schema<ChatLunaPlatformPluginConfig> =
+    Schema.intersect([
+        Schema.object({
+            chatConcurrentMaxSize: Schema.number()
+                .min(1)
+                .max(8)
+                .default(3)
+                .description('请求的最大并发数'),
+
+            configMode: Schema.union([
+                Schema.const('default').description(
+                    '顺序配置（当配置无效后自动弹出配置，切换到下一个可用配置）'
+                ),
+                Schema.const('balance').description(
+                    '负载均衡（所有可用配置轮询使用）'
+                )
+            ])
+                .default('default')
+                .description('请求配置模式'),
+            maxRetries: Schema.number()
+                .description('请求失败后的最大重试次数')
+                .min(1)
+                .max(6)
+                .default(3),
+            timeout: Schema.number()
+                .description('模型请求超时时间(毫秒)')
+                .default(300 * 1000),
+
+            proxyMode: Schema.union([
+                Schema.const('system').description('跟随全局代理'),
+                Schema.const('off').description('不使用代理'),
+                Schema.const('on').description('覆盖全局代理')
+            ])
+                .description('代理设置模式')
+                .default('system')
+        }).description('全局设置'),
+
+        Schema.union([
+            Schema.object({
+                proxyMode: Schema.const('on').required(),
+                proxyAddress: Schema.string()
+                    .description(
+                        '网络请求的代理地址，填写后当前插件的网络服务都将使用该代理地址。如不填写会尝试使用全局配置里的代理设置'
+                    )
+                    .default('')
+            }).description('代理设置'),
+            Schema.object({})
+        ])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ]) as any
 
 type ChatLunaChatBridgerInfo = {
     chatInterface: ChatInterface

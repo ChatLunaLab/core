@@ -78,7 +78,7 @@ export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
 
     modelInfo: ModelInfo
 
-    requester: () => ModelRequester
+    requester: ModelRequester
 
     maxConcurrency?: number
 
@@ -515,7 +515,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     }
 
     get requester() {
-        return this._options.requester()
+        return this._options.requester
     }
 
     _modelType(): string {

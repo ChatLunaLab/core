@@ -1,4 +1,4 @@
-import { ChatLunaService } from '@chatluna/service/service'
+import { ChatLunaService } from '@chatluna/service'
 import { Context, Schema } from 'cordis'
 
 /**
@@ -18,3 +18,4 @@ export const inject = ['chatluna_platform']
 export interface Config {}
 
 export const Config: Schema<Config> = Schema.object({})
+export * from './service/index.ts'
