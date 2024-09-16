@@ -44,47 +44,53 @@ prompts:
 nodes:
     - id: prepare
       type: system/prepare
+      connections:
+          - to: call_model
 
     - id: call_model
       type: system/call_model
-      with:
-          input: var.messages
-      next: check_tool_input
+      data:
+          input: context.messages
+      connections:
+          - to: check_tool_input
 
     - id: check_tool_input
-      type: if
-      with:
-          input: call_model.outputs.content
-          condition: input.startsWith('[[') && input.endsWith(']]')
-          then: process_tool
-          else: send_message
+      type: condition
+      data:
+          expression: context.message.startsWith('[[') && context.message.endsWith(']]')
+          branches:
+              - condition: true
+                targetNodeId: process_tool
+              - condition: false
+                targetNodeId: send_message
 
     - id: process_tool
       type: code
-      with:
-          input: call_model.outputs.content
-          code: |
-              const tool_name = input.slice(2, input.indexOf(',')).trim();
-              const tool_input = input.slice(input.indexOf(',') + 1, input.lastIndexOf(']]')).trim();
+      data:
+          expression: |
+              const tool_name = inputs[0].slice(2, inputs[0].indexOf(',')).trim();
+              const tool_input = inputs[0].slice(inputs[0].indexOf(',') + 1, inputs[0].lastIndexOf(']]')).trim();
               return { name: tool_name, input: tool_input }
-      next: call_tool
+      connections:
+          - to: call_tool
 
     - id: call_tool
       type: system/call_tool
-      with:
-          name: process_tool.output.name
-          input: process_tool.output.input
-      next: add_to_messages
+      data:
+          name: inputs[0].name
+          input: inputs[0].input
+      connections:
+          - to: add_to_messages
 
-    - id: add_message
+    - id: add_to_messages
       type: system/add_to_messages
-      with:
-          input: vars.messages
+      data:
+          input: context.messages
           role: user
-      next: call_model
+      connections:
+          - to: call_model
 
     - id: send_message
       type: system/send_message
-      with:
-          input: call_model.outputs.content
-      next: call_model
+      data:
+          input: inputs[0]

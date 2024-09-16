@@ -78,7 +78,7 @@ export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
 
     modelInfo: ModelInfo
 
-    requester: ModelRequester
+    requester: () => ModelRequester
 
     maxConcurrency?: number
 
@@ -93,7 +93,6 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     protected __encoding: Tiktoken
 
-    private _requester: ModelRequester
     private _modelName: string
     private _maxModelContextSize: number
     private _modelInfo: ModelInfo
@@ -105,7 +104,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
 
     constructor(private _options: ChatLunaModelInput) {
         super(_options)
-        this._requester = _options.requester
+
         this._modelName = _options.model
         this._maxModelContextSize =
             _options.modelMaxContextSize ?? _options.modelInfo.maxTokens
@@ -315,7 +314,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             {
                 signal: params.signal
             },
-            async () => this._requester.completionStream(params)
+            async () => this.requester.completionStream(params)
         )
     }
 
@@ -323,7 +322,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     private _completionWithRetry(params: ModelRequestParams) {
         const makeCompletionRequest = async () => {
             const result = await this._withTimeout(
-                async () => await this._requester.completion(params),
+                async () => await this.requester.completion(params),
                 params.timeout
             )
             return result
@@ -476,7 +475,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     }
 
     async clearContext(): Promise<void> {
-        await this._requester.dispose()
+        await this.requester.dispose()
     }
 
     getModelMaxContextSize() {
@@ -513,6 +512,10 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
 
     get modelInfo() {
         return this._modelInfo
+    }
+
+    get requester() {
+        return this._options.requester()
     }
 
     _modelType(): string {

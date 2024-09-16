@@ -1,11 +1,13 @@
 // eslint-disable-next-line prefer-const
 let ERROR_FORMAT_TEMPLATE =
     '使用 ChatLuna 时出现错误，错误码为 %s。请联系开发者以解决此问题。'
+
 export function setErrorFormatTemplate(template: string | null) {
     ERROR_FORMAT_TEMPLATE =
         template ??
         '使用 ChatLuna 时出现错误，错误码为 %s。请联系开发者以解决此问题。'
 }
+
 export class ChatLunaError extends Error {
     constructor(
         public errorCode: ChatLunaErrorCode = ChatLunaErrorCode.UNKNOWN_ERROR,

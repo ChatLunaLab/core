@@ -1,12 +1,13 @@
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
+import { TTLCache } from '@chatluna/utils'
 
 export abstract class BasePlatformClient<
     T extends ClientConfig = ClientConfig,
     R = ChatLunaChatModel | ChatLunaBaseEmbeddings
 > {
-    private _modelPool: Record<string, R> = {}
+    private _modelPool: TTLCache<R>
 
     constructor(
         public config: T,
@@ -16,6 +17,11 @@ export abstract class BasePlatformClient<
         config.concurrentMaxSize = config.concurrentMaxSize ?? 1
         config.maxRetries = config.maxRetries ?? 3
         config.timeout = config.timeout ?? 1000 * 30
+        this._modelPool = new TTLCache<R>()
+
+        ctx?.on('dispose', () => {
+            this._modelPool.dispose()
+        })
     }
 
     async isAvailable(): Promise<boolean> {
@@ -40,11 +46,11 @@ export abstract class BasePlatformClient<
     protected abstract _createModel(model: string): R
 
     createModel(model: string, reCreate?: boolean): R {
-        if (!this._modelPool[model] || reCreate) {
-            this._modelPool[model] = this._createModel(model)
+        if (!this._modelPool.get(model) || reCreate) {
+            this._modelPool.set(model, this._createModel(model))
         }
 
-        return this._modelPool[model]
+        return this._modelPool.get(model)
     }
 
     getBaseCallKeys(): Pick<T, 'maxRetries' | 'timeout'> & {

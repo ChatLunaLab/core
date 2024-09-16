@@ -107,6 +107,7 @@ export class PlatformService extends Service {
 
         if (!configPool) {
             this.ctx.logger?.warn(`Config pool ${platform} not found`)
+            return
         }
 
         const configs = configPool?.getConfigs() ?? []

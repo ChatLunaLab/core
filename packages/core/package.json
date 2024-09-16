@@ -123,7 +123,7 @@
     "devDependencies": {
         "@types/js-yaml": "^4.0.9",
         "@types/useragent": "^2",
-        "@types/ws": "^8.5.12",
-        "ws": "^8.18.0"
+        "@cordisjs/plugin-http": "^0.6.2",
+        "@cordisjs/plugin-proxy-agent": "^0.3.3"
     }
 }
