@@ -44,6 +44,8 @@ prompts:
 nodes:
     - id: prepare
       type: system/prepare
+      data:
+           formatInput: true
       connections:
           - to: call_model
 
@@ -51,34 +53,6 @@ nodes:
       type: system/call_model
       data:
           input: context.messages
-      connections:
-          - to: check_tool_input
-
-    - id: check_tool_input
-      type: condition
-      data:
-          expression: context.message.startsWith('[[') && context.message.endsWith(']]')
-          branches:
-              - condition: true
-                targetNodeId: process_tool
-              - condition: false
-                targetNodeId: send_message
-
-    - id: process_tool
-      type: code
-      data:
-          expression: |
-              const tool_name = inputs[0].slice(2, inputs[0].indexOf(',')).trim();
-              const tool_input = inputs[0].slice(inputs[0].indexOf(',') + 1, inputs[0].lastIndexOf(']]')).trim();
-              return { name: tool_name, input: tool_input }
-      connections:
-          - to: call_tool
-
-    - id: call_tool
-      type: system/call_tool
-      data:
-          name: inputs[0].name
-          input: inputs[0].input
       connections:
           - to: add_to_messages
 
