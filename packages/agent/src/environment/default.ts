@@ -1,14 +1,14 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 import { StructuredTool } from '@langchain/core/tools'
-import { BaseChatMemory } from '../langchain/index.ts'
 import { Environment } from './types.ts'
+import { BaseChatMemory } from '@chatluna/core/memory'
 
 export class DefaultEnvironment implements Environment {
     constructor(
         public chatMemory: BaseChatMemory,
         private model:
-            | BaseChatModel
-            | (() => PromiseLike<BaseChatModel> | BaseChatModel)
+            | ChatLunaChatModel
+            | (() => PromiseLike<ChatLunaChatModel> | ChatLunaChatModel)
     ) {}
 
     sharedResources: Map<string, unknown> = new Map()

@@ -51,25 +51,21 @@ export interface ExecutionContext {
     getGlobal: (key: string) => any
 }
 
-export type AgentTypeProcessor = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AgentTypeProcessor<R = any> = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    inputs: any[],
+    inputs: Record<string, any>,
     context: ExecutionContext,
+    data?: R
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-) => Promise<any>
+) => Promise<Record<string, any>>
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint, @typescript-eslint/no-explicit-any
-export interface AgentTypeRunner<T = any, R = any, D = any> {
+export interface AgentTypeRunner<R = any> {
     ports: {
         inputs: string[]
         outputs: string[]
     }
-    processor: (
-        inputs: T[],
-        context: ExecutionContext,
-        data?: D
-    ) => Promise<R[]>
+    processor: AgentTypeProcessor<R>
     type: string
 }

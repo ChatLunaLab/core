@@ -2,7 +2,7 @@ import {
     AgentDataNode,
     NodeConnection,
     NodePortGetter
-} from '@chatluna/core/agent'
+} from '@chatluna/agent/graph'
 
 export class NodeGraph {
     nodes: Map<string, AgentDataNode> = new Map()
@@ -11,14 +11,19 @@ export class NodeGraph {
     addNode(
         type: string,
         ports: { inputs: string[]; outputs: string[] },
-        id: string = crypto.randomUUID()
+        id: string = crypto.randomUUID(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data?: any
     ): string {
         const { inputs, outputs } = ports
         const node: AgentDataNode = {
             id,
             type,
             inputs: new Map(inputs.map((name) => [name, crypto.randomUUID()])),
-            outputs: new Map(outputs.map((name) => [name, crypto.randomUUID()]))
+            outputs: new Map(
+                outputs.map((name) => [name, crypto.randomUUID()])
+            ),
+            data
         }
         this.nodes.set(id, node)
         return id

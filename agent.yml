@@ -47,10 +47,10 @@ nodes:
       data:
            formatInput: true
       connections:
-          - to: call_model
+          - to: call_agent
 
-    - id: call_model
-      type: system/call_model
+    - id: call_agent
+      type: system/call_agent
       data:
           input: context.messages
       connections:
@@ -59,12 +59,11 @@ nodes:
     - id: add_to_messages
       type: system/add_to_messages
       data:
-          input: context.messages
-          role: user
+          input: inputs.message
       connections:
-          - to: call_model
+          - to: send_message
 
     - id: send_message
       type: system/send_message
       data:
-          input: inputs[0]
+          input: inputs.message

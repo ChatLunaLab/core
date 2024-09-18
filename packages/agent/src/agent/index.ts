@@ -11,11 +11,12 @@ export abstract class BaseAgent implements Agent {
         public useTools?: string[]
     ) {}
 
-    invoke(message: BaseMessage): AgentFinish | AgentStep {
-        throw new Error('Method not implemented.')
-    }
+    abstract invoke(message: BaseMessage): Promise<AgentFinish | AgentStep>
 
     updateState(state: AgentState): void {
         this.state = state
     }
 }
+
+export * from './types.ts'
+export * from './dynamic.ts'

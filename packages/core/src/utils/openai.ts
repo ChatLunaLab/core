@@ -1,4 +1,5 @@
 import {
+    AIMessage,
     AIMessageChunk,
     BaseMessage,
     BaseMessageChunk,
@@ -13,7 +14,8 @@ import {
 import {
     OpenAIMessageRole,
     OpenAIResponseMessage,
-    OpenAITool
+    OpenAITool,
+    OpenAIToolCall
 } from './types.ts'
 import { StructuredTool } from '@langchain/core/tools'
 import { zodToJsonSchema } from 'zod-to-json-schema'
@@ -52,11 +54,24 @@ export function langchainMessageToOpenAIMessage(
                     : undefined,
             role,
             //  function_call: rawMessage.additional_kwargs.function_call,
-            tool_calls: rawMessage.additional_kwargs.tool_calls,
+            tool_calls: [],
             tool_call_id: (rawMessage as ToolMessage).tool_call_id
         } as OpenAIResponseMessage
 
-        if (msg.tool_calls == null) {
+        if (rawMessage instanceof AIMessage) {
+            msg.tool_calls = rawMessage.tool_calls.map((tool) => {
+                return {
+                    id: tool.id as string,
+                    type: 'function',
+                    function: {
+                        name: tool.name,
+                        arguments: JSON.stringify(tool.args)
+                    }
+                } satisfies OpenAIToolCall
+            })
+        }
+
+        if (msg.tool_calls == null || msg.tool_calls?.length < 1) {
             delete msg.tool_calls
         }
 

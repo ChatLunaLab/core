@@ -1,7 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
-import { BaseChatMemory } from '@chatluna/agent/langchain'
+import { BaseChatMemory } from '@chatluna/core/memory'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 
 export interface Environment {
     sharedResources: Map<string, unknown>
@@ -15,5 +15,5 @@ export interface Environment {
     removeTool(toolId: string): void
     getTool(toolId: string): StructuredTool | undefined
 
-    useModel(): Promise<BaseChatModel>
+    useModel(): Promise<ChatLunaChatModel>
 }

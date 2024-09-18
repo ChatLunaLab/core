@@ -1,6 +1,5 @@
-import { BaseMessage } from '@langchain/core/messages'
+import { AIMessageChunk, BaseMessage } from '@langchain/core/messages'
 import { Environment } from '../environment/types.js'
-import { AgentAction } from '@langchain/core/agents'
 
 export interface Agent {
     name: string
@@ -10,7 +9,7 @@ export interface Agent {
 
     useTools?: string[]
 
-    invoke(message: BaseMessage): AgentFinish | AgentStep
+    invoke(message: BaseMessage): Promise<AgentFinish | AgentStep>
 
     updateState(state: AgentState): void
 }
@@ -26,6 +25,18 @@ export type AgentFinish = {
     message: BaseMessage
 }
 export type AgentStep = {
-    action: AgentAction
-    observation: string
+    actions: AIMessageChunk['tool_call_chunks']
+    state: AgentState
+}
+
+export function isAgentFinish(
+    action: AgentFinish | AgentStep
+): action is AgentFinish {
+    return 'message' in action
+}
+
+export function isAgentStep(
+    action: AgentFinish | AgentStep
+): action is AgentStep {
+    return 'actions' in action
 }

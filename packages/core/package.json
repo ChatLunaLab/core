@@ -60,11 +60,6 @@
             "import": "./lib/vectorstore/index.mjs",
             "types": "./lib/vectorstore/index.d.ts"
         },
-        "./agent": {
-            "require": "./lib/agent/index.cjs",
-            "import": "./lib/agent/index.mjs",
-            "types": "./lib/agent/index.d.ts"
-        },
         "./package.json": "./package.json"
     },
     "engines": {

@@ -1,4 +1,4 @@
-import { RawAgent } from '@chatluna/core/agent'
+import { RawAgent } from '@chatluna/agent/graph'
 import { load } from 'js-yaml'
 
 export function loadAgentFile(source: string): RawAgent {

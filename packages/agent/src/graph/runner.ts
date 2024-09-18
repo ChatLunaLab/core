@@ -2,16 +2,13 @@
 
 import {
     AgentDataNode,
+    AgentTypeProcessor,
     CompiledNodeGraph,
     ExecutionContext
-} from '@chatluna/core/agent'
+} from '@chatluna/agent/graph'
 
 export class AgentGraphRunner {
-    private nodeProcessors: Map<
-        string,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (inputs: any[], context: ExecutionContext, data?: any) => Promise<any[]>
-    > = new Map()
+    private nodeProcessors: Map<string, AgentTypeProcessor> = new Map()
 
     private nodePorts: Map<string, { inputs: string[]; outputs: string[] }> =
         new Map()
@@ -20,7 +17,7 @@ export class AgentGraphRunner {
     private globalContext: Map<string, any> = new Map()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private nodeResults: Map<string, any[]> = new Map()
+    private nodeResults: Map<string, Record<string, any>> = new Map()
 
     constructor() {
         this.registerBuiltInNodes()
@@ -43,21 +40,21 @@ export class AgentGraphRunner {
 
     private async expressionProcessor(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inputs: any[],
+        inputs: Record<string, any>,
         context: ExecutionContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data?: any
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<any[]> {
+    ): Promise<Record<string, any>> {
         const expression = data?.expression ?? '0'
         const safeEval = new Function(
             'inputs',
             'context',
             `
-        if (!Array.isArray(inputs) || inputs.length === 0 || inputs[0] === undefined) {
-          return [];
+        if (!inputs || Object.keys(inputs).length === 0 || inputs.input === undefined) {
+          return { output: null };
         }
-        return ${expression};
+        return { output: ${expression} };
       `
         )
         try {
@@ -71,31 +68,31 @@ export class AgentGraphRunner {
             console.log(
                 `Expression node: ${expression} = ${JSON.stringify(result)}`
             )
-            return [result]
+            return result
         } catch (error) {
             console.error(`Error evaluating expression: ${expression}`, error)
-            return []
+            return { output: null }
         }
     }
 
     private async conditionProcessor(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inputs: any[],
+        inputs: Record<string, any>,
         context: ExecutionContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data?: any
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<any[]> {
+    ): Promise<Record<string, any>> {
         const expression = data?.expression ?? 'true'
         const safeEval = new Function(
             'inputs',
             'context',
             `
-        if (!Array.isArray(inputs) || inputs.length === 0 || inputs[0] === undefined) {
-          return false;
+        if (!inputs || Object.keys(inputs).length === 0 || inputs.input === undefined) {
+          return { output: false };
         }
         const result = ${expression};
-        return result;
+        return { output: result };
       `
         )
         try {
@@ -106,37 +103,37 @@ export class AgentGraphRunner {
                 )
             )
             const result = safeEval(inputs, contextObj)
-            console.log(`Condition node: ${expression} = ${result}`)
-            return [result]
+            console.log(`Condition node: ${expression} = ${result.output}`)
+            return result
         } catch (error) {
             console.error(`Error evaluating condition: ${expression}`, error)
-            return [false]
+            return { output: false }
         }
     }
 
     private async constantProcessor(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inputs: any[],
+        inputs: Record<string, any>,
         context: ExecutionContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data?: any
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<any[]> {
+    ): Promise<Record<string, any>> {
         const value = data?.value
         console.log(`Constant node: ${JSON.stringify(value)}`)
-        return [value]
+        return { output: value }
     }
 
     registerNodeType(
         type: string,
         processor: (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            inputs: any[],
+            inputs: Record<string, any>,
             context: ExecutionContext,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data?: any
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ) => Promise<any[]>,
+        ) => Promise<Record<string, any>>,
         ports: { inputs: string[]; outputs: string[] }
     ) {
         this.nodeProcessors.set(type, processor)
@@ -154,7 +151,7 @@ export class AgentGraphRunner {
     async execute(
         compiledGraph: CompiledNodeGraph
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<Map<string, any[]>> {
+    ): Promise<Map<string, Record<string, any>>> {
         this.nodeResults.clear() // 清除之前的结果
         const context = this.createExecutionContext()
         const inDegree = this.initializeInDegree(compiledGraph)
@@ -237,10 +234,10 @@ export class AgentGraphRunner {
     private handleConditionNode(
         node: AgentDataNode,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        outputValues: any[],
+        outputValues: Record<string, any>,
         compiledGraph: CompiledNodeGraph
     ): string[] {
-        const conditionResult = outputValues[0]
+        const conditionResult = outputValues.output
         for (const branch of node.data.branches) {
             let branchCondition = branch.condition
             if (!branchCondition.includes('result')) {
@@ -288,30 +285,29 @@ export class AgentGraphRunner {
         node: AgentDataNode,
         compiledGraph: CompiledNodeGraph
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<any[]> {
+    ): Promise<Record<string, any>> {
         const nodeInputs = compiledGraph.getNodeInputs(node.id)
         if (!nodeInputs || nodeInputs.size === 0) {
-            return []
+            return {}
         }
-        return Promise.all(
-            Array.from(node.inputs.entries()).map(
-                async ([portName, portId]) => {
-                    const inputConn = nodeInputs.get(portId)
-                    return inputConn
-                        ? this.nodeResults.get(inputConn.nodeId)![0]
-                        : undefined
-                }
-            )
-        )
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const inputs: Record<string, any> = {}
+        for (const [portName, portId] of node.inputs.entries()) {
+            const inputConn = nodeInputs.get(portId)
+            inputs[portName] = inputConn
+                ? this.nodeResults.get(inputConn.nodeId)![portName]
+                : undefined
+        }
+        return inputs
     }
 
     private async runNode(
         node: AgentDataNode,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inputs: any[],
+        inputs: Record<string, any>,
         context: ExecutionContext
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<any[]> {
+    ): Promise<Record<string, any>> {
         const processor = this.nodeProcessors.get(node.type)
         if (!processor) {
             throw new Error(
