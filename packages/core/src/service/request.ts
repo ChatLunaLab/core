@@ -198,7 +198,7 @@ export class RequestService extends Service {
     }
 
     static inject = {
-        '@cordisjs/plugin-http': {
+        http: {
             required: false
         },
         '@cordisjs/plugin-proxy-agent': {

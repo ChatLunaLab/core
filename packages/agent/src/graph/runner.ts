@@ -148,23 +148,57 @@ export class AgentGraphRunner {
         return ports
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setGlobal(key: string, value: any) {
+        this.globalContext.set(key, value)
+    }
+
+    getGlobal(key: string) {
+        return this.globalContext.get(key)
+    }
+
     async execute(
-        compiledGraph: CompiledNodeGraph
+        compiledGraph: CompiledNodeGraph,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inputs: Record<string, any> = {}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<Map<string, Record<string, any>>> {
-        this.nodeResults.clear() // 清除之前的结果
+        console.log(`[DEBUG] Starting graph execution`)
+        console.log(`[DEBUG] Initial inputs:`, inputs)
+
+        this.nodeResults.clear()
+
         const context = this.createExecutionContext()
         const inDegree = this.initializeInDegree(compiledGraph)
         let currentLevel = compiledGraph.getEntryNodes()
+        let currentNodeNameInput: Record<string, string[]> = {}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let currentNodeInput: Record<string, any> = inputs
 
+        let round = 1
         while (currentLevel.length > 0) {
+            console.log(`\n[DEBUG] ---- Execution Round ${round} ----`)
+            console.log(`[DEBUG] Processing level with nodes:`, currentLevel)
+
             const nextLevel: string[] = []
+            const nextNodeInput: Record<string, string[]> = {}
 
             for (const nodeId of currentLevel) {
                 const node = compiledGraph.getNode(nodeId)
                 if (!node) continue
 
-                const inputs = await this.getNodeInputs(node, compiledGraph)
+                let inputs = await this.getNodeInputs(
+                    node,
+                    currentNodeNameInput[nodeId] || [],
+                    compiledGraph
+                )
+
+                if (Object.keys(inputs).length === 0 && currentNodeInput) {
+                    inputs = currentNodeInput
+                }
+
+                currentNodeInput = inputs
+
                 const outputValues = await this.runNode(node, inputs, context)
                 this.nodeResults.set(nodeId, outputValues) // 存储节点结果
 
@@ -174,6 +208,12 @@ export class AgentGraphRunner {
                         outputValues,
                         compiledGraph
                     )
+                    for (const branchNodeId of branchNodeIds) {
+                        nextNodeInput[branchNodeId] = [
+                            ...(nextNodeInput[branchNodeId] || []),
+                            nodeId
+                        ]
+                    }
                     nextLevel.push(...branchNodeIds)
                 } else {
                     const readyNodes = this.handleRegularNode(
@@ -185,7 +225,18 @@ export class AgentGraphRunner {
                 }
             }
             currentLevel = nextLevel
+            currentNodeNameInput = nextNodeInput
+
+            // Add this new log statement
+            console.log(`[DEBUG] Next level nodes to be executed:`, nextLevel)
+            round++
         }
+
+        console.log(`[DEBUG] Graph execution completed`)
+        console.log(
+            `[DEBUG] Final node results:`,
+            Object.fromEntries(this.nodeResults)
+        )
 
         return this.nodeResults
     }
@@ -283,6 +334,7 @@ export class AgentGraphRunner {
 
     private async getNodeInputs(
         node: AgentDataNode,
+        nodeInput: string[],
         compiledGraph: CompiledNodeGraph
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<Record<string, any>> {
@@ -297,6 +349,15 @@ export class AgentGraphRunner {
             inputs[portName] = inputConn
                 ? this.nodeResults.get(inputConn.nodeId)![portName]
                 : undefined
+        }
+
+        const ports = this.getNodePorts(node.type)
+        for (const portName of ports.inputs) {
+            if (!inputs[portName]) {
+                inputs[portName] = nodeInput.find((id) => id === portName)
+                    ? this.nodeResults.get(portName)![portName]
+                    : undefined
+            }
         }
         return inputs
     }
@@ -315,6 +376,20 @@ export class AgentGraphRunner {
             )
         }
 
-        return processor(inputs, context, node.data)
+        console.log(
+            `[DEBUG] Starting execution of node: ${node.id} (Type: ${node.type})`
+        )
+        console.log(`[DEBUG] Node inputs:`, inputs)
+
+        const startTime = Date.now()
+        const result = await processor(inputs, context, node.data)
+        const executionTime = Date.now() - startTime
+
+        console.log(
+            `[DEBUG] Node ${node.id} execution completed in ${executionTime}ms`
+        )
+        console.log(`[DEBUG] Node outputs:`, result)
+
+        return result
     }
 }

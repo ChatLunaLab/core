@@ -55,6 +55,11 @@
             "import": "./lib/model/index.mjs",
             "types": "./lib/model/index.d.ts"
         },
+        "./agent": {
+            "require": "./lib/agent/index.cjs",
+            "import": "./lib/agent/index.mjs",
+            "types": "./lib/agent/index.d.ts"
+        },
         "./vectorstore": {
             "require": "./lib/vectorstore/index.cjs",
             "import": "./lib/vectorstore/index.mjs",

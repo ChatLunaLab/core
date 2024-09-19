@@ -143,7 +143,7 @@ export abstract class HttpModelRequester
 
         const body = JSON.stringify(data)
 
-        // console.log('POST', requestUrl, body)
+        console.log('POST', requestUrl, body, headers)
 
         return this.requestService.fetch(requestUrl, {
             body,

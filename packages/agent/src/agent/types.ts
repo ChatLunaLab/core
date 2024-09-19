@@ -9,7 +9,9 @@ export interface Agent {
 
     useTools?: string[]
 
-    invoke(message: BaseMessage): Promise<AgentFinish | AgentStep>
+    invoke(
+        message: BaseMessage | BaseMessage[]
+    ): Promise<AgentFinish | AgentStep>
 
     updateState(state: AgentState): void
 }

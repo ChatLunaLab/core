@@ -18,11 +18,12 @@ import {
     ModelType
 } from '@chatluna/core/platform'
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
+
 import {
     ChatMiddlewareExecutor,
     ChatMiddlewareGraph
 } from '@chatluna/chat/middleware'
-import { AgentTypeRunner } from '@chatluna/core/agent'
+import { AgentTypeRunner } from '@chatluna/agent/graph'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatLunaService extends Service {
@@ -143,8 +144,21 @@ export class ChatLunaService extends Service {
         return chatBridger?.clearCache(conversation)
     }
 
-    async createModel(platformName: string, model: string) {
+    async createModel(
+        platformWithModel: string
+    ): Promise<ChatLunaChatModel | ChatLunaBaseEmbeddings>
+
+    async createModel(
+        platformName: string,
+        model: string
+    ): Promise<ChatLunaChatModel | ChatLunaBaseEmbeddings>
+
+    async createModel(platformName: string, model?: string) {
         const service = this.ctx.chatluna_platform
+
+        if (model == null) {
+            ;[platformName, model] = parseRawModelName(platformName)
+        }
 
         const client = await service.randomClient(platformName)
 
@@ -225,13 +239,16 @@ export abstract class ChatLunaPlugin<T = any> {
 
     constructor(
         protected ctx: Context,
-        public readonly config: T
+        public readonly config: T,
+        readyEvent: boolean = true
     ) {
         this.platformService = ctx.chatluna_platform
 
-        ctx.on('ready', async () => {
-            await this.start()
-        })
+        if (readyEvent) {
+            ctx.on('ready', async () => {
+                await this.start()
+            })
+        }
     }
 
     dispose() {
@@ -294,13 +311,14 @@ export abstract class ChatLunaPlatformPlugin<
             )
         }
 
-        super(ctx, config)
-
         // inject to root ctx
         ctx.runtime.inject['cache'] = {
             required: true
         }
 
+        super(ctx, config, false)
+
+        this.createConfigPool = createConfigPool
         if (createConfigPool) {
             this._platformConfigPool = new ClientConfigPool<R>(
                 config.configMode === 'default'
@@ -310,6 +328,10 @@ export abstract class ChatLunaPlatformPlugin<
         }
 
         this.name = config.platform
+
+        this.ctx.on('ready', async () => {
+            await this.start()
+        })
     }
 
     abstract parseConfig(config: T): R[]
@@ -398,7 +420,7 @@ export abstract class ChatLunaPlatformPlugin<
     async start() {
         const parsedConfigs = this.parseConfig(this.config)
 
-        if (parsedConfigs.length > 0 && !this.createConfigPool) {
+        if (parsedConfigs.length > 0 && this._platformConfigPool == null) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.UNKNOWN_ERROR,
                 new Error('The config pool is not created')

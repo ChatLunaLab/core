@@ -25,7 +25,6 @@
             "import": "./lib/environment/index.mjs",
             "types": "./lib/environment/index.d.ts"
         },
-
         "./package.json": "./package.json"
     },
     "engines": {
@@ -57,9 +56,7 @@
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
         "@langchain/core": "^0.3.1",
-        "ml-distance": "^4.0.1",
-        "zod": "^3.24.0-canary.20240701T200529",
-        "zod-to-json-schema": "^3.23.3"
+        "js-yaml": "^4.1.0"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1"

@@ -33,7 +33,7 @@ export class DefaultEnvironment implements Environment {
     }
 
     getTool(toolId: string): StructuredTool | undefined {
-        throw new Error('Method not implemented.')
+        return this.tools.find((tool) => tool.name === toolId)
     }
 
     async useModel() {

@@ -19,10 +19,8 @@ export class NodeGraph {
         const node: AgentDataNode = {
             id,
             type,
-            inputs: new Map(inputs.map((name) => [name, crypto.randomUUID()])),
-            outputs: new Map(
-                outputs.map((name) => [name, crypto.randomUUID()])
-            ),
+            inputs: new Map(inputs.map((name) => [name, name])),
+            outputs: new Map(outputs.map((name) => [name, name])),
             data
         }
         this.nodes.set(id, node)
@@ -192,6 +190,7 @@ export class CompiledNodeGraph {
                 .get(conn.to.nodeId)!
                 .set(conn.to.portId, conn.from)
         }
+        console.log(this.inputConnections)
     }
 
     getNode(string: string): AgentDataNode | undefined {
@@ -213,10 +212,13 @@ export class CompiledNodeGraph {
     }
 
     getEntryNodes(): string[] {
-        return this.getAllNodeIds().filter(
-            (string) =>
-                !this.inputConnections.has(string) ||
-                this.inputConnections.get(string)!.size === 0
-        )
+        const entryNodes: string[] = []
+        for (const nodeId of this.nodeData.keys()) {
+            const nodeInputs = this.getNodeInputs(nodeId)
+            if (!nodeInputs || nodeInputs.size === 0) {
+                entryNodes.push(nodeId)
+            }
+        }
+        return entryNodes
     }
 }
