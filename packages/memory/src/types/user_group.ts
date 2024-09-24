@@ -31,6 +31,9 @@ export interface ChatLunaUser {
     // global set
     chatTimeLimitPerMin?: number
     lastChatTime?: Date
+
+    lastChatConversationId?: string
+    defaultAgent?: string
 }
 
 export interface ChatLunaUserPresetAdditional {

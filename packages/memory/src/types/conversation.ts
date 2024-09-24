@@ -23,10 +23,9 @@ export interface ChatLunaConversation {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>
 
-    preset: string
+    agent: string
     // platform model
     model: string
-    chatMode: string
 
     createdTime: Date
     updatedTime: Date
@@ -37,12 +36,20 @@ export interface ChatLunaConversationAdditional {
     conversationId: string
     owner: boolean
 
-    mute?: boolean
-    private?: boolean
-    // default true guildId; xx -> guildId xx this is default
-    // default true guildId null -> private chat default
-    default?: boolean
-    guildId?: string
+    agent?: string
+}
+
+export interface ChatLunaConversationFilter {
+    // 是否为 agent 默认的过滤器
+    default_agent: boolean
+
+    agent: string
+
+    visibility: 'public_global' | 'private' | 'public'
+
+    priority: number
+
+    expressions?: string[]
 }
 
 export type ChatLunaConversationTemplate = PartialOptional<

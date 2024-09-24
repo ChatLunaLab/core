@@ -334,7 +334,7 @@ export class AgentGraphRunner {
 
     private async getNodeInputs(
         node: AgentDataNode,
-        nodeInput: string[],
+        nodeInputId: string[],
         compiledGraph: CompiledNodeGraph
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<Record<string, any>> {
@@ -359,15 +359,23 @@ export class AgentGraphRunner {
 
         const ports = this.getNodePorts(node.type)
         for (const portName of ports.inputs) {
-            console.log(
-                `[DEBUG] Input for port ${portName}:`,
-                inputs[portName],
-                this.nodeResults.get(portName)
+            if (inputs[portName]) {
+                continue
+            }
+
+            const outputNodePorts = nodeInputId.map((id) => {
+                const node = compiledGraph.getNode(id)
+
+                return { id, ports: this.getNodePorts(node.type) }
+            })
+
+            const outputNodePort = outputNodePorts.find((nodePort) =>
+                nodePort.ports.outputs.includes(portName)
             )
-            if (!inputs[portName]) {
-                inputs[portName] = nodeInput.find((id) => id === portName)
-                    ? this.nodeResults.get(portName)![portName]
-                    : undefined
+            if (outputNodePort) {
+                inputs[portName] = this.nodeResults.get(outputNodePort.id)![
+                    portName
+                ]
             }
         }
         return inputs
