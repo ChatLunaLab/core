@@ -68,16 +68,14 @@ export class ChatInterfaceWrapper {
                 additional_kwargs: message.additional_kwargs
             })
 
-            const chainValues = await chatInterface.chat({
+            const aiMessage = await chatInterface.chat({
                 message: humanMessage,
                 events: event,
-                stream,
                 signal,
-                chatMemory,
                 params
             })
 
-            return chainValues.message as AIMessage
+            return aiMessage as AIMessage
         } finally {
             await this._modelQueue.remove(platform, requestId)
             await this._conversationQueue.remove(conversationId, requestId)
