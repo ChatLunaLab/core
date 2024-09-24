@@ -12,7 +12,8 @@ export abstract class BaseAgent implements Agent {
     ) {}
 
     abstract invoke(
-        message: BaseMessage | BaseMessage[]
+        message: BaseMessage | BaseMessage[],
+        args?: Record<string, unknown>
     ): Promise<AgentFinish | AgentStep>
 
     updateState(state: AgentState): void {

@@ -8,7 +8,8 @@ export class DefaultEnvironment implements Environment {
         public chatMemory: BaseChatMemory,
         private model:
             | ChatLunaChatModel
-            | (() => PromiseLike<ChatLunaChatModel> | ChatLunaChatModel)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            | ((arg: any) => PromiseLike<ChatLunaChatModel> | ChatLunaChatModel)
     ) {}
 
     sharedResources: Map<string, unknown> = new Map()
@@ -36,10 +37,11 @@ export class DefaultEnvironment implements Environment {
         return this.tools.find((tool) => tool.name === toolId)
     }
 
-    async useModel() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async useModel(arg: any) {
         const model = this.model
         if (typeof model === 'function') {
-            return await model()
+            return await model(arg)
         }
 
         return model

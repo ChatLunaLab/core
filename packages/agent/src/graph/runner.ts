@@ -157,6 +157,15 @@ export class AgentGraphRunner {
         return this.globalContext.get(key)
     }
 
+    clone() {
+        const runner = new AgentGraphRunner()
+        runner.globalContext = new Map(this.globalContext)
+        runner.nodeResults = new Map(this.nodeResults)
+        runner.nodeProcessors = new Map(this.nodeProcessors)
+        runner.nodePorts = new Map(this.nodePorts)
+        return runner
+    }
+
     async execute(
         compiledGraph: CompiledNodeGraph,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

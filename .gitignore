@@ -30,3 +30,6 @@ coverage
 test/
 
 packages/event-stream
+
+git.diff
+.gitignore

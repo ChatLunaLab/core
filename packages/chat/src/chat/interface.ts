@@ -1,10 +1,5 @@
-import { BaseMessage } from '@langchain/core/messages'
 import { Context } from 'cordis'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
-import {
-    ChatLunaLLMCallArg,
-    ChatLunaLLMChainWrapper
-} from '@chatluna/core/chain'
 import { parseRawModelName } from '@chatluna/core/utils'
 import {
     BufferWindowMemory,
@@ -15,7 +10,6 @@ import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 import {
     ClientConfig,
-    ModelCapability,
     ModelInfo,
     PlatformEmbeddingsClient,
     PlatformModelAndEmbeddingsClient,
@@ -25,20 +19,30 @@ import { PlatformService } from '@chatluna/core/service'
 import { VectorStore, VectorStoreRetriever } from '@langchain/core/vectorstores'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { Embeddings } from '@langchain/core/embeddings'
-import { ChainValues } from '@langchain/core/utils/types'
 import {
     emptyEmbeddings,
     inMemoryVectorStoreRetrieverProvider
 } from '@chatluna/core/vectorstore'
 import { ScoreThresholdRetriever } from '@chatluna/core/retriever'
 import { ChatLunaConversation } from '@chatluna/memory/types'
+import {
+    Agent,
+    AgentSystem,
+    DefaultEnvironment,
+    Environment
+} from '@chatluna/agent'
+import { BaseMessage, HumanMessage } from '@langchain/core/messages'
+import crypto from 'crypto'
 
 export class ChatInterface {
     private _input: ChatInterfaceInput
     private _vectorStoreRetrieverMemory: VectorStoreRetrieverMemory
     private _chatHistory: DataBaseChatMessageHistory
-    private _chains: Record<string, ChatLunaLLMChainWrapper> = {}
-    private _errorCount: Record<string, number> = {}
+    private _models: Record<string, [ChatLunaChatModel, ClientConfig]> = {}
+    private _errorCountsMap: Record<string, number[]> = {}
+    private _agentSystem: AgentSystem
+    private _environment: Environment
+    private _configs: Record<string, ClientConfig> = {}
 
     constructor(
         public ctx: Context,
@@ -47,20 +51,58 @@ export class ChatInterface {
         this._input = input
     }
 
-    async chat(arg: ChatLunaLLMCallArg): Promise<ChainValues> {
-        const [wrapper, config] = await this.createChatHubLLMChainWrapper()
-        const configKey = this._getClientConfigAsKey(config)
+    async chat(arg: ChatInterfaceArg): Promise<BaseMessage> {
+        await this.initAgentEnvironment()
 
+        const requestId = crypto.randomUUID()
         try {
-            return wrapper.call(arg)
+            return this._agentSystem.invoke(
+                this._input.agent.name,
+                arg.message,
+                {
+                    ...arg,
+                    requestId
+                }
+            )
         } catch (e) {
-            this._errorCount[configKey] = this._errorCount[configKey] ?? 0
+            if (
+                e instanceof ChatLunaError &&
+                e.errorCode === ChatLunaErrorCode.API_UNSAFE_CONTENT
+            ) {
+                // unsafe content not to real error
+                throw e
+            }
 
-            this._errorCount[configKey] += 1
+            const config = this._configs[requestId]
+            const configKey = this._getClientConfigAsKey(config)
 
-            if (this._errorCount[configKey] > config.maxRetries) {
-                delete this._chains[configKey]
-                delete this._errorCount[configKey]
+            delete this._configs[requestId]
+
+            this._errorCountsMap[configKey] =
+                this._errorCountsMap[configKey] ?? []
+
+            let errorCountsArray = this._errorCountsMap[configKey]
+
+            errorCountsArray.push(Date.now())
+
+            if (errorCountsArray.length > 100) {
+                errorCountsArray = errorCountsArray.splice(
+                    -config.maxRetries * 3
+                )
+            }
+
+            this._errorCountsMap[configKey] = errorCountsArray
+
+            if (
+                errorCountsArray.length > config.maxRetries &&
+                // 20 mins
+                checkRange(
+                    errorCountsArray.splice(-config.maxRetries),
+                    1000 * 60 * 20
+                )
+            ) {
+                delete this._models[configKey]
+                delete this._errorCountsMap[configKey]
 
                 const service = this.ctx.chatluna_platform
 
@@ -72,16 +114,14 @@ export class ChatInterface {
             } else {
                 throw new ChatLunaError(
                     ChatLunaErrorCode.UNKNOWN_ERROR,
-                    e as Error
+                    e as string
                 )
             }
         }
     }
 
-    async createChatHubLLMChainWrapper(): Promise<
-        [ChatLunaLLMChainWrapper, ClientConfig]
-    > {
-        const service = this.ctx.chatluna_platform
+    async initAgentEnvironment() {
+        /*  const service = this.ctx.chatluna_platform
         const [llmPlatform, llmModelName] = parseRawModelName(this._input.model)
         const currentLLMConfig = await service.randomConfig(llmPlatform)
 
@@ -90,14 +130,21 @@ export class ChatInterface {
         if (this._chains[currentLLMConfigKey]) {
             return [this._chains[currentLLMConfigKey], currentLLMConfig]
         }
+ */
 
-        let embeddings: Embeddings
+        if (this._agentSystem != null) {
+            return
+        }
+
+        const service = this.ctx.chatluna_platform
+
+        /*   let embeddings: Embeddings
         let vectorStoreRetrieverMemory: VectorStoreRetrieverMemory
-        let llm: ChatLunaChatModel
-        let modelInfo: ModelInfo
+
+        let modelInfo: ModelInfo */
         let historyMemory: BufferWindowMemory
 
-        try {
+        /* try {
             embeddings = await this._initEmbeddings(service)
         } catch (error) {
             if (error instanceof ChatLunaError) {
@@ -107,9 +154,9 @@ export class ChatInterface {
                 ChatLunaErrorCode.EMBEDDINGS_INIT_ERROR,
                 error as Error
             )
-        }
+        } */
 
-        try {
+        /* try {
             vectorStoreRetrieverMemory = await this._initVectorStoreMemory(
                 service,
                 embeddings
@@ -123,24 +170,7 @@ export class ChatInterface {
                 error as Error
             )
         }
-
-        try {
-            ;[llm, modelInfo] = await this._initModel(
-                service,
-                currentLLMConfig,
-                llmModelName
-            )
-        } catch (error) {
-            if (error instanceof ChatLunaError) {
-                throw error
-            }
-            throw new ChatLunaError(
-                ChatLunaErrorCode.MODEL_INIT_ERROR,
-                error as Error
-            )
-        }
-
-        embeddings = (await this._checkChatMode(modelInfo)) ?? embeddings
+ */
 
         try {
             await this._createChatHistory()
@@ -155,7 +185,7 @@ export class ChatInterface {
         }
 
         try {
-            historyMemory = await this._createHistoryMemory(llm)
+            historyMemory = await this._createHistoryMemory()
         } catch (error) {
             if (error instanceof ChatLunaError) {
                 throw error
@@ -166,19 +196,59 @@ export class ChatInterface {
             )
         }
 
-        const chatChain = await service.createChatChain(this._input.chatMode, {
-            botName: this._input.botName,
-            model: llm,
-            embeddings,
-            longMemory: vectorStoreRetrieverMemory,
+        const env = new DefaultEnvironment(
             historyMemory,
-            systemPrompt: this._input.systemPrompts,
-            vectorStoreName: this._input.vectorStoreName
-        })
+            this._randomModel.bind(this)
+        )
 
-        this._chains[currentLLMConfigKey] = chatChain
+        const agentSystem = new AgentSystem(this.ctx, env)
 
-        return [chatChain, currentLLMConfig]
+        agentSystem.addAgent(this._input.agent)
+
+        const registerRunner = () => {
+            const agentRunners = Object.values(service.agentRunners)
+
+            for (const runner of agentRunners) {
+                agentSystem.runner.registerNodeType(
+                    runner.type,
+                    runner.processor,
+                    runner.ports
+                )
+            }
+        }
+
+        agentSystem.registerDefaultNodes()
+
+        this.ctx.on('chatluna/agent-runner-added', () => registerRunner())
+
+        this.ctx.on('chatluna/agent-runner-removed', () => registerRunner())
+
+        this._agentSystem = agentSystem
+        this._environment = env
+    }
+
+    private async _randomModel(requestId: string) {
+        const service = this.ctx.chatluna_platform
+        const [llmPlatform, llmModelName] = parseRawModelName(this._input.model)
+        const currentLLMConfig = await service.randomConfig(llmPlatform)
+
+        const currentLLMConfigKey = this._getClientConfigAsKey(currentLLMConfig)
+
+        this._configs[requestId] = currentLLMConfig
+
+        if (this._models[currentLLMConfigKey]) {
+            return this._models[currentLLMConfigKey][0]
+        }
+
+        const [llm] = await this._initModel(
+            service,
+            currentLLMConfig,
+            llmModelName
+        )
+
+        this._models[currentLLMConfigKey] = [llm, currentLLMConfig]
+
+        return llm
     }
 
     get chatHistory(): BaseChatMessageHistory {
@@ -193,11 +263,11 @@ export class ChatInterface {
         await this._chatHistory.getMessages()
         await this._chatHistory.clear()
 
-        for (const chain of Object.values(this._chains)) {
-            await chain.model.clearContext()
+        for (const [model] of Object.values(this._models)) {
+            await model.clearContext()
         }
 
-        this._chains = {}
+        this._models = {}
 
         await ctx.chatluna_conversation.deleteConversation(conversationId)
     }
@@ -209,21 +279,14 @@ export class ChatInterface {
 
         await this._chatHistory.clear()
 
-        for (const chain of Object.values(this._chains)) {
-            await chain.model.clearContext()
+        for (const [model] of Object.values(this._models)) {
+            await model.clearContext()
         }
     }
 
     private async _initEmbeddings(
         service: PlatformService
     ): Promise<ChatLunaBaseEmbeddings> {
-        if (
-            this._input.longMemory !== true &&
-            this._input.chatMode === 'chat'
-        ) {
-            return emptyEmbeddings
-        }
-
         if (this._input.embeddings == null) {
             this.ctx.logger.warn(
                 'Embeddings are empty, falling back to fake embeddings. Try check your config.'
@@ -270,18 +333,7 @@ export class ChatInterface {
 
         let vectorStoreRetriever: VectorStoreRetriever<VectorStore>
 
-        if (
-            this._input.longMemory !== true ||
-            (this._input.chatMode !== 'chat' &&
-                this._input.chatMode !== 'browsing')
-        ) {
-            vectorStoreRetriever =
-                await inMemoryVectorStoreRetrieverProvider.createVectorStoreRetriever(
-                    {
-                        embeddings
-                    }
-                )
-        } else if (this._input.vectorStoreName == null) {
+        if (this._input.vectorStoreName == null) {
             this.ctx.logger.warn(
                 'Vector store is empty, falling back to fake vector store. Try check your config.'
             )
@@ -339,39 +391,6 @@ export class ChatInterface {
         }
     }
 
-    private async _checkChatMode(modelInfo: ModelInfo) {
-        if (
-            // func call with plugin browsing
-            !modelInfo.capabilities.includes(ModelCapability.INPUT_FUNC_CALL) &&
-            ['plugin', 'browsing'].includes(this._input.chatMode)
-        ) {
-            this.ctx.logger.warn(
-                `Chat mode ${this._input.chatMode} is not supported by model ${this._input.model}, falling back to chat mode`
-            )
-
-            this._input.chatMode = 'chat'
-            const embeddings = emptyEmbeddings
-
-            const vectorStoreRetriever =
-                await inMemoryVectorStoreRetrieverProvider.createVectorStoreRetriever(
-                    {
-                        embeddings
-                    }
-                )
-
-            this._vectorStoreRetrieverMemory = new VectorStoreRetrieverMemory({
-                returnDocs: true,
-                inputKey: 'user',
-                outputKey: 'your',
-                vectorStoreRetriever
-            })
-
-            return embeddings
-        }
-
-        return undefined
-    }
-
     private async _createChatHistory(): Promise<BaseChatMessageHistory> {
         if (this._chatHistory != null) {
             return this._chatHistory
@@ -388,9 +407,7 @@ export class ChatInterface {
         return this._chatHistory
     }
 
-    private async _createHistoryMemory(
-        model: ChatLunaChatModel
-    ): Promise<BufferWindowMemory> {
+    private async _createHistoryMemory(): Promise<BufferWindowMemory> {
         const historyMemory = new BufferWindowMemory({
             returnMessages: true,
             inputKey: 'input',
@@ -409,14 +426,36 @@ export class ChatInterface {
 }
 
 export interface ChatInterfaceInput {
-    chatMode: string
-    historyMode: 'all'
     botName?: string
-    systemPrompts?: BaseMessage[]
+    agent: Agent
     model: string
     embeddings?: string
     vectorStoreName?: string
     longMemory: boolean
     conversationId: string
     maxMessagesCount: number
+}
+
+export interface ChainEvents {
+    'llm-new-token'?: (token: string) => Promise<void>
+    /** Only used for chat app */
+    'chat-queue-waiting'?: (size: number) => Promise<void>
+    'llm-used-token-count'?: (token: number) => Promise<void>
+    'llm-call-tool'?: (tool: string, args: string) => Promise<void>
+}
+
+export interface ChatInterfaceArg {
+    message: HumanMessage
+    events?: ChainEvents
+
+    signal?: AbortSignal
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    params?: Record<string, any>
+}
+
+function checkRange(times: number[], delayTime: number) {
+    const first = times[0]
+    const last = times[times.length - 1]
+
+    return last - first < delayTime
 }

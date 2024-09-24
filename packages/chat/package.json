@@ -79,7 +79,8 @@
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1",
-        "@chatluna/memory": "^0.0.1"
+        "@chatluna/memory": "^0.0.1",
+        "@chatluna/agent": "^0.0.1"
     },
     "peerDependenciesMeta": {
         "@chatluna/memory": {

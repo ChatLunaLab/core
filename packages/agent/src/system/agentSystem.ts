@@ -10,9 +10,9 @@ import { Agent, AgentFinish } from '@chatluna/agent'
 import { BaseMessage } from '@langchain/core/messages'
 
 export class AgentSystem {
-    private graph: NodeGraph
+    private _graph: NodeGraph
 
-    private runner: AgentGraphRunner
+    private _runner: AgentGraphRunner
 
     private agents: Agent[] = []
 
@@ -20,8 +20,8 @@ export class AgentSystem {
         private ctx: Context,
         private environment: Environment
     ) {
-        this.graph = new NodeGraph()
-        this.runner = new AgentGraphRunner()
+        this._graph = new NodeGraph()
+        this._runner = new AgentGraphRunner()
     }
 
     async addAgent(agent: Agent) {
@@ -32,17 +32,30 @@ export class AgentSystem {
         this.agents = this.agents.filter((a) => a !== agent)
     }
 
-    async invoke(agentName: string, message: BaseMessage) {
-        this.runner.setGlobal('agent', agentName)
-        const result = await this.runner.execute(this.graph.compile(), {
-            message
-        })
+    async invoke(
+        agentName: string,
+        message: BaseMessage,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: Record<string, any>
+    ) {
+        this._runner.setGlobal('agent', agentName)
+
+        for (const key in args) {
+            this._runner.setGlobal(key, args[key])
+        }
+
+        const result = await this._runner
+            .clone()
+            .execute(this._graph.compile(), {
+                message,
+                args
+            })
 
         return result.get('output')?.['message'] as BaseMessage
     }
 
     async registerDefaultNodes() {
-        this.runner.registerNodeType(
+        this._runner.registerNodeType(
             'system/prepare',
             this.prepareProcessor.bind(this),
             {
@@ -52,13 +65,13 @@ export class AgentSystem {
         )
 
         // prepare
-        this.graph.addNode(
+        this._graph.addNode(
             'system/prepare',
-            this.runner.getNodePorts('system/prepare'),
+            this._runner.getNodePorts('system/prepare'),
             'prepare'
         )
 
-        this.runner.registerNodeType(
+        this._runner.registerNodeType(
             'system/call_agent',
             this.callAgentProcessor.bind(this),
             {
@@ -68,13 +81,13 @@ export class AgentSystem {
         )
 
         // call agent
-        this.graph.addNode(
+        this._graph.addNode(
             'system/call_agent',
-            this.runner.getNodePorts('system/call_agent'),
+            this._runner.getNodePorts('system/call_agent'),
             'call_agent'
         )
 
-        this.graph.connect(
+        this._graph.connect(
             {
                 nodeId: 'prepare',
                 portName: 'message'
@@ -85,7 +98,7 @@ export class AgentSystem {
             }
         )
 
-        this.runner.registerNodeType(
+        this._runner.registerNodeType(
             'system/output',
             this.handleAgentOutputProcessor.bind(this),
             {
@@ -95,13 +108,13 @@ export class AgentSystem {
         )
 
         // handle agent output
-        this.graph.addNode(
+        this._graph.addNode(
             'system/output',
-            this.runner.getNodePorts('system/output'),
+            this._runner.getNodePorts('system/output'),
             'output'
         )
 
-        this.graph.connect(
+        this._graph.connect(
             {
                 nodeId: 'call_agent',
                 portName: 'action'
@@ -146,7 +159,7 @@ export class AgentSystem {
             throw new Error(`Agent ${agentName} not found`)
         }
 
-        const action = await agent.invoke(message)
+        const action = await agent.invoke(message, context)
 
         return { action }
     }
@@ -158,5 +171,13 @@ export class AgentSystem {
         const action = inputs['message'] as AgentFinish
 
         return { message: action.message }
+    }
+
+    get runner() {
+        return this._runner
+    }
+
+    get graph() {
+        return this._graph
     }
 }

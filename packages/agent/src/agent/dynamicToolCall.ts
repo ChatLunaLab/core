@@ -9,11 +9,13 @@ import { AgentFinish, AgentState, AgentStep } from './types.ts'
 import { Environment } from '@chatluna/agent/environment'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { StructuredTool } from '@langchain/core/tools'
+import { ChatLunaChatModel } from '@chatluna/core/model'
 
 export class DynamicToolCallAgent extends BaseAgent {
     private tempMessages: BaseMessage[] = []
 
     public maxIterations = 10
+    private _model: ChatLunaChatModel
 
     constructor(
         public name: string,
@@ -26,7 +28,8 @@ export class DynamicToolCallAgent extends BaseAgent {
     }
 
     async invoke(
-        message: BaseMessage | BaseMessage[]
+        message: BaseMessage | BaseMessage[],
+        args?: Record<string, unknown>
     ): Promise<AgentFinish | AgentStep> {
         const keys = this.prompt.inputVariables
 
@@ -38,6 +41,8 @@ export class DynamicToolCallAgent extends BaseAgent {
             ...this.tempMessages,
             ...(Array.isArray(message) ? message : [message])
         ]
+
+        this._model = await this.environment.useModel(args?.['request_id'])
 
         const systemPrompt = await this.prompt.formatMessages(
             this._getVariables(
@@ -58,11 +63,9 @@ export class DynamicToolCallAgent extends BaseAgent {
             ?.map((tool) => this.environment.getTool(tool))
             .filter((tool) => tool !== undefined)
 
-        const model = await this.environment.useModel()
-
         let finalChunk: BaseMessageChunk
 
-        for await (const chunk of await model.stream(finalMessages, {
+        for await (const chunk of await this._model.stream(finalMessages, {
             tools
         })) {
             finalChunk = finalChunk ? finalChunk.concat(chunk) : chunk
@@ -99,8 +102,6 @@ export class DynamicToolCallAgent extends BaseAgent {
             ?.map((tool) => this.environment.getTool(tool))
             .filter((tool) => tool !== undefined)
 
-        const model = await this.environment.useModel()
-
         let finalChunk: BaseMessageChunk
 
         let currentIteration = 0
@@ -118,7 +119,7 @@ export class DynamicToolCallAgent extends BaseAgent {
                 )}`
             )
 
-            for await (const chunk of await model.stream(
+            for await (const chunk of await this._model.stream(
                 [...finalMessages, ...this.tempMessages],
                 {
                     tools
