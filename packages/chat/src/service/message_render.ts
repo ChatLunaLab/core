@@ -79,10 +79,20 @@ export interface ChatLunaMessageRenderOptions {
         speakerId?: number
     }
     splitMessage?: boolean
+    stream?: boolean
+    streamFinish?: boolean
     type: MessageRenderType
 }
 
-export type MessageRenderType = 'raw' | 'voice' | 'text' | 'image' | 'mixed'
+export interface MessageRenderTypeInterface {
+    raw: never
+    voice: never
+    text: never
+    image: never
+    mixed: never
+}
+
+export type MessageRenderType = keyof MessageRenderTypeInterface
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ChatLunaRenderedMessage<T> {

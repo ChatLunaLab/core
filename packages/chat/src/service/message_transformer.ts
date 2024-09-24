@@ -79,7 +79,6 @@ export class ChatLunaMessageTransformService<T = any, R = any> extends Service {
 
             // merge images
             if (quoteBuildedMessage.content.length > 1) {
-                // 优化字符串拼接
                 const parts = [
                     `There is quote message: ${quoteBuildedMessage.content}.`,
                     'If the user ask about the quote message, please generate a response based on the quote message.',
