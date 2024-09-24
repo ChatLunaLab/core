@@ -2,7 +2,7 @@ import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import {
     ChatLunaUser,
     ChatLunaUserAdditional,
-    ChatLunaUserPresetAdditional,
+    ChatLunaUserAgentAdditional,
     ChatLunaUserGroup,
     PartialOptional
 } from '@chatluna/memory/types'
@@ -218,9 +218,9 @@ export class ChatLunaUserService extends Service {
         ])
     }
 
-    async queryUserPresets(userId: string) {
+    async queryUserAgents(userId: string) {
         const queries = await this._database.get(
-            'chatluna_user_preset_additional',
+            'chatluna_user_agent_additional',
             {
                 userId
             }
@@ -233,12 +233,12 @@ export class ChatLunaUserService extends Service {
         return queries
     }
 
-    async queryUserPreset(userId: string, presetId: string) {
+    async queryUserAgent(userId: string, agentId: string) {
         const queries = await this._database.get(
-            'chatluna_user_preset_additional',
+            'chatluna_user_agent_additional',
             {
                 userId,
-                presetId
+                agentId
             }
         )
 
@@ -248,16 +248,16 @@ export class ChatLunaUserService extends Service {
 
         throw new ChatLunaError(
             ChatLunaErrorCode.USER_NOT_FOUND,
-            `Preset ${presetId} not found`
+            `Agent ${agentId} not found`
         )
     }
 
     async updateUserPreset(
         userId: string,
         presetId: string,
-        template: Partial<ChatLunaUserPresetAdditional>
+        template: Partial<ChatLunaUserAgentAdditional>
     ) {
-        await this._database.upsert('chatluna_user_preset_additional', [
+        await this._database.upsert('chatluna_user_agent_additional', [
             Object.assign(
                 {
                     userId,
@@ -325,6 +325,14 @@ export class ChatLunaUserService extends Service {
                 excludeModels: {
                     type: 'list',
                     nullable: true
+                },
+                lastChatConversationId: {
+                    type: 'string',
+                    nullable: true
+                },
+                defaultAgent: {
+                    type: 'string',
+                    nullable: true
                 }
             },
             {
@@ -388,12 +396,12 @@ export class ChatLunaUserService extends Service {
         )
 
         this._database.extend(
-            'chatluna_user_preset_additional',
+            'chatluna_user_agent_additional',
             {
                 userId: {
                     type: 'string'
                 },
-                presetId: {
+                agentId: {
                     type: 'string'
                 },
                 additional_kwargs: {
@@ -401,13 +409,13 @@ export class ChatLunaUserService extends Service {
                 }
             },
             {
-                primary: ['userId', 'presetId'],
+                primary: ['userId', 'agentId'],
                 autoInc: true
             }
         )
     }
 
-    static inject = ['database', 'logger']
+    static inject = ['database']
 }
 
 // wait minato update

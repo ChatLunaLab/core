@@ -24,19 +24,31 @@ export interface ChatLunaConversation {
     additional_kwargs?: Record<string, any>
 
     agent: string
+
     // platform model
-    model: string
+    // if not set, the chat will use the platform default model
+    model?: string
 
     createdTime: Date
     updatedTime: Date
 }
 
-export interface ChatLunaConversationAdditional {
+export interface ChatLunaUserConversation {
     userId: string
     conversationId: string
     owner: boolean
 
     agent?: string
+}
+
+export interface ChatLunaConversationAdditional {
+    guildId?: string
+
+    visibility: 'public_global' | 'private' | 'public'
+
+    agent?: string
+
+    conversationId: string
 }
 
 export interface ChatLunaConversationFilter {
@@ -49,7 +61,17 @@ export interface ChatLunaConversationFilter {
 
     priority: number
 
-    expressions?: string[]
+    guildId?: string
+    userId?: string
+
+    platform?: string
+}
+
+export interface ChatLunaConversionFilterContext {
+    guildId?: string
+    userId?: string
+    platform?: string
+    agent?: string
 }
 
 export type ChatLunaConversationTemplate = PartialOptional<
@@ -66,7 +88,9 @@ export type ChatLunaMessageRole = MessageType
 declare module 'cordis' {
     interface Tables {
         chatluna_conversation: ChatLunaConversation
-        chatluna_message: ChatLunaMessage
+        chatluna_conversation_filter: ChatLunaConversationFilter
         chatluna_conversation_additional: ChatLunaConversationAdditional
+        chatluna_message: ChatLunaMessage
+        chatluna_user_conversation: ChatLunaUserConversation
     }
 }
