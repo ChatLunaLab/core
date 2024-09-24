@@ -91,6 +91,7 @@ export class DefaultRequest implements Request {
                 Object.assign(init, {
                     responseType: 'raw',
                     method: init?.method ?? 'GET',
+                    data: init.body,
                     proxyAgent: this._proxyAddress
                 }) as {
                     responseType: 'raw'

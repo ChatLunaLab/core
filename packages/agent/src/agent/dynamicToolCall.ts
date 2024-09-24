@@ -134,6 +134,9 @@ export class DynamicToolCallAgent extends BaseAgent {
 
                 if (actions.length !== 0) {
                     toolActions = actions
+                    this.tempMessages.push(finalChunk)
+                } else {
+                    return finalChunk
                 }
             }
         }

@@ -155,8 +155,8 @@ export class AgentSystem {
         inputs: Parameters<AgentTypeProcessor>[0],
         context: ExecutionContext
     ) {
-        const action = inputs['action'] as AgentFinish
+        const action = inputs['message'] as AgentFinish
 
-        return action.message
+        return { message: action.message }
     }
 }

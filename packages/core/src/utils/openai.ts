@@ -71,6 +71,19 @@ export function langchainMessageToOpenAIMessage(
             })
         }
 
+        if (rawMessage instanceof AIMessageChunk) {
+            msg.tool_calls = rawMessage.tool_call_chunks.map((tool) => {
+                return {
+                    id: tool.id as string,
+                    type: 'function',
+                    function: {
+                        name: tool.name,
+                        arguments: JSON.stringify(tool.args)
+                    }
+                } satisfies OpenAIToolCall
+            })
+        }
+
         if (msg.tool_calls == null || msg.tool_calls?.length < 1) {
             delete msg.tool_calls
         }

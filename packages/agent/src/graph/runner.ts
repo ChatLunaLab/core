@@ -346,13 +346,24 @@ export class AgentGraphRunner {
         const inputs: Record<string, any> = {}
         for (const [portName, portId] of node.inputs.entries()) {
             const inputConn = nodeInputs.get(portId)
+
+            console.log(
+                `[DEBUG] Input connection for port ${portName} - ${portId}:`,
+                inputConn,
+                this.nodeResults.get(inputConn?.nodeId)
+            )
             inputs[portName] = inputConn
-                ? this.nodeResults.get(inputConn.nodeId)![portName]
+                ? this.nodeResults.get(inputConn.nodeId)![inputConn.portId]
                 : undefined
         }
 
         const ports = this.getNodePorts(node.type)
         for (const portName of ports.inputs) {
+            console.log(
+                `[DEBUG] Input for port ${portName}:`,
+                inputs[portName],
+                this.nodeResults.get(portName)
+            )
             if (!inputs[portName]) {
                 inputs[portName] = nodeInput.find((id) => id === portName)
                     ? this.nodeResults.get(portName)![portName]
