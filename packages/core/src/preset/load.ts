@@ -1,55 +1,100 @@
-import { load } from 'js-yaml'
-import { PresetTemplate, RawPreset } from './types.ts'
 import {
     AIMessage,
+    BaseMessage,
+    BaseMessageFields,
     HumanMessage,
     SystemMessage
 } from '@langchain/core/messages'
+import { load } from 'js-yaml'
+import {
+    isRoleBook,
+    isRoleBookConfig,
+    PresetTemplate,
+    RawPreset,
+    RoleBookConfig
+} from './types.ts'
 
 export function loadPreset(rawText: string): PresetTemplate {
     return loadYamlPreset(rawText)
 }
 
+function createMessage(
+    role: string,
+    content: string,
+    type?: string
+): BaseMessage {
+    if (content == null) {
+        throw new Error('Content is required')
+    }
+
+    const fields: BaseMessageFields = {
+        content: content.trim(),
+        additional_kwargs: { type }
+    }
+
+    switch (role) {
+        case 'assistant':
+        case 'ai':
+        case 'model':
+            return new AIMessage(fields)
+        case 'user':
+        case 'human':
+            return new HumanMessage(fields)
+        case 'system':
+            return new SystemMessage(fields)
+        default:
+            throw new Error(`Unknown role: ${role}`)
+    }
+}
+
 function loadYamlPreset(rawText: string): PresetTemplate {
     const rawJson = load(rawText) as RawPreset
 
-    if (rawJson.keywords == null) {
-        throw new Error(
-            `Unknown keywords in preset: ${rawJson.keywords}, check you preset file`
-        )
+    let loreBooks: PresetTemplate['loreBooks'] | undefined = {
+        items: []
     }
 
-    if (rawJson.prompts == null) {
-        throw new Error(
-            `Unknown prompts in preset: ${rawJson.prompts}, check you preset file`
-        )
+    let authorsNote: PresetTemplate['authorsNote'] | undefined
+
+    if (rawJson.world_lores) {
+        const config = rawJson.world_lores.find(
+            isRoleBookConfig
+        ) as RoleBookConfig
+
+        const items = rawJson.world_lores.filter(isRoleBook).map((item) => ({
+            ...item,
+            keywords: Array.isArray(item.keywords)
+                ? item.keywords
+                : [item.keywords]
+        }))
+
+        loreBooks = {
+            ...config,
+            items
+        }
+    } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        loreBooks = undefined
     }
 
-    const clonedOfJson = Object.assign({}, rawJson, {
-        keywords: undefined,
-        prompts: undefined,
-        format_user_prompt: undefined
-    })
-
-    delete clonedOfJson.keywords
-    delete clonedOfJson.prompts
-    delete clonedOfJson.format_user_prompt
+    if (rawJson.authors_note || rawJson['author_notes']) {
+        authorsNote = rawJson.authors_note || rawJson['author_notes']
+        authorsNote.insertFrequency = authorsNote.insertFrequency ?? 1
+        authorsNote.insertPosition = authorsNote.insertPosition ?? 'in_chat'
+        authorsNote.insertDepth = authorsNote.insertDepth ?? 0
+    }
 
     return {
         triggerKeyword: rawJson.keywords,
         rawText,
-        messages: rawJson.prompts.map((message) => {
-            if (message.role === 'assistant') {
-                return new AIMessage(message.content)
-            } else if (message.role === 'user') {
-                return new HumanMessage(message.content)
-            } else if (message.role === 'system') {
-                return new SystemMessage(message.content)
-            } else {
-                throw new Error(`Unknown role: ${message.role}`)
-            }
-        }),
+        messages: rawJson.prompts.map((message) =>
+            createMessage(message.role, message.content, message.type)
+        ),
         formatUserPromptString: rawJson.format_user_prompt,
-        ...clonedOfJson
+        loreBooks,
+        authorsNote,
+        knowledge: rawJson?.knowledge,
+        version: rawJson?.version,
+        config: rawJson.config ?? {}
     }
 }
