@@ -96,17 +96,26 @@
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
         "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.3.1",
-        "cordis": "^3.18.0",
-        "js-tiktoken": "^1.0.14",
+        "@langchain/core": "^0.3.27",
+        "cordis": "^3.18.1",
+        "js-tiktoken": "npm:@dingyi222666/js-tiktoken@^1.0.15",
         "js-yaml": "^4.1.0",
         "ml-distance": "^4.0.1",
-        "undici-types": "^6.19.8",
-        "user-agents": "^2.0.0-alpha.325",
-        "useragent": "^2.3.0",
+        "undici-types": "^6.21.0",
         "ws": "^8.18.0",
-        "zod": "^3.24.0-canary.20240701T200529",
-        "zod-to-json-schema": "^3.23.3"
+        "zod": "^3.25.0-canary.20241210T225910",
+        "zod-to-json-schema": "^3.24.1"
+    },
+    "resolutions": {
+        "js-tiktoken": "npm:@dingyi222666/js-tiktoken@^1.0.15"
+    },
+    "overrides": {
+        "js-tiktoken": "npm:@dingyi222666/js-tiktoken@^1.0.15"
+    },
+    "pnpm": {
+        "overrides": {
+            "js-tiktoken": "npm:@dingyi222666/js-tiktoken@^1.0.15"
+        }
     },
     "peerDependencies": {
         "@cordisjs/plugin-http": "^0.6.2",

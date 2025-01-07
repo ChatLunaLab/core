@@ -8,6 +8,9 @@ import {
     TiktokenEncoding,
     TiktokenModel
 } from 'js-tiktoken/lite'
+import path from 'path'
+import fs from 'fs/promises'
+import os from 'os'
 
 globalThis.chatluna_tiktoken_cache = globalThis.chatluna_tiktoken_cache ?? {}
 
@@ -17,9 +20,33 @@ export async function getEncoding(
         signal?: AbortSignal
         extendedSpecialTokens?: Record<string, number>
         request?: Request
-        force?: boolean
     }
 ) {
+    const cache = globalThis.chatluna_tiktoken_cache
+
+    // pwd + data/chathub/tmps
+    const cacheDir = path.resolve(os.tmpdir(), 'chatluna', 'tiktoken')
+    const cachePath = path.join(cacheDir, `${encoding}.json`)
+
+    if (cache[encoding]) {
+        return cache[encoding]
+    }
+
+    await fs.mkdir(cacheDir, { recursive: true })
+
+    try {
+        const cacheContent = await fs.readFile(cachePath, 'utf-8')
+
+        const tiktoken = new Tiktoken(
+            JSON.parse(cacheContent),
+            options?.extendedSpecialTokens
+        )
+        cache[encoding] = tiktoken
+        return tiktoken
+    } catch (e) {
+        // ignore
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const crossFetch = (input: any, init?: any) => {
         const request = options?.request
@@ -31,20 +58,22 @@ export async function getEncoding(
         return fetch(input, init)
     }
 
-    const cache = globalThis.chatluna_tiktoken_cache
+    if (cache[encoding] == null) {
+        const url =
+            (options?.request?.proxyAddress?.length ?? 0) > 0
+                ? `https://tiktoken.pages.dev/js/${encoding}.json`
+                : `https://jsd.onmicrosoft.cn/npm/tiktoken@latest/encoders/${encoding}.json`
 
-    if (cache[encoding] == null || options?.force) {
-        const tiktokenBPE = await crossFetch(
-            `https://tiktoken.pages.dev/js/${encoding}.json`,
-            {
-                signal: options?.signal
-            }
-        )
+        const tiktokenBPE = await crossFetch(url, {
+            signal: options?.signal
+        })
             .then((res) => res.json() as unknown as TiktokenBPE)
             .catch((e) => {
                 delete cache[encoding]
                 throw e
             })
+
+        await fs.writeFile(cachePath, JSON.stringify(cache[encoding]))
 
         cache[encoding] = new Tiktoken(
             tiktokenBPE,
@@ -62,7 +91,6 @@ export async function encodingForModel(
         extendedSpecialTokens?: Record<string, number>
         ctx?: Context
         request?: Request
-        force?: boolean
     }
 ) {
     options = options ?? {}

@@ -1,52 +1,59 @@
-import { withResolver } from './promise.ts'
-
 export class ObjectLock {
     private _lock: boolean = false
+    private _queue: {
+        resolve: (unlock: () => void) => void
+        reject: (error: Error) => void
+    }[] = []
 
-    private _queue: number[] = []
-    private _currentId = 0
+    private readonly _timeout: number
 
-    async lock() {
-        const id = this._currentId++
-        this._queue.push(id)
+    constructor(timeout = 1000 * 60 * 3) {
+        this._timeout = timeout
+    }
+
+    async lock(): Promise<() => void> {
+        const unlock = () => {
+            const next = this._queue.shift()
+            if (next) {
+                next.resolve(unlock)
+            } else {
+                this._lock = false
+            }
+        }
 
         if (this._lock) {
-            const { promise, resolve } = withResolver()
+            return new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    const index = this._queue.findIndex(
+                        (q) => q.resolve === resolve
+                    )
+                    if (index !== -1) {
+                        this._queue.splice(index, 1)
+                    }
+                    reject(new Error(`Lock timeout after ${this._timeout}ms`))
+                }, this._timeout)
 
-            const timer = setInterval(() => {
-                if (this._queue[0] === id && this._lock === false) {
-                    clearInterval(timer)
-                    resolve(undefined)
-                }
-            }, 100)
-
-            await promise
+                this._queue.push({
+                    resolve: (unlockFn) => {
+                        clearTimeout(timeoutId)
+                        resolve(unlockFn)
+                    },
+                    reject
+                })
+            })
         }
 
         this._lock = true
-        return id
+        return unlock
     }
 
     async runLocked<T>(func: () => Promise<T>): Promise<T> {
-        const id = await this.lock()
-        const result = await func()
-        await this.unlock(id)
-        return result
-    }
-
-    async unlock(id: number) {
-        if (!this._lock) {
-            throw new Error('unlock without lock')
+        const unlock = await this.lock()
+        try {
+            return await func()
+        } finally {
+            unlock()
         }
-
-        const index = this._queue.indexOf(id)
-
-        if (index === -1) {
-            throw new Error('unlock without lock')
-        }
-
-        this._lock = false
-        this._queue.splice(index, 1)
     }
 
     get isLocked() {

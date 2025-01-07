@@ -3,10 +3,11 @@ import { encodingForModel } from './tiktoken.ts'
 import { Context } from 'cordis'
 import { Request } from '@chatluna/core/service'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
-
 // https://www.npmjs.com/package/js-tiktoken
 
-const tiktokenModels = [
+const tiktokenModels: string[] = [
+    'davinci-002',
+    'babbage-002',
     'text-davinci-003',
     'text-davinci-002',
     'text-davinci-001',
@@ -23,39 +24,63 @@ const tiktokenModels = [
     'code-cushman-001',
     'davinci-codex',
     'cushman-codex',
+    'text-davinci-edit-001',
+    'code-davinci-edit-001',
+    'text-embedding-ada-002',
+    'text-embedding-3-small',
+    'text-embedding-3-large',
+    'text-similarity-davinci-001',
+    'text-similarity-curie-001',
+    'text-similarity-babbage-001',
+    'text-similarity-ada-001',
+    'text-search-davinci-doc-001',
+    'text-search-curie-doc-001',
+    'text-search-babbage-doc-001',
+    'text-search-ada-doc-001',
+    'code-search-babbage-code-001',
+    'code-search-ada-code-001',
     'gpt2',
     'gpt-3.5-turbo',
     'gpt-35-turbo',
     'gpt-3.5-turbo-0301',
     'gpt-3.5-turbo-0613',
     'gpt-3.5-turbo-1106',
+    'gpt-3.5-turbo-0125',
     'gpt-3.5-turbo-16k',
     'gpt-3.5-turbo-16k-0613',
+    'gpt-3.5-turbo-instruct',
+    'gpt-3.5-turbo-instruct-0914',
     'gpt-4',
     'gpt-4-0314',
     'gpt-4-0613',
     'gpt-4-32k',
     'gpt-4-32k-0314',
     'gpt-4-32k-0613',
+    'gpt-4-turbo',
+    'gpt-4-turbo-2024-04-09',
+    'gpt-4-turbo-preview',
     'gpt-4-1106-preview',
-    'gpt-4-vision-preview'
+    'gpt-4-0125-preview',
+    'gpt-4-vision-preview',
+    'gpt-4o',
+    'gpt-4o-2024-05-13',
+    'gpt-4o-2024-08-06',
+    'gpt-4o-mini-2024-07-18',
+    'gpt-4o-mini',
+    'o1-mini',
+    'o1-preview',
+    'o1-preview-2024-09-12',
+    'o1-mini-2024-09-12',
+    'chatgpt-4o-latest',
+    'gpt-4o-realtime',
+    'gpt-4o-realtime-preview-2024-10-01'
 ]
 export const getModelNameForTiktoken = (modelName: string): TiktokenModel => {
-    if (
-        modelName === 'gpt-4-1106-preview' ||
-        modelName === 'gpt-4-vision-preview'
-    ) {
-        return 'gpt-4-1106-preview'
-    }
-    if (modelName === 'gpt-3.5-turbo-1106') {
-        return 'gpt-3.5-turbo-16k'
-    }
-
     if (modelName.startsWith('gpt-3.5-turbo-16k')) {
         return 'gpt-3.5-turbo-16k'
     }
 
-    if (modelName.startsWith('gpt-3.5-turbo')) {
+    if (modelName.startsWith('gpt-3.5-turbo-')) {
         return 'gpt-3.5-turbo'
     }
 
@@ -67,15 +92,26 @@ export const getModelNameForTiktoken = (modelName: string): TiktokenModel => {
         return 'gpt-4'
     }
 
+    if (modelName.startsWith('gpt-4o')) {
+        return 'gpt-4o'
+    }
+
+    if (modelName.startsWith('o1')) {
+        return 'o1-mini'
+    }
+
     if (tiktokenModels.includes(modelName)) {
         return modelName as TiktokenModel
     }
 
-    return 'gpt-3.5-turbo'
+    // most model the context size is larger than gpt-3.5-turbo
+    return 'o1-mini'
 }
 
 export const getEmbeddingContextSize = (modelName?: string): number => {
     switch (modelName) {
+        case 'text-embedding-3-large':
+        case 'text-embedding-3-small':
         case 'text-embedding-ada-002':
             return 8191
         default:
@@ -83,11 +119,12 @@ export const getEmbeddingContextSize = (modelName?: string): number => {
     }
 }
 
-export const getModelContextSize = (
-    modelName: TiktokenModel | string
-): number => {
+export const getModelContextSize = (modelName: string): number => {
     switch (getModelNameForTiktoken(modelName)) {
-        case 'gpt-4-1106-preview':
+        case 'gpt-4o':
+        case 'gpt-4o-2024-05-13':
+        case 'gpt-4-0125-preview':
+        case 'o1-mini':
             return 128000
         case 'gpt-3.5-turbo-16k':
             return 16384
@@ -120,7 +157,6 @@ interface CalculateMaxTokenProps {
     ctx?: Context
     timeout?: number
     request?: Request
-    force?: boolean
 }
 
 interface CalculateTokenProps extends CalculateMaxTokenProps {
@@ -132,8 +168,7 @@ export const calculateMaxTokens = async ({
     modelName,
     ctx,
     timeout,
-    request,
-    force
+    request
 }: CalculateMaxTokenProps) => {
     // fallback to approximate calculation if tiktoken is not available
     let numTokens = Math.ceil(prompt.length / 2)
@@ -141,7 +176,7 @@ export const calculateMaxTokens = async ({
 
     try {
         numTokens = (
-            await encodingForModel(modelName, { ctx, request, force, timeout })
+            await encodingForModel(modelName, { ctx, request, timeout })
         ).encode(prompt).length
     } catch (error) {}
 
@@ -153,7 +188,6 @@ export const calculateTokens = async ({
     modelName,
     ctx,
     request,
-    force,
     fast,
     timeout
 }: CalculateTokenProps) => {
@@ -166,7 +200,7 @@ export const calculateTokens = async ({
 
     try {
         numTokens = (
-            await encodingForModel(modelName, { ctx, request, force, timeout })
+            await encodingForModel(modelName, { ctx, request, timeout })
         ).encode(prompt).length
     } catch (error) {}
 

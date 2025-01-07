@@ -1,9 +1,6 @@
 import type * as fetchType from 'undici-types'
 import type { ClientOptions, WebSocket } from 'ws'
 import { ClientRequestArgs } from 'http'
-// eslint-disable-next-line @typescript-eslint/naming-convention
-import UserAgents from 'user-agents'
-import useragent from 'useragent'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { Context, Inject, Service } from 'cordis'
 import { Logger } from '@cordisjs/logger'
@@ -113,26 +110,54 @@ export class DefaultRequest implements Request {
     }
 
     randomUA() {
-        let result: string | null = null
+        const browsers = ['Chrome', 'Edge']
+        const browser = browsers[Math.floor(Math.random() * browsers.length)]
 
-        let count = 0
-        while (result == null && count < 20) {
-            const generated = UserAgents.random((rawUA) => {
-                const parsedUA = useragent.parse(rawUA.userAgent)
-                return (
-                    useragent.is(rawUA.userAgent).chrome &&
-                    (count < 15 || parseFloat(parsedUA.major) >= 90)
-                )
-            })
+        const chromeVersions = [
+            '90',
+            '91',
+            '92',
+            '93',
+            '94',
+            '95',
+            '96',
+            '97',
+            '98',
+            '99',
+            '100',
+            '101',
+            '102',
+            '103'
+        ]
+        const edgeVersions = [
+            '90',
+            '91',
+            '92',
+            '93',
+            '94',
+            '95',
+            '96',
+            '97',
+            '98',
+            '99',
+            '100',
+            '101',
+            '102',
+            '103'
+        ]
 
-            if (generated != null) {
-                result = generated.toString()
-            }
+        const version =
+            browser === 'Chrome'
+                ? chromeVersions[
+                      Math.floor(Math.random() * chromeVersions.length)
+                  ]
+                : edgeVersions[Math.floor(Math.random() * edgeVersions.length)]
 
-            count++
-        }
+        const osVersions = ['10.0', '11.0']
+        const osVersion =
+            osVersions[Math.floor(Math.random() * osVersions.length)]
 
-        return result
+        return `Mozilla/5.0 (Windows NT ${osVersion}; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ${browser}/${version}.0.0.0 Safari/537.36`
     }
 
     async importProxyAgent() {
@@ -140,7 +165,7 @@ export class DefaultRequest implements Request {
             await import('@cordisjs/plugin-proxy-agent')
         } catch (e) {
             const message =
-                'Please install @cordisjs/plugin-proxy-agent to use proxy, e.g. npm install @cordisjs/plugin-proxy-agent.'
+                'Please install @cordisjs/plugin-http-socks to use proxy, e.g. npm install @cordisjs/plugin-http-socks'
 
             if (this._logger) {
                 this._logger.warn(message)
