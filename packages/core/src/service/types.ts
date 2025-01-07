@@ -1,4 +1,8 @@
-import { PlatformService, RequestService } from '@chatluna/core/service'
+import {
+    PlatformService,
+    RequestService,
+    PresetService
+} from '@chatluna/core/service'
 import {
     BasePlatformClient,
     ChatLunaChainInfo,
@@ -6,10 +10,12 @@ import {
 } from '@chatluna/core/platform'
 import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
 import { AgentTypeRunner } from '@chatluna/core/agent'
+
 declare module '@cordisjs/core' {
     interface Context {
         chatluna_request: RequestService
         chatluna_platform: PlatformService
+        chatluna_preset: PresetService
     }
 
     interface Events {

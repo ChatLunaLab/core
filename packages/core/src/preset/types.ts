@@ -103,6 +103,7 @@ export interface PresetTemplate {
         longMemoryNewQuestionPrompt?: string
         //  postHandler?: PostHandler
     }
+    nickname?: string | string[]
 }
 
 export interface KnowledgeConfig {

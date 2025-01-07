@@ -1,14 +1,11 @@
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
-import { VectorStore } from '@langchain/core/vectorstores'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage } from '@langchain/core/messages'
-import { ChatLunaLLMChainWrapper, SystemPrompts } from '@chatluna/core/chain'
+import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
 import { BasePlatformClient, ClientConfig } from '@chatluna/core/platform'
-import {
-    BufferWindowMemory,
-    VectorStoreRetrieverMemory
-} from '@chatluna/core/memory'
+import { BufferWindowMemory } from '@chatluna/core/memory'
 import { Context } from '@cordisjs/core'
+import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export interface ChatLunaChainInfo {
     name: string
@@ -30,13 +27,9 @@ export interface CreateVectorStoreParams {
 }
 
 export interface CreateChatLunaLLMChainParams {
-    botName: string
     model: ChatLunaChatModel
     embeddings?: ChatLunaBaseEmbeddings
-    longMemory?: VectorStoreRetrieverMemory
     historyMemory: BufferWindowMemory
-    systemPrompt?: SystemPrompts
-    vectorStoreName?: string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,11 +39,12 @@ export interface ChatLunaTool<T = any> {
 
     authorization?: (arg: T) => boolean
     alwaysRecreate?: boolean
+    enabled?: boolean
 }
 
 export type CreateVectorStoreFunction = (
     params: CreateVectorStoreParams
-) => Promise<VectorStore>
+) => Promise<ChatLunaSaveableVectorStore>
 
 export type CreateClientFunction = (
     ctx: Context,
@@ -71,7 +65,9 @@ export interface ModelInfo {
 
     capabilities?: ModelCapability[]
 
-    costPerToken?: number
+    costPerTokenInput?: number
+
+    costPerTokenOutput?: number
 }
 
 export interface PlatformModelInfo extends ModelInfo {
@@ -85,7 +81,7 @@ export enum ModelCapability {
     OUTPUT_TEXT,
     OUTPUT_IMAGE,
     OUTPUT_VOICE,
-    INPUT_FUNC_CALL
+    FUNCTION_CALL
 }
 
 export interface CreateVectorStoreParams {

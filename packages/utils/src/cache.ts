@@ -29,7 +29,10 @@ export class TTLCache<T> extends BaseCache<T> {
     private _cache: Map<string, TTLCacheItem<T>> = new Map()
     private _dispose: () => void
 
-    constructor(private _ttlTime: number = 1000 * 60 * 20) {
+    constructor(
+        private max: number = 100,
+        private _ttlTime: number = 1000 * 60 * 20
+    ) {
         super()
         const timeout = setInterval(() => {
             const now = Date.now()
@@ -60,6 +63,11 @@ export class TTLCache<T> extends BaseCache<T> {
         }
         this._cache.set(key, item)
         this.triggerAddEvent(key, value) // 触发添加事件
+        this._ensureCacheLimit()
+    }
+
+    has(key: string) {
+        return this._cache.has(key)
     }
 
     delete(key: string) {
@@ -79,6 +87,28 @@ export class TTLCache<T> extends BaseCache<T> {
 
     dispose() {
         this._dispose()
+    }
+
+    private _ensureCacheLimit() {
+        while (this._cache.size > this.max) {
+            const oldestKey = this._getOldestKey()
+            if (!oldestKey) return
+            const item = this._cache.get(oldestKey)
+            this._cache.delete(oldestKey)
+            this.triggerDeleteEvent(oldestKey, item.value) // 触发删除事件
+        }
+    }
+
+    private _getOldestKey(): string {
+        let oldestKey = null
+        let oldestExpire = Infinity
+        for (const [key, item] of this._cache.entries()) {
+            if (item.expire < oldestExpire) {
+                oldestKey = key
+                oldestExpire = item.expire
+            }
+        }
+        return oldestKey
     }
 }
 
@@ -107,7 +137,7 @@ export class LRUCache<T> extends BaseCache<T> {
     private _head: ListNode<T> | null = null
     private _tail: ListNode<T> | null = null
 
-    constructor(capacity: number) {
+    constructor(capacity: number = 30) {
         super()
         this._capacity = capacity
     }
@@ -149,6 +179,10 @@ export class LRUCache<T> extends BaseCache<T> {
         this._removeNode(node)
         this._cache.delete(key)
         this.triggerDeleteEvent(key, node.value)
+    }
+
+    has(key: string): boolean {
+        return this._cache.has(key)
     }
 
     clear() {

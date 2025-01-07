@@ -15,10 +15,16 @@ import {
     PlatformModelInfo
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
-import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
+import {
+    ChatLunaError,
+    ChatLunaErrorCode,
+    LRUCache,
+    Option
+} from '@chatluna/utils'
 import { Context, Service } from 'cordis'
 import { parseRawModelName } from '@chatluna/core/utils'
 import { AgentTypeRunner } from '@chatluna/core/agent'
+import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export class PlatformService extends Service {
     private _platformClients: Record<string, BasePlatformClient> = {}
@@ -33,6 +39,8 @@ export class PlatformService extends Service {
 
     private _agentRunners: Record<string, AgentTypeRunner> = {}
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
+
+    private _tmpVectorStores = new LRUCache<ChatLunaSaveableVectorStore>(20)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
@@ -238,7 +246,25 @@ export class PlatformService extends Service {
             )
         }
 
-        return await vectorStoreRetriever(params)
+        const key = params.key ?? 'chatluna'
+
+        if (this._tmpVectorStores.has(key)) {
+            return this._tmpVectorStores.get(key)
+        }
+
+        const vectorStore = await vectorStoreRetriever(params)
+
+        this._tmpVectorStores.set(key, vectorStore)
+
+        return vectorStore
+    }
+
+    async setToolEnabledStatus(tool: string | ChatLunaTool, status: boolean) {
+        if (typeof tool === 'string') {
+            this._tools[tool].enabled = status
+        } else {
+            tool.enabled = status
+        }
     }
 
     async randomConfig(platform: string, lockConfig: boolean = false) {
@@ -265,7 +291,7 @@ export class PlatformService extends Service {
         return undefined
     }
 
-    async randomModel<T extends ModelType>(
+    async randomModel<T extends ModelType = ModelType.all>(
         fullModelName: string,
         modelType: T = ModelType.all as T,
         lockConfig: boolean = false,
