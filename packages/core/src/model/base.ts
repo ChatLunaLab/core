@@ -5,10 +5,9 @@ import {
     ModelRequestParams
 } from '@chatluna/core/model'
 import { ModelInfo } from '@chatluna/core/platform'
-import { Request } from '@chatluna/core/service'
 import {
-    calculateTokens,
     chunkArray,
+    formatFunctionDefinitions,
     getModelContextSize,
     getModelNameForTiktoken,
     messageTypeToOpenAIRole
@@ -27,7 +26,6 @@ import {
 } from '@langchain/core/outputs'
 import { StructuredTool } from '@langchain/core/tools'
 import { Tiktoken } from 'js-tiktoken'
-import { Context } from 'cordis'
 import {
     asyncGeneratorTimeout,
     ChatLunaError,
@@ -46,6 +44,12 @@ export interface ChatLunaModelCallOptions extends BaseChatModelCallOptions {
      * tokens as possible given the prompt and the model's maximum context size.
      */
     maxTokens?: number
+
+    /**
+     * Maximum number of tokens to crop the context to.
+     * If not set, the model's maximum context size will be used.
+     */
+    maxTokenLimit?: number
 
     /** Total probability mass of tokens to consider at each step */
     topP?: number
@@ -83,35 +87,26 @@ export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
     maxConcurrency?: number
 
     maxRetries?: number
-
-    context?: Context
-
-    request?: Request
 }
 
 export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     protected __encoding: Tiktoken
 
+    private _requester: ModelRequester
     private _modelName: string
     private _maxModelContextSize: number
     private _modelInfo: ModelInfo
-    private _ctx: Context
-    private _request: Request
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
     lc_serializable = false
 
     constructor(private _options: ChatLunaModelInput) {
         super(_options)
-
-        this._modelName = _options.model
-        this._maxModelContextSize =
-            _options.modelMaxContextSize ?? _options.modelInfo.maxTokens
+        this._requester = _options.requester
+        this._modelName = _options.model ?? _options.modelInfo.name
+        this._maxModelContextSize = _options.modelMaxContextSize
         this._modelInfo = _options.modelInfo
-        this._ctx = _options.context
-        this._request =
-            _options.request ?? _options.context?.chatluna_request?.root
     }
 
     get callKeys(): (keyof ChatLunaModelCallOptions)[] {
@@ -120,6 +115,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             'model',
             'temperature',
             'maxTokens',
+            'maxTokenLimit',
             'topP',
             'frequencyPenalty',
             'presencePenalty',
@@ -137,18 +133,25 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     invocationParams(
         options?: this['ParsedCallOptions']
     ): ChatLunaModelCallOptions {
-        let maxTokens = options?.maxTokens ?? this._options.maxTokens
+        let maxTokenLimit =
+            options?.maxTokenLimit ?? this._options.maxTokenLimit
 
-        const maxModelContextSize = this.getModelMaxContextSize()
+        if (maxTokenLimit < 0 || maxTokenLimit === 0) {
+            maxTokenLimit = this._maxModelContextSize / 2
+        }
 
-        if (maxTokens > maxModelContextSize || maxTokens < 0) {
-            maxTokens = maxModelContextSize * 0.8
-        } else if (maxTokens === 0) {
-            maxTokens = maxModelContextSize / 2
+        const modelName = options?.model ?? this._modelName
+
+        // fallback to max
+        if (
+            maxTokenLimit != null &&
+            maxTokenLimit >= this.getModelMaxContextSize()
+        ) {
+            maxTokenLimit = this.getModelMaxContextSize()
         }
 
         return {
-            model: options?.model ?? this._options.model,
+            model: modelName,
             temperature: options?.temperature ?? this._options.temperature,
             topP: options?.topP ?? this._options.topP,
             frequencyPenalty:
@@ -157,12 +160,14 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 options?.presencePenalty ?? this._options.presencePenalty,
             n: options?.n ?? this._options.n,
             logitBias: options?.logitBias ?? this._options.logitBias,
-            maxTokens: maxTokens === -1 ? undefined : maxTokens,
+            maxTokens: options?.maxTokens ?? this._options.maxTokens,
+            maxTokenLimit,
             stop: options?.stop ?? this._options.stop,
             stream: options?.stream ?? this._options.stream,
             tools: options?.tools ?? this._options.tools,
             id: options?.id ?? this._options.id,
-            timeout: options?.timeout ?? this._options.timeout ?? 1000 * 60
+            signal: options?.signal ?? this._options.signal,
+            timeout: options?.timeout ?? this._options.timeout
         }
     }
 
@@ -171,19 +176,26 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         options: this['ParsedCallOptions'],
         runManager?: CallbackManagerForLLMRun
     ): AsyncGenerator<ChatGenerationChunk> {
-        // ...
-        ;[messages] = await this.cropMessages(messages, options['tools'])
+        const withTool = (options.tools?.length ?? 0) > 0
 
-        const params = this.invocationParams(options)
+        let promptTokens: number
+
+        if (withTool) {
+            ;[messages, promptTokens] = await this.cropMessages(
+                messages,
+                options['tools']
+            )
+        }
 
         const stream = await this._createStreamWithRetry({
-            ...params,
+            ...this.invocationParams(options),
             input: messages
         })
 
+        const chunks: ChatGenerationChunk[] = []
         for await (const chunk of asyncGeneratorTimeout(
             stream,
-            params.timeout,
+            options.timeout,
             (reject) => {
                 reject(
                     new ChatLunaError(
@@ -194,10 +206,43 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             }
         )) {
             yield chunk
-            if (chunk.message?.additional_kwargs?.function_call == null) {
+
+            const chunkText = chunk.text ?? ''
+
+            if (chunkText != null) {
                 // eslint-disable-next-line no-void
-                void runManager?.handleLLMNewToken(chunk.text ?? '')
+                void runManager?.handleLLMNewToken(chunkText)
             }
+
+            if (withTool) {
+                chunks.push(chunk)
+            }
+        }
+
+        if (withTool && chunks.length > 0) {
+            let chunk: ChatGenerationChunk
+
+            for (const subChunk of chunks) {
+                chunk = chunk ?? subChunk
+                if (chunk !== subChunk) {
+                    chunk = chunk?.concat(subChunk)
+                }
+            }
+
+            const completionTokens = await this._countMessageTokens(
+                chunk.message
+            )
+
+            await runManager?.handleLLMEnd({
+                generations: [],
+                llmOutput: {
+                    tokenUsage: {
+                        completionTokens,
+                        promptTokens,
+                        totalTokens: completionTokens + promptTokens
+                    }
+                }
+            })
         }
     }
 
@@ -206,18 +251,15 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         options: this['ParsedCallOptions'],
         runManager?: CallbackManagerForLLMRun
     ): Promise<ChatResult> {
-        // crop the messages according to the model's max context size
         let promptTokens: number
         ;[messages, promptTokens] = await this.cropMessages(
             messages,
             options['tools']
         )
 
-        const params = this.invocationParams(options)
-
         const response = await this._generateWithRetry(
             messages,
-            params,
+            options,
             runManager
         )
 
@@ -227,7 +269,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
 
         response.generationInfo = response.generationInfo ?? {}
 
-        if (response.generationInfo?.tokenUsage == null) {
+        if (response.generationInfo.tokenUsage == null) {
             const completionTokens = await this._countMessageTokens(
                 response.message
             )
@@ -244,36 +286,34 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
     }
 
-    private async _generateWithRetry(
+    private _generateWithRetry(
         messages: BaseMessage[],
-        options: ChatLunaModelCallOptions,
+        options: this['ParsedCallOptions'],
         runManager?: CallbackManagerForLLMRun
     ): Promise<ChatGeneration> {
-        let response: ChatGeneration
+        const generateWithRetry = async () => {
+            let response: ChatGeneration
 
-        if (options.stream) {
-            const stream = this._streamResponseChunks(
-                messages,
-                options,
-                runManager
-            )
-            let temp: ChatGenerationChunk
-            for await (const chunk of stream) {
-                if (response == null) {
-                    temp = chunk
-                } else {
-                    temp = temp.concat(chunk)
+            if (options.stream) {
+                const stream = this._streamResponseChunks(
+                    messages,
+                    options,
+                    runManager
+                )
+                for await (const chunk of stream) {
+                    response = chunk
                 }
+            } else {
+                response = await this._completion({
+                    ...this.invocationParams(options),
+                    input: messages
+                })
             }
-            response = temp
-        } else {
-            response = await this._completionWithRetry({
-                ...options,
-                input: messages
-            })
+
+            return response
         }
 
-        return response
+        return this.caller.call(generateWithRetry)
     }
 
     private async _withTimeout<T>(
@@ -310,29 +350,23 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
      ** @returns A streaming request.
      */
     private _createStreamWithRetry(params: ModelRequestParams) {
-        return this.caller.callWithOptions(
-            {
-                signal: params.signal
-            },
-            async () => this.requester.completionStream(params)
-        )
-    }
-
-    /** @ignore */
-    private _completionWithRetry(params: ModelRequestParams) {
         const makeCompletionRequest = async () => {
             const result = await this._withTimeout(
-                async () => await this.requester.completion(params),
+                async () => this._requester.completionStream(params),
                 params.timeout
             )
             return result
         }
-        return this.caller.callWithOptions(
-            {
-                signal: params.signal
-            },
-            makeCompletionRequest
+        return this.caller.call(makeCompletionRequest)
+    }
+
+    /** @ignore */
+    private async _completion(params: ModelRequestParams) {
+        const result = await this._withTimeout(
+            () => this._requester.completion(params),
+            params.timeout
         )
+        return result
     }
 
     async cropMessages(
@@ -340,23 +374,24 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         tools?: StructuredTool[],
         systemMessageLength: number = 1
     ): Promise<[BaseMessage[], number]> {
-        const copyOfMessages = [...messages]
+        messages = messages.concat([])
+
         const result: BaseMessage[] = []
+        const maxTokenLimit = this.invocationParams().maxTokenLimit
 
         let totalTokens = 0
 
-        /* ??
         // If there are functions, add the function definitions as they count towards token usage
-        if (tools && tool_call !== 'auto') {
-            const promptDefinitions = formatFunctionDefinitions(formattedTools)
+        if (tools) {
+            const promptDefinitions = formatFunctionDefinitions(tools)
             totalTokens += await this.getNumTokens(promptDefinitions)
             totalTokens += 9 // Add nine per completion
-        } */
+        }
 
         // If there's a system message _and_ functions are present, subtract four tokens. I assume this is because
         // functions typically add a system message, but reuse the first one if it's already there. This offsets
         // the extra 9 tokens added by the function definitions.
-        if (tools && copyOfMessages.find((m) => m._getType() === 'system')) {
+        if (tools && messages.find((m) => m.getType() === 'system')) {
             totalTokens -= 4
         }
 
@@ -365,7 +400,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
 
         let index = 0
 
-        if (copyOfMessages.length < systemMessageLength) {
+        if (messages.length < systemMessageLength) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.UNKNOWN_ERROR,
                 new Error('Message length is less than system message length')
@@ -373,26 +408,17 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
 
         while (index < systemMessageLength) {
-            const message = copyOfMessages.shift()
+            const message = messages.shift()
             systemMessages.push(message)
             totalTokens += await this._countMessageTokens(message)
             index++
         }
 
-        for (const message of copyOfMessages.reverse()) {
-            let messageTokens = await this._countMessageTokens(message, true)
+        for (const message of messages.reverse()) {
+            const messageTokens = await this._countMessageTokens(message)
 
-            if (totalTokens + messageTokens > this.getModelMaxContextSize()) {
-                // try again
-
-                messageTokens = await this._countMessageTokens(message)
-
-                if (
-                    totalTokens + messageTokens >
-                    this.getModelMaxContextSize()
-                ) {
-                    break
-                }
+            if (totalTokens + messageTokens > maxTokenLimit) {
+                break
             }
 
             totalTokens += messageTokens
@@ -406,10 +432,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         return [result, totalTokens]
     }
 
-    private async _countMessageTokens(
-        message: BaseMessage,
-        fast: boolean = false
-    ) {
+    private async _countMessageTokens(message: BaseMessage) {
         let totalCount = 0
         let tokensPerMessage = 0
         let tokensPerName = 0
@@ -424,22 +447,21 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
 
         const textCount = await this.getNumTokens(
-            message.content as string,
-            fast
+            (message?.content as string | null) ?? ''
         )
+
         const roleCount = await this.getNumTokens(
-            messageTypeToOpenAIRole(message._getType()),
-            fast
+            messageTypeToOpenAIRole(message.getType())
         )
         const nameCount =
             message.name !== undefined
-                ? tokensPerName + (await this.getNumTokens(message.name, fast))
+                ? tokensPerName + (await this.getNumTokens(message.name))
                 : 0
         let count = textCount + tokensPerMessage + roleCount + nameCount
 
         // From: https://github.com/hmarr/openai-chat-tokens/blob/main/src/index.ts messageTokenEstimate
         const openAIMessage = message
-        if (openAIMessage._getType() === 'function') {
+        if (openAIMessage.getType() === 'function') {
             count -= 2
         }
         if (openAIMessage.additional_kwargs?.function_call) {
@@ -447,8 +469,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         }
         if (openAIMessage?.additional_kwargs.function_call?.name) {
             count += await this.getNumTokens(
-                openAIMessage.additional_kwargs.function_call?.name,
-                fast
+                openAIMessage.additional_kwargs.function_call?.name
             )
         }
         if (
@@ -462,8 +483,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                     JSON.parse(
                         openAIMessage.additional_kwargs.function_call?.arguments
                     )
-                ),
-                fast
+                )
             )
         }
 
@@ -475,7 +495,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     }
 
     async clearContext(): Promise<void> {
-        await this.requester.dispose()
+        await this._requester.dispose()
     }
 
     getModelMaxContextSize() {
@@ -486,20 +506,29 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         return getModelContextSize(modelName)
     }
 
-    async getNumTokens(text: string, fast?: boolean) {
+    async getNumTokens(text: string) {
         // fallback to approximate calculation if tiktoken is not available
-        const numTokens = Math.ceil(text.length / 2)
+        let numTokens = Math.ceil(text.length / 4)
 
-        if (fast) {
-            return numTokens
+        if (!this.__encoding) {
+            try {
+                this.__encoding = await encodingForModel(
+                    'modelName' in this
+                        ? getModelNameForTiktoken(this.modelName as string)
+                        : 'gpt2'
+                )
+            } catch (error) {
+                /* logger.warn(
+                    'Failed to calculate number of tokens, falling back to approximate count',
+                    error
+                ) */
+            }
         }
 
-        return await calculateTokens({
-            modelName: getModelNameForTiktoken(this._modelName ?? 'gpt2'),
-            prompt: text as string,
-            ctx: this._ctx,
-            request: this._request
-        })
+        if (this.__encoding) {
+            numTokens = this.__encoding.encode(text)?.length ?? numTokens
+        }
+        return numTokens
     }
 
     _llmType(): string {
@@ -515,7 +544,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     }
 
     get requester() {
-        return this._options.requester
+        return this._requester
     }
 
     _modelType(): string {
@@ -523,9 +552,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
     }
 
     /** @ignore */
-    _combineLLMOutput() {
-        return {}
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _combineLLMOutput(...llmOutputs: any[]): any {}
 }
 
 export interface ChatLunaBaseEmbeddingsParams extends EmbeddingsParams {
@@ -672,4 +700,7 @@ export class ChatLunaEmbeddings extends ChatLunaBaseEmbeddings {
             request
         )
     }
+}
+function encodingForModel(arg0: string): Tiktoken | PromiseLike<Tiktoken> {
+    throw new Error('Function not implemented.')
 }

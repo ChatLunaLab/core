@@ -7,7 +7,7 @@ import {
 import { ChainValues } from '@langchain/core/utils/types'
 import { BaseChatMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
-import { AIMessage, BaseMessageChunk } from '@langchain/core/messages'
+import { BaseMessageChunk } from '@langchain/core/messages'
 
 export abstract class ChatLunaLLMChainWrapper<
     T extends ChatLunaLLMChainWrapperInput = ChatLunaLLMChainWrapperInput,
@@ -15,13 +15,13 @@ export abstract class ChatLunaLLMChainWrapper<
 > {
     protected constructor(_params: T) {}
 
-    abstract call(arg: R): Promise<AIMessage>
+    abstract call(arg: R): Promise<BaseMessageChunk>
 
     abstract historyMemory: BaseChatMemory
 
     abstract get model(): ChatLunaChatModel
 
-    abstract createChain(arg: Partial<R>): ChatLunaLLMChain
+    abstract createChain(arg: Partial<ChatLunaLLMCallArg>): ChatLunaLLMChain
 }
 
 export async function callChatLunaChain(
@@ -59,7 +59,6 @@ export async function callChatLunaChain(
             }
         }
 
-        await events?.['llm-used-token-count'](usedToken)
         /* c8 ignore end */
     } else {
         response = await chain.invoke(values, options)

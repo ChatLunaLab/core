@@ -28,7 +28,7 @@ export class BufferWindowMemory
 
     memoryKey = 'history'
 
-    k = 50
+    k = 100
 
     constructor(fields?: BufferWindowMemoryInput) {
         super({
