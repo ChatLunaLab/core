@@ -1,3 +1,3 @@
-# ChatLuna Agent
+# ChatLuna Assistant
 
 ChatLuna 核心项目。

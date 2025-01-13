@@ -44,6 +44,13 @@ export interface ChatLunaConversationGroup {
     ownerId: string
     // true: public false: private
     visible: boolean
+    memberCount: number
+}
+
+export interface ChatLunaConversationGroupUser {
+    userId: string
+    guildId: string
+    isAssistant: boolean
 }
 
 export interface ChatLunaAssistant {
@@ -64,11 +71,6 @@ export interface ChatLunaAssistant {
 
 export type ChatLunaAssistantTemplate = PartialOptional<ChatLunaAssistant, 'id'>
 
-export interface ChatLunaConversationGroupUser {
-    id: string
-    userId: string
-}
-
 export type ChatLunaConversationTemplate = PartialOptional<
     ChatLunaConversation,
     | 'latestMessageId'
@@ -85,6 +87,7 @@ declare module 'cordis' {
     interface Tables {
         chatluna_conversation: ChatLunaConversation
         chatluna_conversation_group: ChatLunaConversationGroup
+        chatluna_conversation_group_user: ChatLunaConversationGroupUser
         chatluna_message: ChatLunaMessage
         chatluna_conversation_user: ChatLunaConversationUser
         chatluna_assistant: ChatLunaAssistant

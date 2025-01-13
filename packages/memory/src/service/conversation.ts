@@ -2,6 +2,7 @@ import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import {
     ChatLunaAssistantTemplate,
     ChatLunaConversation,
+    ChatLunaConversationGroup,
     ChatLunaConversationTemplate,
     ChatLunaConversationUser,
     ChatLunaMessage,
@@ -60,6 +61,87 @@ export class ChatLunaConversationService extends Service {
         })
     }
 
+    async deleteAssistant(id: string) {
+        await this._database.remove('chatluna_assistant', {
+            id
+        })
+    }
+
+    async updateAssistant(assistant: ChatLunaAssistantTemplate) {
+        await this._database.upsert('chatluna_assistant', [
+            {
+                ...assistant
+            }
+        ])
+    }
+
+    async createConversationGroup(
+        group: ChatLunaConversationGroup
+    ): Promise<ChatLunaConversationGroup> {
+        await this._database.create('chatluna_conversation_group', group)
+        await this.joinConversationGroup(group.ownerId, group.id)
+        return group
+    }
+
+    async joinConversationGroup(userId: string, groupId: string) {
+        await this._database.create('chatluna_conversation_group_user', {
+            userId,
+            guildId: groupId
+        })
+    }
+
+    async leaveConversationGroup(userId: string, groupId: string) {
+        await this._database.remove('chatluna_conversation_group_user', {
+            userId,
+            guildId: groupId
+        })
+    }
+
+    async isInConversationGroup(
+        userId: string,
+        groupId: string
+    ): Promise<boolean> {
+        const queried = await this._database.get(
+            'chatluna_conversation_group_user',
+            {
+                userId,
+                guildId: groupId
+            }
+        )
+        return queried.length === 1
+    }
+
+    async resolveConversationGroup(name: string) {
+        const queried = await this._database.get(
+            'chatluna_conversation_group',
+            {
+                name
+            }
+        )
+
+        if (!queried || queried.length === 0 || queried.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.CONVERSATION_GROUP_NOT_FOUND,
+                `The query conversation group with name ${name} is not found or more than one`
+            )
+        }
+
+        return queried[0]
+    }
+
+    async updateConversationGroup(
+        group: ChatLunaConversationGroup
+    ): Promise<ChatLunaConversationGroup> {
+        await this._database.upsert('chatluna_conversation_group', [group])
+        return group
+    }
+
+    async deleteConversationGroup(id: string) {
+        await this._database.remove('chatluna_conversation_group', {
+            id
+        })
+    }
+
     async resolveAssistantByName(name: string) {
         const queried = await this._database.get('chatluna_assistant', {
             name
@@ -94,6 +176,23 @@ export class ChatLunaConversationService extends Service {
             )
         }
         return queried[0]
+    }
+
+    async deleteAssistantByName(name: string) {
+        const queried = await this._database.get('chatluna_assistant', {
+            name
+        })
+        if (!queried || queried.length === 0 || queried.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
+                `The query assistant with name ${name} is not found or more than one: ${JSON.stringify(
+                    queried
+                )}`
+            )
+        }
+        await this._database.remove('chatluna_assistant', {
+            name
+        })
     }
 
     async resolveConversation(
@@ -503,6 +602,15 @@ export class ChatLunaConversationService extends Service {
             }
         )
 
+        this._database.extend('chatluna_conversation_group_user', {
+            userId: 'string',
+            guildId: 'string',
+            isAssistant: {
+                type: 'boolean',
+                initial: false
+            }
+        })
+
         this._database.extend(
             'chatluna_assistant',
             {
@@ -553,6 +661,10 @@ export class ChatLunaConversationService extends Service {
                 // true: public false: private
                 visible: {
                     type: 'boolean'
+                },
+                memberCount: {
+                    type: 'integer',
+                    initial: 1
                 }
             },
             {
