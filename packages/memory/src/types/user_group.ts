@@ -33,14 +33,6 @@ export interface ChatLunaUser {
     lastChatTime?: Date
 
     lastChatConversationId?: string
-    defaultAgent?: string
-}
-
-export interface ChatLunaUserAgentAdditional {
-    userId: string
-    agentId: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    additional_kwargs?: Record<string, any>
 }
 
 declare module 'cordis' {
@@ -48,6 +40,5 @@ declare module 'cordis' {
         chatluna_user_group: ChatLunaUserGroup
         chatluna_user: ChatLunaUser
         chatluna_user_additional: ChatLunaUserAdditional
-        chatluna_user_agent_additional: ChatLunaUserAgentAdditional
     }
 }

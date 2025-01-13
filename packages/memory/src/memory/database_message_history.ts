@@ -178,7 +178,7 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
             await this._ctx.chatluna_conversation.addMessage(
                 this.conversationId,
                 {
-                    role: message._getType(),
+                    role: message.getType(),
                     content: message.content,
                     additional_kwargs: message.additional_kwargs
                 },

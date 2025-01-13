@@ -1,12 +1,10 @@
-import { ChatLunaError, ChatLunaErrorCode, sleep } from '@chatluna/utils'
+import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import {
+    ChatLunaAssistantTemplate,
     ChatLunaConversation,
-    ChatLunaConversationAdditional,
-    ChatLunaConversationFilter,
     ChatLunaConversationTemplate,
-    ChatLunaConversionFilterContext,
+    ChatLunaConversationUser,
     ChatLunaMessage,
-    ChatLunaUserConversation,
     PartialOptional
 } from '@chatluna/memory/types'
 import { dateWithDays, generateUUID } from '@chatluna/memory/utils'
@@ -26,13 +24,7 @@ export class ChatLunaConversationService extends Service {
 
     async createConversation(
         conversationTemplate: ChatLunaConversationTemplate,
-        extra: {
-            userConversation: Omit<ChatLunaUserConversation, 'conversationId'>
-            conversationAdditional?: Omit<
-                ChatLunaConversationAdditional,
-                'conversationId'
-            >
-        }
+        userConversation: Omit<ChatLunaConversationUser, 'conversationId'>
     ): Promise<ChatLunaConversation> {
         const createdTime = new Date()
 
@@ -50,166 +42,58 @@ export class ChatLunaConversationService extends Service {
         await this._database.create('chatluna_conversation', conversation)
 
         await this._database.create(
-            'chatluna_user_conversation',
-            Object.assign({}, extra.userConversation, {
+            'chatluna_conversation_user',
+            Object.assign({}, userConversation, {
                 conversationId: conversation.id
             })
         )
 
-        if (extra.conversationAdditional) {
-            await this._database.create(
-                'chatluna_conversation_additional',
-                Object.assign({}, extra.conversationAdditional, {
-                    conversationId: conversation.id
-                })
-            )
-        }
-
         return conversation
     }
 
-    async createConversationFilter(filter: ChatLunaConversationFilter) {
-        if (filter.default_agent) {
-            filter.priority = -1
-        }
+    async createAssistant(assistant: ChatLunaAssistantTemplate) {
+        const id = generateUUID()
 
-        await this._database.create(
-            'chatluna_conversation_filter',
-            Object.assign({}, filter)
-        )
+        await this._database.create('chatluna_assistant', {
+            id,
+            ...assistant
+        })
     }
 
-    async resolveConversationFilter(
-        agent: string,
-        priority?: number,
-        context?: ChatLunaConversionFilterContext
-    ): Promise<ChatLunaConversationFilter | undefined> {
-        let selection = this._database
-            .select('chatluna_conversation_filter')
-            .where({
-                agent
-            })
-            .orderBy('priority', 'asc')
-
-        if (priority) {
-            selection = selection.where({
-                priority: {
-                    $gte: priority
-                }
-            })
-        }
-
-        const queried = await selection.execute()
-
-        for (const filter of queried) {
-            if (!filter) {
-                return undefined
-            }
-
-            if (
-                filter.platform != null &&
-                filter.platform !== context?.platform
-            ) {
-                continue
-            }
-
-            if (filter.guildId != null && filter.guildId !== context?.guildId) {
-                continue
-            }
-
-            if (filter.userId != null && filter.userId !== context?.userId) {
-                continue
-            }
-
-            if (filter.agent != null && filter.agent !== context?.agent) {
-                continue
-            }
-
-            return filter
-        }
-
-        return undefined
-    }
-
-    async useConversationFilter(
-        agent: string,
-        priority?: number,
-        context?: ChatLunaConversionFilterContext,
-        throwError: boolean = true
-    ) {
-        const filter = await this.resolveConversationFilter(
-            agent,
-            priority,
-            context
-        )
-
-        if (!filter && throwError) {
+    async resolveAssistantByName(name: string) {
+        const queried = await this._database.get('chatluna_assistant', {
+            name
+        })
+        if (!queried || queried.length === 0 || queried.length > 1) {
             throw new ChatLunaError(
-                ChatLunaErrorCode.CONVERSATION_FILTER_NOT_FOUND,
-                `The query conversation filter with agent ${agent} is not found`
+                ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
+                `The query assistant with name ${name} is not found or more than one: ${JSON.stringify(
+                    queried
+                )}`
             )
         }
+        return queried[0]
+    }
 
-        if (!filter) {
-            return undefined
-        }
+    async getAllAssistant() {
+        const queried = await this._database.get('chatluna_assistant', {})
 
-        const visibility = filter.visibility
+        return queried
+    }
 
-        if (visibility === 'private') {
-            const conversations = await this.queryConversationsByUser(
-                context.userId
+    async getAssistant(id: string) {
+        const queried = await this._database.get('chatluna_assistant', {
+            id
+        })
+        if (!queried || queried.length === 0 || queried.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
+                `The query assistant with id ${id} is not found or more than one: ${JSON.stringify(
+                    queried
+                )}`
             )
-
-            if (conversations.length === 0) {
-                // need create conversation
-                return true
-            }
-
-            return conversations.find(
-                (conversation) => conversation[0].agent === filter.agent
-            )[0]
-        } else if (visibility === 'public') {
-            const selection = this._database
-                .select('chatluna_conversation_additional')
-                .where({
-                    visibility,
-                    guildId: filter.guildId,
-                    agent: filter.agent
-                })
-
-            const queried = await selection.execute()
-
-            if (queried?.length !== 1) {
-                return true
-            }
-
-            const additional = queried[0]
-
-            return await this.resolveConversation(additional.conversationId)
-        } else if (visibility === 'public_global') {
-            const selection = this._database
-                .select('chatluna_conversation_additional')
-                .where({
-                    visibility,
-                    agent: filter.agent
-                })
-
-            const queried = await selection.execute()
-
-            if (queried?.length < 0) {
-                return true
-            } else if (queried?.length > 1) {
-                throw new ChatLunaError(
-                    ChatLunaErrorCode.CONVERSATION_FILTER_NOT_FOUND,
-                    `The query conversation filter with agent ${agent} is more than one`
-                )
-            }
-
-            const additional = queried[0]
-
-            return await this.resolveConversation(additional.conversationId)
         }
+        return queried[0]
     }
 
     async resolveConversation(
@@ -239,13 +123,13 @@ export class ChatLunaConversationService extends Service {
 
     async queryConversationsByUser(
         userId: string,
-        agent: string | undefined = undefined
-    ): Promise<[ChatLunaConversation, ChatLunaUserConversation][]> {
+        assistant: string | undefined = undefined
+    ): Promise<[ChatLunaConversation, ChatLunaConversationUser][]> {
         const selection = this._database
-            .select('chatluna_user_conversation')
+            .select('chatluna_conversation_user')
             .where({
                 userId,
-                agent
+                assistant
             })
 
         const queried = await selection.execute()
@@ -268,9 +152,9 @@ export class ChatLunaConversationService extends Service {
     async resolveUserConversation(
         userId: string,
         conversationId: string | undefined = undefined
-    ): Promise<ChatLunaUserConversation> {
+    ): Promise<ChatLunaConversationUser> {
         let selection = this._database
-            .select('chatluna_user_conversation')
+            .select('chatluna_conversation_user')
             .where({
                 userId
             })
@@ -295,7 +179,7 @@ export class ChatLunaConversationService extends Service {
 
     async cloneConversation(
         conversation: ChatLunaConversation | string,
-        extra: ChatLunaUserConversation
+        extra: ChatLunaConversationUser
     ): Promise<ChatLunaConversation> {
         const createdTime = new Date()
 
@@ -315,7 +199,7 @@ export class ChatLunaConversationService extends Service {
         await this._database.create('chatluna_conversation', clonedConversation)
 
         await this._database.create(
-            'chatluna_user_conversation',
+            'chatluna_conversation_user',
             Object.assign({}, extra, {
                 conversationId: clonedConversation.id
             })
@@ -330,7 +214,7 @@ export class ChatLunaConversationService extends Service {
             | Partial<ChatLunaConversationTemplate>
             | undefined = undefined,
         lastUpdatedTime: Date = dateWithDays(-1)
-    ): Promise<[ChatLunaConversation, ChatLunaUserConversation][]> {
+    ): Promise<[ChatLunaConversation, ChatLunaConversationUser][]> {
         const fuzzyQueries: ((rows: Rows) => Expr)[] = Object.keys(
             fuzzyConversation ?? []
         )
@@ -344,13 +228,13 @@ export class ChatLunaConversationService extends Service {
 
         const queryResults = await this._database
             .join(
-                ['chatluna_conversation', 'chatluna_user_conversation'],
+                ['chatluna_conversation', 'chatluna_conversation_user'],
                 (conversation, conversationAdditional) =>
                     $.eq(conversation.id, conversationAdditional.conversationId)
             )
             .where((rows) =>
                 $.and(
-                    $.eq(rows.chatluna_user_conversation.userId, userId),
+                    $.eq(rows.chatluna_conversation_user.userId, userId),
                     $.gte(
                         rows.chatluna_conversation.updatedTime,
                         lastUpdatedTime
@@ -363,14 +247,14 @@ export class ChatLunaConversationService extends Service {
 
         return queryResults.map((result) => [
             result.chatluna_conversation,
-            result.chatluna_user_conversation
+            result.chatluna_conversation_user
         ])
     }
 
     async updateConversationAdditional(
         conversationId: string,
         userConversation:
-            | Partial<ChatLunaUserConversation>
+            | Partial<ChatLunaConversationUser>
             | undefined = undefined,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         additional_kwargs: Record<string, unknown> | undefined = undefined,
@@ -387,7 +271,7 @@ export class ChatLunaConversationService extends Service {
         }
 
         if (force || (userConversation && userId)) {
-            await this._database.upsert('chatluna_user_conversation', [
+            await this._database.upsert('chatluna_conversation_user', [
                 {
                     conversationId,
                     userId,
@@ -431,7 +315,6 @@ export class ChatLunaConversationService extends Service {
 
         await this._database.upsert('chatluna_conversation', [conversation])
 
-        await sleep(1)
         if (needCrop) {
             return await this.cropMessages(conversation.id, maxMessageCount)
         }
@@ -439,7 +322,7 @@ export class ChatLunaConversationService extends Service {
 
     async deleteAllConversation() {
         await this._database.remove('chatluna_conversation', {})
-        await this._database.remove('chatluna_user_conversation', {})
+        await this._database.remove('chatluna_conversation_user', {})
         await this._database.remove('chatluna_message', {})
     }
 
@@ -448,7 +331,7 @@ export class ChatLunaConversationService extends Service {
             id: conversationIds
         })
 
-        await this._database.remove('chatluna_user_conversation', {
+        await this._database.remove('chatluna_conversation_user', {
             conversationId: conversationIds
         })
 
@@ -549,18 +432,14 @@ export class ChatLunaConversationService extends Service {
                     type: 'json',
                     nullable: true
                 },
-                agent: {
+                assistant: {
                     type: 'string'
-                },
-                model: {
-                    type: 'string',
-                    nullable: true
                 },
 
                 createdTime: {
                     type: 'timestamp'
                 },
-                name: {
+                title: {
                     type: 'string',
                     nullable: true
                 }
@@ -582,7 +461,6 @@ export class ChatLunaConversationService extends Service {
                 createdTime: {
                     type: 'timestamp'
                 },
-
                 content: {
                     type: 'json'
                 },
@@ -614,83 +492,74 @@ export class ChatLunaConversationService extends Service {
         )
 
         this._database.extend(
-            'chatluna_user_conversation',
+            'chatluna_conversation_user',
             {
-                conversationId: {
-                    type: 'string'
+                userId: 'string',
+                conversationId: 'string',
+                assistant: 'string'
+            },
+            {
+                primary: ['userId', 'conversationId']
+            }
+        )
+
+        this._database.extend(
+            'chatluna_assistant',
+            {
+                id: 'string',
+                name: 'string',
+                preset: 'string',
+                model: 'string',
+                description: {
+                    type: 'string',
+                    nullable: true
                 },
-                userId: {
-                    type: 'string'
+                avatar: {
+                    type: 'string',
+                    nullable: true
                 },
-                owner: {
-                    type: 'boolean'
+                tools: {
+                    type: 'json',
+                    nullable: true
                 },
-                agent: {
-                    type: 'string'
+                files: {
+                    type: 'array',
+                    nullable: true
                 }
             },
             {
-                primary: 'conversationId',
+                primary: ['id']
+            }
+        )
+
+        this._database.extend(
+            'chatluna_conversation_group',
+            {
+                guildId: {
+                    type: 'string'
+                },
+                conversationId: {
+                    type: 'string'
+                },
+                id: {
+                    type: 'string'
+                },
+                name: {
+                    type: 'string'
+                },
+                ownerId: {
+                    type: 'string'
+                },
+                // true: public false: private
+                visible: {
+                    type: 'boolean'
+                }
+            },
+            {
+                primary: 'id',
                 foreign: {
-                    userId: ['chatluna_user', 'userId'],
-                    conversationId: ['chatluna_conversation', 'conversationId']
+                    conversationId: ['chatluna_conversation', 'id']
                 }
-            }
-        )
-
-        this._database.extend(
-            'chatluna_conversation_filter',
-            {
-                agent: {
-                    type: 'string'
-                },
-                default_agent: {
-                    type: 'boolean'
-                },
-                visibility: {
-                    type: 'string'
-                },
-                priority: {
-                    type: 'integer'
-                },
-                guildId: {
-                    type: 'string',
-                    nullable: true
-                },
-                userId: {
-                    type: 'string',
-                    nullable: true
-                },
-                platform: {
-                    type: 'string',
-                    nullable: true
-                }
-            },
-            {
-                primary: ['agent', 'priority']
-            }
-        )
-
-        this._database.extend(
-            'chatluna_conversation_additional',
-            {
-                guildId: {
-                    type: 'string',
-                    nullable: true
-                },
-                visibility: {
-                    type: 'string'
-                },
-                agent: {
-                    type: 'string',
-                    nullable: true
-                },
-                conversationId: {
-                    type: 'string'
-                }
-            },
-            {
-                primary: 'conversationId'
             }
         )
     }
@@ -706,5 +575,5 @@ declare module 'cordis' {
 
 type Rows = Row<{
     chatluna_conversation: ChatLunaConversation
-    chatluna_user_conversation: ChatLunaUserConversation
+    chatluna_conversation_user: ChatLunaConversationUser
 }>

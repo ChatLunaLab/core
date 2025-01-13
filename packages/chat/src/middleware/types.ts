@@ -12,7 +12,7 @@ export interface ChatMiddlewareName {
     /**
      * lifecycle of the middleware execution, it mean the middleware will be request to the model
      */
-    'lifecycle-request_model': never
+    'lifecycle-request-model': never
     /**
      * lifecycle of the middleware execution, it mean the middleware will be send message
      */
@@ -21,7 +21,7 @@ export interface ChatMiddlewareName {
     /**
      * lifecycle of the middleware execution, it mean the middleware will be handle command
      */
-    'lifecycle-handle_command': never
+    'lifecycle-handle-command': never
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

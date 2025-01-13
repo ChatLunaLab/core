@@ -22,7 +22,7 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
         public graph: ChatMiddlewareGraph<T, R>
     ) {
         this._initLifecycleMiddleware()
-        this._logger = this.ctx.logger('chatluna_middleware_executor')
+        this._logger = this.ctx.logger('chatluna')
     }
 
     middleware(
@@ -226,17 +226,17 @@ export class ChatMiddlewareExecutor<T = any, R = any> {
             .after('lifecycle-prepare')
 
         this.graph
-            .middleware('lifecycle-handle_command', async (session, ctx) => 0)
-            .before('lifecycle-request_model')
+            .middleware('lifecycle-handle-command', async (session, ctx) => 0)
+            .before('lifecycle-request-model')
             .after('lifecycle-check')
 
         this.graph
-            .middleware('lifecycle-request_model', async (session, ctx) => 0)
+            .middleware('lifecycle-request-model', async (session, ctx) => 0)
             .before('lifecycle-send')
             .after('lifecycle-send')
 
         this.graph
             .middleware('lifecycle-send', async (session, ctx) => 0)
-            .after('lifecycle-request_model')
+            .after('lifecycle-request-model')
     }
 }

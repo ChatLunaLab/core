@@ -14,64 +14,59 @@ export interface ChatLunaMessage extends ChatLunaSimpleMessage {
     createdTime: Date
     conversationId: string
     parentId?: string
+    userId?: string
 }
 
 export interface ChatLunaConversation {
     id: string
-    name?: string
+    title?: string
     latestMessageId?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>
 
-    agent: string
-
-    // platform model
-    // if not set, the chat will use the platform default model
-    model?: string
+    assistant: string
 
     createdTime: Date
     updatedTime: Date
 }
 
-export interface ChatLunaUserConversation {
+export interface ChatLunaConversationUser {
     userId: string
     conversationId: string
-    owner: boolean
-
-    agent?: string
+    assistant: string
 }
 
-export interface ChatLunaConversationAdditional {
-    guildId?: string
-
-    visibility: 'public_global' | 'private' | 'public'
-
-    agent?: string
-
+export interface ChatLunaConversationGroup {
+    guildId: string
     conversationId: string
+    id: string
+    name: string
+    ownerId: string
+    // true: public false: private
+    visible: boolean
 }
 
-export interface ChatLunaConversationFilter {
-    // 是否为 agent 默认的过滤器
-    default_agent: boolean
-
-    agent: string
-
-    visibility: 'public_global' | 'private' | 'public'
-
-    priority: number
-
-    guildId?: string
-    userId?: string
-
-    platform?: string
+export interface ChatLunaAssistant {
+    id: string
+    name: string
+    preset: string
+    model: string
+    description?: string
+    avatar?: string
+    tools?: {
+        name: string
+        enabled: boolean
+        alwaysEnabled?: boolean
+        triggerKeywords?: string[]
+    }[]
+    files?: string[]
 }
 
-export interface ChatLunaConversionFilterContext {
-    guildId?: string
-    userId?: string
-    platform?: string
-    agent?: string
+export type ChatLunaAssistantTemplate = PartialOptional<ChatLunaAssistant, 'id'>
+
+export interface ChatLunaConversationGroupUser {
+    id: string
+    userId: string
 }
 
 export type ChatLunaConversationTemplate = PartialOptional<
@@ -81,6 +76,7 @@ export type ChatLunaConversationTemplate = PartialOptional<
     | 'additional_kwargs'
     | 'createdTime'
     | 'updatedTime'
+    | 'title'
 >
 
 export type ChatLunaMessageRole = MessageType
@@ -88,9 +84,9 @@ export type ChatLunaMessageRole = MessageType
 declare module 'cordis' {
     interface Tables {
         chatluna_conversation: ChatLunaConversation
-        chatluna_conversation_filter: ChatLunaConversationFilter
-        chatluna_conversation_additional: ChatLunaConversationAdditional
+        chatluna_conversation_group: ChatLunaConversationGroup
         chatluna_message: ChatLunaMessage
-        chatluna_user_conversation: ChatLunaUserConversation
+        chatluna_conversation_user: ChatLunaConversationUser
+        chatluna_assistant: ChatLunaAssistant
     }
 }

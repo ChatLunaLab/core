@@ -2,7 +2,6 @@ import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import {
     ChatLunaUser,
     ChatLunaUserAdditional,
-    ChatLunaUserAgentAdditional,
     ChatLunaUserGroup,
     PartialOptional
 } from '@chatluna/memory/types'
@@ -218,56 +217,6 @@ export class ChatLunaUserService extends Service {
         ])
     }
 
-    async queryUserAgents(userId: string) {
-        const queries = await this._database.get(
-            'chatluna_user_agent_additional',
-            {
-                userId
-            }
-        )
-
-        if (queries?.length === 0) {
-            return []
-        }
-
-        return queries
-    }
-
-    async queryUserAgent(userId: string, agentId: string) {
-        const queries = await this._database.get(
-            'chatluna_user_agent_additional',
-            {
-                userId,
-                agentId
-            }
-        )
-
-        if (queries?.length === 1) {
-            return queries[0]
-        }
-
-        throw new ChatLunaError(
-            ChatLunaErrorCode.USER_NOT_FOUND,
-            `Agent ${agentId} not found`
-        )
-    }
-
-    async updateUserPreset(
-        userId: string,
-        presetId: string,
-        template: Partial<ChatLunaUserAgentAdditional>
-    ) {
-        await this._database.upsert('chatluna_user_agent_additional', [
-            Object.assign(
-                {
-                    userId,
-                    presetId
-                },
-                template
-            )
-        ])
-    }
-
     async updateChatTime(userId: string, currentTime: Date /* = new Date() */) {
         const [user, additional] = await this.queryUserWithAdditional(userId)
 
@@ -329,10 +278,6 @@ export class ChatLunaUserService extends Service {
                 lastChatConversationId: {
                     type: 'string',
                     nullable: true
-                },
-                defaultAgent: {
-                    type: 'string',
-                    nullable: true
                 }
             },
             {
@@ -391,25 +336,6 @@ export class ChatLunaUserService extends Service {
             },
             {
                 primary: 'id',
-                autoInc: true
-            }
-        )
-
-        this._database.extend(
-            'chatluna_user_agent_additional',
-            {
-                userId: {
-                    type: 'string'
-                },
-                agentId: {
-                    type: 'string'
-                },
-                additional_kwargs: {
-                    type: 'json'
-                }
-            },
-            {
-                primary: ['userId', 'agentId'],
                 autoInc: true
             }
         )

@@ -33,7 +33,7 @@ export class ChatLunaService extends Service {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async installPlugin(plugin: ChatLunaPlugin<any>) {
+    installPlugin(plugin: ChatLunaPlugin<any>) {
         if (this._plugins.find((p) => p.name === plugin.name)) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.UNKNOWN_ERROR,
@@ -46,7 +46,7 @@ export class ChatLunaService extends Service {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async removePlugin(plugin: ChatLunaPlugin<any>) {
+    removePlugin(plugin: ChatLunaPlugin<any>) {
         this._plugins.splice(this._plugins.indexOf(plugin), 1)
 
         plugin.dispose()

@@ -96,11 +96,6 @@ export abstract class ChatLunaPlatformPlugin<
             )
         }
 
-        // inject to root ctx
-        ctx.runtime.inject['cache'] = {
-            required: true
-        }
-
         super(ctx, config, false)
 
         this.createConfigPool = createConfigPool
