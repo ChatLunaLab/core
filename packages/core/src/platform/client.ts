@@ -1,22 +1,40 @@
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
-import { ClientConfig, ModelInfo } from '@chatluna/core/platform'
+import {
+    ClientConfig,
+    ClientConfigPool,
+    ClientConfigPoolMode,
+    ModelInfo
+} from '@chatluna/core/platform'
 import { Context } from 'cordis'
 import { TTLCache } from '@chatluna/utils'
 
 export abstract class BasePlatformClient<
     T extends ClientConfig = ClientConfig,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L = any,
     R = ChatLunaChatModel | ChatLunaBaseEmbeddings
 > {
     private _modelPool: TTLCache<R>
 
+    configPool: ClientConfigPool<T>
+
+    private _defaultConfig: T
+
     constructor(
-        public config: T,
+        public config: L,
+        public platform: string,
         public ctx?: Context,
-        public platform: string = config.platform
+        configPoolMode: ClientConfigPoolMode = ClientConfigPoolMode.AlwaysTheSame
     ) {
-        config.concurrentMaxSize = config.concurrentMaxSize ?? 1
+        this.configPool = new ClientConfigPool<T>(configPoolMode)
+
+        this.configPool.addConfigs(...this.parseConfig(config))
+
+        this._defaultConfig = this.configPool.getConfig(true)
+
+        /* config.concurrentMaxSize = config.concurrentMaxSize ?? 1
         config.maxRetries = config.maxRetries ?? 3
-        config.timeout = config.timeout ?? 1000 * 30
+        config.timeout = config.timeout ?? 1000 * 30 */
         this._modelPool = new TTLCache<R>()
 
         ctx?.on('dispose', () => {
@@ -25,12 +43,12 @@ export abstract class BasePlatformClient<
     }
 
     async isAvailable(): Promise<boolean> {
-        for (let i = 0; i < this.config.maxRetries; i++) {
+        for (let i = 0; i < this._defaultConfig.maxRetries; i++) {
             try {
                 await this.init()
                 return true
             } catch (e) {
-                if (i === this.config.maxRetries - 1) {
+                if (i === this._defaultConfig.maxRetries - 1) {
                     return false
                 }
             }
@@ -42,6 +60,8 @@ export abstract class BasePlatformClient<
     abstract getModels(): Promise<ModelInfo[]>
 
     abstract refreshModels(): Promise<ModelInfo[]>
+
+    abstract parseConfig(config: L): T[]
 
     protected abstract _createModel(model: string): R
 
@@ -57,23 +77,16 @@ export abstract class BasePlatformClient<
         maxConcurrency?: number
     } {
         return {
-            maxRetries: this.config.maxRetries,
-            maxConcurrency: this.config.concurrentMaxSize,
-            timeout: this.config.timeout
+            maxRetries: this._defaultConfig.maxRetries,
+            maxConcurrency: this._defaultConfig.concurrentMaxSize,
+            timeout: this._defaultConfig.timeout
         }
     }
 }
 
-export abstract class ClearContextPlatformClient<
-    T extends ClientConfig = ClientConfig,
-    R = ChatLunaChatModel | ChatLunaBaseEmbeddings
-> extends BasePlatformClient<T, R> {
-    async clearContext(): Promise<void> {}
-}
-
 export abstract class PlatformModelClient<
     T extends ClientConfig = ClientConfig
-> extends ClearContextPlatformClient<T, ChatLunaChatModel> {}
+> extends BasePlatformClient<T, ChatLunaChatModel> {}
 
 export abstract class PlatformEmbeddingsClient<
     T extends ClientConfig = ClientConfig
@@ -81,7 +94,4 @@ export abstract class PlatformEmbeddingsClient<
 
 export abstract class PlatformModelAndEmbeddingsClient<
     T extends ClientConfig = ClientConfig
-> extends ClearContextPlatformClient<
-    T,
-    ChatLunaChatModel | ChatLunaBaseEmbeddings
-> {}
+> extends BasePlatformClient<T, ChatLunaChatModel | ChatLunaBaseEmbeddings> {}

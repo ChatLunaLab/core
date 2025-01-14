@@ -2,7 +2,6 @@ import {
     BasePlatformClient,
     ChatLunaTool,
     ClientConfig,
-    ClientConfigPool,
     ContextWrapper,
     CreateClientFunction,
     CreateVectorStoreFunction,
@@ -15,15 +14,9 @@ import {
     PlatformModelInfo
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
-import {
-    ChatLunaError,
-    ChatLunaErrorCode,
-    LRUCache,
-    Option
-} from '@chatluna/utils'
+import { ChatLunaError, ChatLunaErrorCode, LRUCache } from '@chatluna/utils'
 import { Context, Service } from 'cordis'
 import { parseRawModelName } from '@chatluna/core/utils'
-import { AgentTypeRunner } from '@chatluna/core/agent'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export class PlatformService extends Service {
@@ -33,11 +26,9 @@ export class PlatformService extends Service {
         ContextWrapper<CreateClientFunction>
     > = {}
 
-    private _configPools: Record<string, ClientConfigPool> = {}
     private _tools: Record<string, ChatLunaTool> = {}
     private _models: Record<string, ModelInfo[]> = {}
 
-    private _agentRunners: Record<string, AgentTypeRunner> = {}
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
 
     private _tmpVectorStores = new LRUCache<ChatLunaSaveableVectorStore>(20)
@@ -61,39 +52,9 @@ export class PlatformService extends Service {
             value: createClientFunction
         }
 
-        if (!this._configPools[platform] && registerConfigPool) {
-            this._configPools[platform] = new ClientConfigPool()
-        }
-
         const disposable = () => this._unregisterClient(platform)
 
         return this.ctx.effect(() => disposable)
-    }
-
-    registerConfigs(
-        platform: string,
-        ...configs: Option<ClientConfig, 'platform'>[]
-    ) {
-        if (!this._configPools[platform]) {
-            throw new Error(`Config pool ${platform} not found`)
-        }
-
-        const values = configs.map((config) => ({
-            ...config,
-            platform
-        }))
-
-        this._configPools[platform].addConfigs(...values)
-    }
-
-    registerConfigPool(platform: string, configPool: ClientConfigPool) {
-        if (this._configPools[platform]) {
-            throw new Error(`Config pool ${platform} already exists`)
-        }
-
-        this._configPools[platform] = configPool
-
-        return () => delete this._configPools[platform]
     }
 
     registerTool(name: string, toolCreator: ChatLunaTool) {
@@ -111,47 +72,25 @@ export class PlatformService extends Service {
     }
 
     private _unregisterClient(platform: string) {
-        const configPool = this._configPools[platform]
+        delete this._models[platform]
 
-        if (!configPool) {
-            this.ctx.logger?.warn(`Config pool ${platform} not found`)
+        delete this._createClientFunctions[platform]
+
+        const client = this._platformClients[platform]
+
+        if (client == null) {
             return
         }
 
-        const configs = configPool?.getConfigs() ?? []
+        delete this._platformClients[platform]
 
-        delete this._models[platform]
-        delete this._configPools[platform]
-        delete this._createClientFunctions[platform]
-
-        for (const config of configs) {
-            const client =
-                this._platformClients[this._getClientConfigAsKey(config)]
-
-            if (client == null) {
-                continue
-            }
-
-            delete this._platformClients[this._getClientConfigAsKey(config)]
-
-            if (client instanceof PlatformModelClient) {
-                this.ctx.emit('chatluna/model-removed', this, platform, client)
-            } else if (client instanceof PlatformEmbeddingsClient) {
-                this.ctx.emit(
-                    'chatluna/embeddings-removed',
-                    this,
-                    platform,
-                    client
-                )
-            } else if (client instanceof PlatformModelAndEmbeddingsClient) {
-                this.ctx.emit(
-                    'chatluna/embeddings-removed',
-                    this,
-                    platform,
-                    client
-                )
-                this.ctx.emit('chatluna/model-removed', this, platform, client)
-            }
+        if (client instanceof PlatformModelClient) {
+            this.ctx.emit('chatluna/model-removed', this, platform, client)
+        } else if (client instanceof PlatformEmbeddingsClient) {
+            this.ctx.emit('chatluna/embeddings-removed', this, platform, client)
+        } else if (client instanceof PlatformModelAndEmbeddingsClient) {
+            this.ctx.emit('chatluna/embeddings-removed', this, platform, client)
+            this.ctx.emit('chatluna/model-removed', this, platform, client)
         }
     }
 
@@ -171,19 +110,6 @@ export class PlatformService extends Service {
         return this.ctx.effect(() => disposable)
     }
 
-    registerAgentRunner(agentRunner: AgentTypeRunner) {
-        const name = agentRunner.type
-        this._agentRunners[name] = agentRunner
-        this.ctx.emit('chatluna/agent-runner-added', this, name, agentRunner)
-        const disposable = () => this._unregisterAgentRunner(name)
-        return this.ctx.effect(() => disposable)
-    }
-
-    private _unregisterAgentRunner(name: string) {
-        delete this._agentRunners[name]
-        this.ctx.emit('chatluna/agent-runner-removed', this, name)
-    }
-
     getModels(platform: string, type: ModelType) {
         return (
             this._models[platform]?.filter(
@@ -194,10 +120,6 @@ export class PlatformService extends Service {
 
     get tools() {
         return Object.keys(this._tools)
-    }
-
-    getConfigs(platform: string) {
-        return this._configPools[platform]?.getConfigs() ?? []
     }
 
     resolveModel(platform: string): ModelInfo
@@ -220,21 +142,6 @@ export class PlatformService extends Service {
 
     get vectorStores() {
         return Object.keys(this._vectorStore)
-    }
-
-    get agentRunners(): Readonly<Record<string, AgentTypeRunner>> {
-        return Object.freeze({ ...this._agentRunners })
-    }
-
-    makeConfigStatus(config: ClientConfig, isAvailable: boolean) {
-        const platform = config.platform
-        const pool = this._configPools[platform]
-
-        if (!pool) {
-            throw new Error(`Config pool ${platform} not found`)
-        }
-
-        return pool.markConfigStatus(config, isAvailable)
     }
 
     async createVectorStore(name: string, params: CreateVectorStoreParams) {
@@ -267,39 +174,14 @@ export class PlatformService extends Service {
         }
     }
 
-    async randomConfig(platform: string, lockConfig: boolean = false) {
-        return this._configPools[platform]?.getConfig(lockConfig)
-    }
-
-    async randomClient(platform: string, lockConfig: boolean = false) {
-        const pool = this._configPools[platform]
-        let config = await this.randomConfig(platform, lockConfig)
-
-        while (config != null) {
-            const client = await this.getClient(config)
-
-            if (pool.isAvailable(config)) {
-                return client
-            }
-            try {
-                config = await this.randomConfig(platform, lockConfig)
-            } catch (e) {
-                config = undefined
-            }
-        }
-
-        return undefined
-    }
-
     async randomModel<T extends ModelType = ModelType.all>(
         fullModelName: string,
         modelType: T = ModelType.all as T,
-        lockConfig: boolean = false,
         reCreateModel: boolean = false
     ): Promise<PickModelType<T>> {
         const [platform, name] = parseRawModelName(fullModelName)
 
-        const client = await this.randomClient(platform, lockConfig)
+        const client = await this.getClient(platform)
 
         const modelInfo = this.resolveModel(platform, name)
 
@@ -322,23 +204,15 @@ export class PlatformService extends Service {
         return model as PickModelType<T>
     }
 
-    async getClient(config: ClientConfig) {
+    async getClient(platform: string) {
         return (
-            this._platformClients[this._getClientConfigAsKey(config)] ??
-            (await this.createClient(config.platform, config))
+            this._platformClients[platform] ??
+            (await this.createClient(platform))
         )
     }
 
-    async refreshClient(
-        client: BasePlatformClient,
-        platform: string,
-        config: ClientConfig
-    ) {
+    async refreshClient(client: BasePlatformClient, platform: string) {
         const isAvailable = await client.isAvailable()
-
-        const pool = this._configPools[platform]
-
-        pool.markConfigStatus(config, isAvailable)
 
         if (!isAvailable) {
             return undefined
@@ -347,8 +221,6 @@ export class PlatformService extends Service {
         const models = await client.getModels()
 
         if (models == null) {
-            pool.markConfigStatus(config, false)
-
             return undefined
         }
 
@@ -371,63 +243,30 @@ export class PlatformService extends Service {
         }
     }
 
-    async createClient(platform: string, config: ClientConfig) {
+    async createClient(platform: string) {
         const createClientFunctionWrapper =
             this._createClientFunctions[platform]
-        const configPool = this._configPools[platform]
 
-        if (!createClientFunctionWrapper || config == null) {
+        if (!createClientFunctionWrapper) {
             throw new Error(
                 `Create client function ${platform} not found or config is null`
             )
         }
 
-        if (!configPool.isAvailable(config)) {
-            // unavailable client
-            return undefined
-        }
-
         const client = createClientFunctionWrapper.value(
-            createClientFunctionWrapper.ctx,
-            config
+            createClientFunctionWrapper.ctx
         )
 
-        await this.refreshClient(client, platform, config)
+        await this.refreshClient(client, platform)
 
-        if (!configPool.isAvailable(config)) {
+        if (!client.isAvailable()) {
             // unavailable client
             return undefined
         }
 
-        this._platformClients[this._getClientConfigAsKey(config)] = client
+        this._platformClients[platform] = client
 
         return client
-    }
-
-    async createClients(platform: string) {
-        const configPool = this._configPools[platform]
-
-        if (!configPool) {
-            throw new Error(`Config pool ${platform} not found`)
-        }
-
-        const configs = configPool.getConfigs()
-
-        const clients: BasePlatformClient[] = []
-
-        for (const config of configs) {
-            const client = await this.createClient(platform, config)
-
-            if (client == null) {
-                continue
-            }
-
-            clients.push(client)
-
-            this._platformClients[this._getClientConfigAsKey(config)] = client
-        }
-
-        return clients
     }
 
     getTool(name: string) {

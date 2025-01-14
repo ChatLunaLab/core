@@ -9,7 +9,6 @@ import {
     ModelType
 } from '@chatluna/core/platform'
 import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
-import { AgentTypeRunner } from '@chatluna/core/agent'
 
 declare module '@cordisjs/core' {
     interface Context {
@@ -52,15 +51,6 @@ declare module '@cordisjs/core' {
             client: BasePlatformClient | BasePlatformClient[]
         ) => void
         'chatluna/tool-updated': (service: PlatformService) => void
-        'chatluna/agent-runner-added': (
-            service: PlatformService,
-            name: string,
-            agentRunner: AgentTypeRunner
-        ) => void
-        'chatluna/agent-runner-removed': (
-            service: PlatformService,
-            name: string
-        ) => void
     }
 }
 

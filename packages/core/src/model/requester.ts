@@ -1,13 +1,14 @@
 import { Request, RequestInit } from '@chatluna/core/service'
-import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
+import { ChatLunaError, ChatLunaErrorCode, Option } from '@chatluna/utils'
 import { Logger } from '@cordisjs/logger'
 import { BaseMessage } from '@langchain/core/messages'
 import { ChatGeneration, ChatGenerationChunk } from '@langchain/core/outputs'
 import { StructuredTool } from '@langchain/core/tools'
 import { ClientRequestArgs } from 'http'
 import { ClientOptions, WebSocket } from 'ws'
+import { ClientConfig, ClientConfigPool } from '@chatluna/core/platform'
 
-export interface BaseRequestParams {
+export interface BaseRequestParams<T extends ClientConfig = ClientConfig> {
     /**
      * Timeout to use when making request. Only useful when using ChatLunaModel
      */
@@ -19,9 +20,12 @@ export interface BaseRequestParams {
 
     /** Model name to use */
     model?: string
+
+    config?: T
 }
 
-export interface ModelRequestParams extends BaseRequestParams {
+export interface ModelRequestParams<T extends ClientConfig = ClientConfig>
+    extends BaseRequestParams<T> {
     /** Sampling temperature to use */
     temperature?: number
 
@@ -62,18 +66,107 @@ export interface ModelRequestParams extends BaseRequestParams {
     tools?: StructuredTool[]
 }
 
-export interface EmbeddingsRequestParams extends BaseRequestParams {
+export interface EmbeddingsRequestParams<T extends ClientConfig = ClientConfig>
+    extends BaseRequestParams<T> {
     input: string | string[]
 }
 
-export interface BaseRequester {
-    init(): Promise<void>
+export abstract class BaseRequester<T extends ClientConfig = ClientConfig> {
+    private _config?: T
 
-    dispose(): Promise<void>
+    private _configPool?: ClientConfigPool<T>
+
+    private _errorCountsMap: Record<string, number[]> = {}
+
+    constructor(
+        config:
+            | ClientConfigPool<T>
+            | (Option<T, 'platform'> & { apiEndpoint: string }),
+        request?: Request,
+        public _logger?: Logger
+    ) {
+        if (config instanceof ClientConfigPool) {
+            this._configPool = config
+        } else {
+            this._config = config as T
+        }
+    }
+
+    get config() {
+        if (this._configPool == null && this._config != null) {
+            return this._config
+        }
+
+        if (this._configPool != null) {
+            return this._configPool.getConfig()
+        }
+
+        throw new ChatLunaError(ChatLunaErrorCode.NOT_AVAILABLE_CONFIG)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected async _runCatch<R>(
+        func: () => Promise<R>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any,
+        config?: T
+    ): Promise<R> {
+        const configMD5 = this._configPool.getClientConfigAsKey(config)
+        try {
+            const result = await func()
+
+            delete this._errorCountsMap[configMD5]
+            return result
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            this._errorCountsMap[configMD5] =
+                this._errorCountsMap[configMD5] ?? []
+            const errorTimes = this._errorCountsMap[configMD5]
+
+            // Add current error timestamp
+            errorTimes.push(Date.now())
+
+            // Keep only recent errors
+            if (errorTimes.length > config.maxRetries * 3) {
+                this._errorCountsMap[configMD5] = errorTimes.slice(
+                    -config.maxRetries * 3
+                )
+            }
+
+            // Check if we need to disable the config
+            const recentErrors = errorTimes.slice(-config.maxRetries)
+            if (
+                recentErrors.length >= config.maxRetries &&
+                checkRange(recentErrors, 1000 * 60 * 20)
+            ) {
+                this._configPool?.markConfigStatus(config, false)
+            }
+
+            if (e instanceof ChatLunaError) {
+                throw e
+            }
+            const error = new Error(
+                'error when request, Result: ' + JSON.stringify(data)
+            )
+
+            error.stack = e.stack
+            error.cause = e.cause
+            this._logger.debug(e)
+
+            throw new ChatLunaError(ChatLunaErrorCode.API_REQUEST_FAILED, error)
+        }
+    }
+
+    abstract init(): Promise<void>
+
+    abstract dispose(): Promise<void>
 }
 
-export abstract class ModelRequester implements BaseRequester {
-    async completion(params: ModelRequestParams): Promise<ChatGeneration> {
+export abstract class ModelRequester<
+    T extends ClientConfig = ClientConfig
+> extends BaseRequester<T> {
+    async completion(params: ModelRequestParams<T>): Promise<ChatGeneration> {
         const stream = this.completionStream(params)
 
         // get final result
@@ -87,7 +180,7 @@ export abstract class ModelRequester implements BaseRequester {
     }
 
     abstract completionStream(
-        params: ModelRequestParams
+        params: ModelRequestParams<T>
     ): AsyncGenerator<ChatGenerationChunk>
 
     async init(): Promise<void> {}
@@ -119,8 +212,8 @@ export interface WebSocketRequest extends WithRequest {
     ): Promise<WebSocket>
 }
 
-export abstract class HttpModelRequester
-    extends ModelRequester
+export abstract class HttpModelRequester<T extends ClientConfig = ClientConfig>
+    extends ModelRequester<T>
     implements HttpRequest
 {
     abstract requestService: Request
@@ -169,35 +262,12 @@ export abstract class HttpModelRequester
     _concatUrl(url: string): string {
         return url
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected async _runCatch<T>(
-        func: () => Promise<T>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data: any
-    ): Promise<T> {
-        try {
-            return await func()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            if (e instanceof ChatLunaError) {
-                throw e
-            }
-            const error = new Error(
-                'error when request, Result: ' + JSON.stringify(data)
-            )
-
-            error.stack = e.stack
-            error.cause = e.cause
-            this._logger.debug(e)
-
-            throw new ChatLunaError(ChatLunaErrorCode.API_REQUEST_FAILED, error)
-        }
-    }
 }
 
-export abstract class WebSocketModelRequester
-    extends ModelRequester
+export abstract class WebSocketModelRequester<
+        T extends ClientConfig = ClientConfig
+    >
+    extends ModelRequester<T>
     implements WebSocketRequest
 {
     abstract requestService: Request
@@ -225,6 +295,15 @@ export abstract class WebSocketModelRequester
     }
 }
 
-export interface EmbeddingsRequester {
-    embeddings(params: EmbeddingsRequestParams): Promise<number[] | number[][]>
+export interface EmbeddingsRequester<T extends ClientConfig = ClientConfig> {
+    embeddings(
+        params: EmbeddingsRequestParams<T>
+    ): Promise<number[] | number[][]>
+}
+
+function checkRange(times: number[], delayTime: number) {
+    const first = times[0]
+    const last = times[times.length - 1]
+
+    return last - first < delayTime
 }

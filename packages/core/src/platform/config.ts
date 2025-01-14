@@ -162,11 +162,11 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
         return {
             value: config,
             isAvailable: true,
-            key: this._getClientConfigAsKey(config)
+            key: this.getClientConfigAsKey(config)
         }
     }
 
-    private _getClientConfigAsKey(config: ClientConfig) {
+    public getClientConfigAsKey(config: T) {
         return `${config.platform}/${config.apiKey}/${config.apiEndpoint}/${config.maxRetries}/${config.concurrentMaxSize}/${config.timeout}`
     }
 }

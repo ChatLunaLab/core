@@ -2,7 +2,7 @@ import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage } from '@langchain/core/messages'
 import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
-import { BasePlatformClient, ClientConfig } from '@chatluna/core/platform'
+import { BasePlatformClient } from '@chatluna/core/platform'
 import { BufferWindowMemory } from '@chatluna/core/memory'
 import { Context } from '@cordisjs/core'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
@@ -18,6 +18,7 @@ export interface ChatLunaChainInfo {
 export interface CreateToolParams {
     model: ChatLunaChatModel
     embeddings: ChatLunaBaseEmbeddings
+    assistantId?: string
 }
 
 export interface CreateVectorStoreParams {
@@ -46,10 +47,7 @@ export type CreateVectorStoreFunction = (
     params: CreateVectorStoreParams
 ) => Promise<ChatLunaSaveableVectorStore>
 
-export type CreateClientFunction = (
-    ctx: Context,
-    config: ClientConfig
-) => BasePlatformClient
+export type CreateClientFunction = (ctx: Context) => BasePlatformClient
 
 export interface ContextWrapper<T> {
     ctx: Context
