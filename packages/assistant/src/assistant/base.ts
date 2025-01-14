@@ -1,8 +1,8 @@
 import { ChatLunaLLMCallArg } from '@chatluna/core/chain'
-import { BaseChatMemory } from '@chatluna/core/memory'
 import { ChatLunaTool } from '@chatluna/core/platform'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { getMessageContent } from '@chatluna/utils'
+import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 import { BaseMessageChunk } from '@langchain/core/messages'
 import { Context } from 'cordis'
 
@@ -11,7 +11,7 @@ export interface AssisantInput {
     model: [string, string] | string
     assisantMode?: 'chat' | 'plugin' | string
     preset: () => Promise<PresetTemplate>
-    memory: BaseChatMemory
+    memory: BaseChatMessageHistory
     tools?: ChatLunaTool[]
     // files?: string[]
 }
@@ -22,12 +22,12 @@ export abstract class Assistant {
 
     private _chatCount = 0
 
-    private _memory: BaseChatMemory
+    public memory: BaseChatMessageHistory
 
     constructor(input: AssisantInput) {
         this.ctx = input.ctx
         this.preset = input.preset
-        this._memory = input.memory
+        this.memory = input.memory
     }
 
     async run(args: ChatLunaLLMCallArg): Promise<BaseMessageChunk> {
@@ -73,8 +73,8 @@ export abstract class Assistant {
 
         // Update chat history
         if (messageContent.trim().length > 0) {
-            await this._memory.chatHistory.addMessage(args.message)
-            await this._memory.chatHistory.addMessage(response)
+            await this.memory.addMessage(args.message)
+            await this.memory.addMessage(response)
         }
 
         // Process response

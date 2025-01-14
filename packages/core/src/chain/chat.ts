@@ -8,9 +8,9 @@ import {
     ChatLunaLLMChainWrapperInput
 } from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
-import { BaseChatMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
 import { Context } from '@cordisjs/core'
+import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 
 export interface ChatLunaChatChainInput extends ChatLunaLLMChainWrapperInput {
     prompt: ChatLunaChatPrompt
@@ -26,7 +26,7 @@ export class ChatLunaChatChain
 
     llm: ChatLunaChatModel
 
-    historyMemory: BaseChatMemory
+    historyMemory: BaseChatMessageHistory
 
     preset: () => Promise<PresetTemplate>
 
@@ -81,10 +81,8 @@ export class ChatLunaChatChain
         const requests: ChainValues = {
             input: message
         }
-        const chatHistory =
-            await this.historyMemory.loadMemoryVariables(requests)
 
-        requests['chat_history'] = chatHistory[this.historyMemory.memoryKeys[0]]
+        requests['chat_history'] = await this.historyMemory.getMessages()
         requests['variables'] = variables ?? {}
 
         const chain = this.createChain({ signal })

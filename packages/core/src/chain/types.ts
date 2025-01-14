@@ -1,4 +1,3 @@
-import { BaseChatMemory } from '@chatluna/core/memory'
 import { Context } from '@cordisjs/core'
 import {
     BaseMessage,
@@ -8,6 +7,7 @@ import {
 import { Runnable, RunnableConfig } from '@langchain/core/runnables'
 import { ChainValues } from '@langchain/core/utils/types'
 import { PresetTemplate } from '@chatluna/core/preset'
+import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 
 export interface ChatLunaLLMCallArg {
     message: HumanMessage
@@ -22,7 +22,7 @@ export interface ChatLunaLLMCallArg {
 export interface ChatLunaLLMChainWrapperInput {
     ctx?: Context
     preset: () => Promise<PresetTemplate>
-    historyMemory: BaseChatMemory
+    historyMemory: BaseChatMessageHistory
     verbose?: boolean
 }
 

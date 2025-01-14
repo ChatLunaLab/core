@@ -15,6 +15,11 @@
             "import": "./lib/index.mjs",
             "types": "./lib/index.d.ts"
         },
+        "./service": {
+            "require": "./lib/service/index.cjs",
+            "import": "./lib/service/index.mjs",
+            "types": "./lib/service/index.d.ts"
+        },
         "./package.json": "./package.json"
     },
     "engines": {
@@ -49,6 +54,7 @@
         "js-yaml": "^4.1.0"
     },
     "peerDependencies": {
-        "@chatluna/core": "^0.0.1"
+        "@chatluna/core": "^0.0.1",
+        "@chatluna/memory": "^0.0.1"
     }
 }

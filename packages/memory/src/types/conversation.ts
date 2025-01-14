@@ -24,7 +24,7 @@ export interface ChatLunaConversation {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>
 
-    assistant: string
+    assistantId: string
 
     createdTime: Date
     updatedTime: Date

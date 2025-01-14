@@ -531,7 +531,7 @@ export class ChatLunaConversationService extends Service {
                     type: 'json',
                     nullable: true
                 },
-                assistant: {
+                assistantId: {
                     type: 'string'
                 },
 

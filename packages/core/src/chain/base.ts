@@ -5,7 +5,6 @@ import {
     ChatLunaLLMChainWrapperInput
 } from '@chatluna/core/chain'
 import { ChainValues } from '@langchain/core/utils/types'
-import { BaseChatMemory } from '@chatluna/core/memory'
 import { ChatLunaChatModel } from '@chatluna/core/model'
 import { BaseMessageChunk } from '@langchain/core/messages'
 import {
@@ -21,6 +20,7 @@ import {
 import { BaseMemory } from '@langchain/core/memory'
 import { RUN_KEY } from '@langchain/core/outputs'
 import { ensureConfig, RunnableConfig } from '@langchain/core/runnables'
+import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 
 export abstract class ChatLunaLLMChainWrapper<
     T extends ChatLunaLLMChainWrapperInput = ChatLunaLLMChainWrapperInput,
@@ -30,7 +30,7 @@ export abstract class ChatLunaLLMChainWrapper<
 
     abstract call(arg: R): Promise<BaseMessageChunk>
 
-    abstract historyMemory: BaseChatMemory
+    abstract historyMemory: BaseChatMessageHistory
 
     abstract get model(): ChatLunaChatModel
 
