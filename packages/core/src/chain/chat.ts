@@ -48,7 +48,11 @@ export class ChatLunaChatChain
 
     static fromLLM(
         llm: ChatLunaChatModel,
-        { historyMemory, preset, ctx }: ChatLunaChatChainInput
+        {
+            historyMemory,
+            preset,
+            ctx
+        }: Omit<ChatLunaChatChainInput, 'llm' | 'prompt'>
     ): ChatLunaLLMChainWrapper {
         const prompt = new ChatLunaChatPrompt({
             preset,
