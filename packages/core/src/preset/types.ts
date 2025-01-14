@@ -51,6 +51,13 @@ export interface RawPreset {
         loreBooksPrompt?: string
         longMemoryExtractPrompt?: string
         longMemoryNewQuestionPrompt?: string
+        tools?:
+            | {
+                  name: string
+                  enabled?: boolean
+                  keywords?: string[]
+              }[]
+            | string[]
         // postHandler?: PostHandler
     }
 }
@@ -101,6 +108,13 @@ export interface PresetTemplate {
         loreBooksPrompt?: string
         longMemoryExtractPrompt?: string
         longMemoryNewQuestionPrompt?: string
+        tools?:
+            | {
+                  name: string
+                  enabled?: boolean
+                  keywords?: string[]
+              }[]
+            | string[]
         //  postHandler?: PostHandler
     }
     nickname?: string | string[]
