@@ -83,8 +83,21 @@ export class ChatLunaService extends Service {
         return client.createModel(model)
     }
 
-    async createEmbeddings(platformName: string, modelName: string) {
+    async createEmbeddings(
+        platformWithModel: string
+    ): Promise<ChatLunaChatModel | ChatLunaBaseEmbeddings>
+
+    async createEmbeddings(
+        platformName: string,
+        model: string
+    ): Promise<ChatLunaChatModel | ChatLunaBaseEmbeddings>
+
+    async createEmbeddings(platformName: string, modelName?: string) {
         const service = this.ctx.chatluna_platform
+
+        if (modelName == null) {
+            ;[platformName, modelName] = parseRawModelName(platformName)
+        }
 
         const client = await service.createClient(platformName)
 

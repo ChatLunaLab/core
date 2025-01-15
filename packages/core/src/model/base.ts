@@ -176,16 +176,11 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         options: this['ParsedCallOptions'],
         runManager?: CallbackManagerForLLMRun
     ): AsyncGenerator<ChatGenerationChunk> {
-        const withTool = (options.tools?.length ?? 0) > 0
-
         let promptTokens: number
-
-        if (withTool) {
-            ;[messages, promptTokens] = await this.cropMessages(
-                messages,
-                options['tools']
-            )
-        }
+        ;[messages, promptTokens] = await this.cropMessages(
+            messages,
+            options['tools']
+        )
 
         const stream = await this._createStreamWithRetry({
             ...this.invocationParams(options),
@@ -214,12 +209,10 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 void runManager?.handleLLMNewToken(chunkText)
             }
 
-            if (withTool) {
-                chunks.push(chunk)
-            }
+            chunks.push(chunk)
         }
 
-        if (withTool && chunks.length > 0) {
+        if (chunks.length > 0) {
             let chunk: ChatGenerationChunk
 
             for (const subChunk of chunks) {
@@ -229,18 +222,32 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 }
             }
 
-            const completionTokens = await this._countMessageTokens(
-                chunk.message
-            )
+            let tokenUsage: {
+                completionTokens: number
+                promptTokens: number
+                totalTokens: number
+            } = chunk.generationInfo?.['tokenUsage'] ?? {
+                completionTokens: 0,
+                promptTokens: 0,
+                totalTokens: 0
+            }
+
+            if (tokenUsage.totalTokens === 0) {
+                const completionTokens = await this._countMessageTokens(
+                    chunk.message
+                )
+
+                tokenUsage = {
+                    completionTokens,
+                    promptTokens,
+                    totalTokens: completionTokens + promptTokens
+                }
+            }
 
             await runManager?.handleLLMEnd({
                 generations: [],
                 llmOutput: {
-                    tokenUsage: {
-                        completionTokens,
-                        promptTokens,
-                        totalTokens: completionTokens + promptTokens
-                    }
+                    tokenUsage
                 }
             })
         }
@@ -278,6 +285,11 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 promptTokens,
                 totalTokens: completionTokens + promptTokens
             }
+
+            await runManager?.handleLLMEnd({
+                generations: [],
+                llmOutput: response.generationInfo
+            })
         }
 
         return {

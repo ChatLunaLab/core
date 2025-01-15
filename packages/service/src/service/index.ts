@@ -1,2 +1,1 @@
-export * from './chatluna.ts'
-export * from './preset.ts'
+export * from './chatluna/index.ts'

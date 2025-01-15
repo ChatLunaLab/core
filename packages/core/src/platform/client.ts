@@ -85,13 +85,23 @@ export abstract class BasePlatformClient<
 }
 
 export abstract class PlatformModelClient<
-    T extends ClientConfig = ClientConfig
-> extends BasePlatformClient<T, ChatLunaChatModel> {}
+    T extends ClientConfig = ClientConfig,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L = any
+> extends BasePlatformClient<T, L, ChatLunaChatModel> {}
 
 export abstract class PlatformEmbeddingsClient<
-    T extends ClientConfig = ClientConfig
-> extends BasePlatformClient<T, ChatLunaBaseEmbeddings> {}
+    T extends ClientConfig = ClientConfig,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L = any
+> extends BasePlatformClient<T, L, ChatLunaBaseEmbeddings> {}
 
 export abstract class PlatformModelAndEmbeddingsClient<
-    T extends ClientConfig = ClientConfig
-> extends BasePlatformClient<T, ChatLunaChatModel | ChatLunaBaseEmbeddings> {}
+    T extends ClientConfig = ClientConfig,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L = any
+> extends BasePlatformClient<
+    T,
+    L,
+    ChatLunaChatModel | ChatLunaBaseEmbeddings
+> {}

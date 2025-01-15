@@ -5,7 +5,6 @@ import {
     BasePlatformClient,
     ChatLunaTool,
     ClientConfig,
-    ClientConfigPool,
     CreateVectorStoreFunction,
     ModelType
 } from '@chatluna/core/platform'
@@ -68,11 +67,7 @@ export abstract class ChatLunaPlatformPlugin<
 > extends ChatLunaPlugin<T> {
     private _supportModels: string[] = []
 
-    protected readonly _platformConfigPool: ClientConfigPool<R>
-
     public name: string
-
-    protected createConfigPool = true
 
     protected _request: Request
 
@@ -95,8 +90,6 @@ export abstract class ChatLunaPlatformPlugin<
             await this.start()
         })
     }
-
-    abstract parseConfig(config: T): R[]
 
     abstract createClient(
         ctx: Context
@@ -140,17 +133,6 @@ export abstract class ChatLunaPlatformPlugin<
     }
 
     async start() {
-        const parsedConfigs = this.parseConfig(this.config)
-
-        if (parsedConfigs.length > 0 && this._platformConfigPool == null) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.UNKNOWN_ERROR,
-                new Error('The config pool is not created')
-            )
-        }
-
-        this._platformConfigPool.addConfigs(...parsedConfigs)
-
         switch (this.config.proxyMode) {
             case 'on':
                 this._request = this.ctx.chatluna_request.create(
