@@ -32,6 +32,12 @@ export class ChatLunaAssistantService extends Service {
         return assistantData
     }
 
+    async getAssistantById(id: string) {
+        const assistantData =
+            await this.ctx.chatluna_conversation.getAssistant(id)
+        return assistantData
+    }
+
     async getAssistantByConversation(
         conversation: ChatLunaConversation | string
     ) {

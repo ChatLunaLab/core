@@ -4,20 +4,14 @@ import {
     ChatMiddlewareExecutor,
     ChatMiddlewareGraph
 } from '@chatluna/chat/middleware'
-import { ChatInterfaceInput } from '@chatluna/chat/chat'
-import { ChainEvents } from '@chatluna/core/chain'
-import { VectorStoreRetrieverMemory } from '@chatluna/core/memory'
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 import { parseRawModelName } from '@chatluna/core/utils'
-import { ChatLunaConversation } from '@chatluna/memory/types'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
-import { HumanMessage } from '@langchain/core/messages'
-import { ChatInterfaceWrapper } from './chat.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatLunaService extends Service {
     private _plugins: ChatLunaPlugin[] = []
-    private _chatInterfaceWrapper: Record<string, ChatInterfaceWrapper> = {}
+
     // private _lock = new ObjectLock()
     private readonly _chatMiddlewareExecutor: ChatMiddlewareExecutor
 
@@ -61,78 +55,6 @@ export class ChatLunaService extends Service {
         return this._plugins.find(fun)
     }
 
-    chat(
-        conversation: ChatLunaConversation,
-        message: HumanMessage,
-        event: ChainEvents,
-        stream: boolean = false,
-        signal?: AbortSignal,
-        chatMemory?: VectorStoreRetrieverMemory,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        params?: Record<string, any>
-    ) {
-        const { model: modelName } = conversation
-
-        // provider
-        const [platform] = parseRawModelName(modelName)
-
-        const chatInterfaceWrapper = this._chatInterfaceWrapper[platform]
-
-        if (chatInterfaceWrapper == null) {
-            throw new ChatLunaError(
-                ChatLunaErrorCode.MODEL_ADAPTER_NOT_FOUND,
-                new Error(`The platform ${platform} no available`)
-            )
-        }
-
-        return chatInterfaceWrapper.chat(
-            conversation,
-            message,
-            event,
-            stream,
-            signal,
-            chatMemory,
-            params
-        )
-    }
-
-    queryInterfaceWrapper(
-        conversation: ChatLunaConversation
-    ): ChatInterfaceWrapper | undefined {
-        const { model: modelName } = conversation
-
-        // provider
-        const [platform] = parseRawModelName(modelName)
-
-        return this._chatInterfaceWrapper[platform]
-    }
-
-    async clearChatHistory(conversation: ChatLunaConversation) {
-        const { model: modelName } = conversation
-
-        // provider
-        const [platformName] = parseRawModelName(modelName)
-
-        const chatBridger = this._chatInterfaceWrapper[platformName]
-
-        return chatBridger?.clearChatHistory(conversation)
-    }
-
-    getCachedInterfaceWrappers() {
-        return Object.values(this._chatInterfaceWrapper)
-    }
-
-    async clearCache(conversation: ChatLunaConversation) {
-        const { model: modelName } = conversation
-
-        // provider
-        const [platformName] = parseRawModelName(modelName)
-
-        const chatBridger = this._chatInterfaceWrapper[platformName]
-
-        return chatBridger?.clearCache(conversation)
-    }
-
     async createModel(
         platformWithModel: string
     ): Promise<ChatLunaChatModel | ChatLunaBaseEmbeddings>
@@ -149,7 +71,7 @@ export class ChatLunaService extends Service {
             ;[platformName, model] = parseRawModelName(platformName)
         }
 
-        const client = await service.randomClient(platformName)
+        const client = await service.createClient(platformName)
 
         if (client == null) {
             throw new ChatLunaError(
@@ -164,7 +86,7 @@ export class ChatLunaService extends Service {
     async createEmbeddings(platformName: string, modelName: string) {
         const service = this.ctx.chatluna_platform
 
-        const client = await service.randomClient(platformName)
+        const client = await service.createClient(platformName)
 
         if (client == null) {
             throw new ChatLunaError(
@@ -183,16 +105,6 @@ export class ChatLunaService extends Service {
             ChatLunaErrorCode.MODEL_NOT_FOUND,
             new Error(`The model ${modelName} is not embeddings`)
         )
-    }
-
-    createChatInterfaceWrapper(
-        platform: string,
-        input: ChatInterfaceInput
-    ): ChatInterfaceWrapper {
-        const chatBridger = new ChatInterfaceWrapper(this.ctx, input)
-        this.ctx.logger.debug(`create platform %c`, platform)
-        this._chatInterfaceWrapper[platform] = chatBridger
-        return chatBridger
     }
 
     private async _createTempDir() {

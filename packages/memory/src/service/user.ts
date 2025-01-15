@@ -332,6 +332,9 @@ export class ChatLunaUserService extends Service {
                 },
                 supportModels: {
                     type: 'list'
+                },
+                tokenPower: {
+                    type: 'double'
                 }
             },
             {

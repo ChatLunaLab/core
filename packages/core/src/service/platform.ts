@@ -40,8 +40,7 @@ export class PlatformService extends Service {
 
     registerClient(
         platform: string,
-        createClientFunction: CreateClientFunction,
-        registerConfigPool: boolean = true
+        createClientFunction: CreateClientFunction
     ) {
         if (this._createClientFunctions[platform]) {
             throw new Error(`Client ${platform} already exists`)

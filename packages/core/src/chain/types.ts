@@ -30,7 +30,11 @@ export interface ChainEvents {
     'llm-new-token'?: (token: string) => Promise<void>
     /** Only used for chat app */
     'chat-queue-waiting'?: (size: number) => Promise<void>
-    'llm-used-token-count'?: (token: number) => Promise<void>
+    'llm-used-token'?: (usedToken: {
+        promptTokens: number
+        completionTokens: number
+        totalTokens: number
+    }) => Promise<void>
     'llm-call-tool'?: (tool: string, args: string) => Promise<void>
 }
 

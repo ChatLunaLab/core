@@ -250,7 +250,15 @@ export async function callChatLunaChain(
     values: ChainValues,
     events: ChainEvents
 ): Promise<BaseMessageChunk> {
-    let usedToken = 0
+    let usedToken: {
+        promptTokens: number
+        completionTokens: number
+        totalTokens: number
+    } = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+    }
 
     const options = {
         callbacks: [
@@ -260,7 +268,7 @@ export async function callChatLunaChain(
                     events?.['llm-new-token']?.(token)
                 },
                 handleLLMEnd(output) {
-                    usedToken += output.llmOutput?.tokenUsage?.totalTokens
+                    usedToken = output.llmOutput?.tokenUsage
                 }
             }
         ]
@@ -301,6 +309,6 @@ export async function callChatLunaChain(
               ])) as BaseMessageChunk)
             : await getResponse()
 
-    await events?.['llm-used-token-count'](usedToken)
+    await events?.['llm-used-token'](usedToken)
     return response
 }

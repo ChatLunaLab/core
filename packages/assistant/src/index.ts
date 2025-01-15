@@ -12,7 +12,8 @@ export const name = 'chatluna-assistant'
 export const inject = [
     'chatluna_platform',
     'chatluna_conversation',
-    'chatluna_user'
+    'chatluna_user',
+    'database'
 ]
 
 export interface Config {}

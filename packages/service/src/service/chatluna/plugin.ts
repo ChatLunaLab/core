@@ -1,17 +1,14 @@
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { Context, Schema } from 'cordis'
-
 import { PlatformService, Request } from '@chatluna/core/service'
 import {
     BasePlatformClient,
     ChatLunaTool,
     ClientConfig,
     ClientConfigPool,
-    ClientConfigPoolMode,
     CreateVectorStoreFunction,
     ModelType
 } from '@chatluna/core/platform'
-import { AgentTypeRunner } from '@chatluna/core/agent'
 import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,17 +50,12 @@ export abstract class ChatLunaPlugin<T = any> {
         this.disposables.push(disposable)
     }
 
-    registerAgentTypeRunner(runner: AgentTypeRunner) {
-        const disposable = this.platformService.registerAgentRunner(runner)
-        this.disposables.push(disposable)
+    install() {
+        this.ctx.chatluna.installPlugin(this)
     }
 
-    async install() {
-        await this.ctx.chatluna.installPlugin(this)
-    }
-
-    async uninstall() {
-        await this.ctx.chatluna.removePlugin(this)
+    uninstall() {
+        this.ctx.chatluna.removePlugin(this)
         this.dispose()
     }
 
@@ -86,8 +78,7 @@ export abstract class ChatLunaPlatformPlugin<
 
     constructor(
         protected ctx: Context,
-        public readonly config: T,
-        createConfigPool: boolean = true
+        public readonly config: T
     ) {
         if (config.platform == null || config.platform.length < 1) {
             throw new ChatLunaError(
@@ -97,15 +88,6 @@ export abstract class ChatLunaPlatformPlugin<
         }
 
         super(ctx, config, false)
-
-        this.createConfigPool = createConfigPool
-        if (createConfigPool) {
-            this._platformConfigPool = new ClientConfigPool<R>(
-                config.configMode === 'default'
-                    ? ClientConfigPoolMode.AlwaysTheSame
-                    : ClientConfigPoolMode.LoadBalancing
-            )
-        }
 
         this.name = config.platform
 
@@ -117,18 +99,12 @@ export abstract class ChatLunaPlatformPlugin<
     abstract parseConfig(config: T): R[]
 
     abstract createClient(
-        ctx: Context,
-        config: R
+        ctx: Context
     ): BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>
 
-    async initClients() {
-        this.platformService.registerConfigPool(
-            this.name,
-            this._platformConfigPool
-        )
-
+    async initClient() {
         try {
-            await this.platformService.createClients(this.name)
+            await this.platformService.createClient(this.name)
         } catch (e) {
             this.uninstall()
             // await this.ctx.chatluna.unregisterPlugin(this)
@@ -145,53 +121,19 @@ export abstract class ChatLunaPlatformPlugin<
         this.install()
     }
 
-    async initClientsWithPool<A extends ClientConfig = R>(
-        platformName: string,
-        pool: ClientConfigPool<A>,
-        createConfigFunc: (config: T) => A[]
-    ) {
-        const configs = createConfigFunc(this.config)
-
-        for (const config of configs) {
-            pool.addConfig(config)
-        }
-
-        this.platformService.registerConfigPool(platformName, pool)
-
-        try {
-            await this.platformService.createClients(platformName)
-        } catch (e) {
-            this.uninstall()
-
-            throw e
-        }
-
-        this._supportModels = this._supportModels.concat(
-            this.platformService
-                .getModels(platformName, ModelType.llm)
-                .map((model) => `${platformName}/${model.name}`)
-        )
-    }
-
     get supportedModels(): readonly string[] {
         return this._supportModels
     }
 
-    registerConfigPool(platformName: string, configPool: ClientConfigPool) {
-        this.platformService.registerConfigPool(platformName, configPool)
-    }
-
     async registerClient(
         func: (
-            ctx: Context,
-            config: R
+            ctx: Context
         ) => BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>,
         platformName: string = this.name
     ) {
         const disposable = this.platformService.registerClient(
             platformName,
-            func,
-            false
+            func
         )
 
         this.disposables.push(disposable)
@@ -226,11 +168,11 @@ export abstract class ChatLunaPlatformPlugin<
                 this._request = this.ctx.chatluna_request.root
         }
 
-        await this.registerClient((ctx, clientConfig) => {
-            return this.createClient(ctx, clientConfig)
+        await this.registerClient((ctx) => {
+            return this.createClient(ctx)
         })
 
-        await this.initClients()
+        await this.initClient()
     }
 
     registerVectorStore(name: string, func: CreateVectorStoreFunction) {

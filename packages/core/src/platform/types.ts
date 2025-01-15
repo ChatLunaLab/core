@@ -4,7 +4,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
 import { BasePlatformClient } from '@chatluna/core/platform'
 import { BufferWindowMemory } from '@chatluna/core/memory'
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
 
 export interface ChatLunaChainInfo {

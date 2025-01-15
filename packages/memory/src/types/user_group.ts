@@ -8,6 +8,8 @@ export interface ChatLunaUserGroup {
     costPerInputToken: number
     costPerOutputToken: number
 
+    tokenPower: number
+
     supportModels: string[]
 }
 
