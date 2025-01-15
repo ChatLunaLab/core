@@ -22,6 +22,8 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
 
     private _currentLoadConfigIndex = 0
 
+    private _lastConfig?: ClientConfigWrapper<T>
+
     constructor(
         mode: ClientConfigPoolMode = ClientConfigPoolMode.AlwaysTheSame
     ) {
@@ -74,6 +76,14 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
     }
 
     getConfig(lockSelectConfig: boolean = false): T {
+        if (
+            lockSelectConfig &&
+            this._lastConfig != null &&
+            this._lastConfig.isAvailable
+        ) {
+            return this._lastConfig.value
+        }
+
         if (this._mode === ClientConfigPoolMode.Random) {
             const availedConfigs = this._configs.filter(
                 (config) => config.isAvailable
@@ -90,6 +100,8 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
                     ]
 
                 if (config.isAvailable) {
+                    this._lastConfig = config
+
                     return config.value
                 }
             }
@@ -100,6 +112,7 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
                 const config = this._configs[i]
 
                 if (config.isAvailable) {
+                    this._lastConfig = config
                     return config.value
                 }
             }
@@ -113,11 +126,10 @@ export class ClientConfigPool<T extends ClientConfig = ClientConfig> {
             const config = this._configs[this._currentLoadConfigIndex]
 
             if (config.isAvailable) {
-                if (!lockSelectConfig) {
-                    this._currentLoadConfigIndex =
-                        (this._currentLoadConfigIndex + 1) %
-                        this._configs.length
-                }
+                this._currentLoadConfigIndex =
+                    (this._currentLoadConfigIndex + 1) % this._configs.length
+
+                this._lastConfig = config
 
                 return config.value
             }

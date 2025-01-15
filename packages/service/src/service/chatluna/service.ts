@@ -37,6 +37,8 @@ export class ChatLunaService extends Service {
 
         this._plugins.push(plugin)
         this.ctx.logger.success(`register plugin %c`, plugin.name)
+
+        return this.ctx.effect(() => () => this.removePlugin(plugin))
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

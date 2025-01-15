@@ -602,14 +602,20 @@ export class ChatLunaConversationService extends Service {
             }
         )
 
-        this._database.extend('chatluna_conversation_group_user', {
-            userId: 'string',
-            guildId: 'string',
-            isAssistant: {
-                type: 'boolean',
-                initial: false
+        this._database.extend(
+            'chatluna_conversation_group_user',
+            {
+                userId: 'string',
+                guildId: 'string',
+                isAssistant: {
+                    type: 'boolean',
+                    initial: false
+                }
+            },
+            {
+                primary: ['userId', 'guildId']
             }
-        })
+        )
 
         this._database.extend(
             'chatluna_assistant',

@@ -104,6 +104,18 @@ export abstract class BaseRequester<T extends ClientConfig = ClientConfig> {
         throw new ChatLunaError(ChatLunaErrorCode.NOT_AVAILABLE_CONFIG)
     }
 
+    get configLocked() {
+        if (this._configPool == null && this._config != null) {
+            return this._config
+        }
+
+        if (this._configPool != null) {
+            return this._configPool.getConfig(true)
+        }
+
+        throw new ChatLunaError(ChatLunaErrorCode.NOT_AVAILABLE_CONFIG)
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected async _runCatch<R>(
         func: () => Promise<R>,
