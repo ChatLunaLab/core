@@ -14,7 +14,12 @@ import {
     PlatformModelInfo
 } from '@chatluna/core/platform'
 import { PickModelType } from '@chatluna/core/service'
-import { ChatLunaError, ChatLunaErrorCode, LRUCache } from '@chatluna/utils'
+import {
+    ChatLunaError,
+    ChatLunaErrorCode,
+    LRUCache,
+    withResolver
+} from '@chatluna/utils'
 import { Context, Service } from 'cordis'
 import { parseRawModelName } from '@chatluna/core/utils'
 import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
@@ -266,6 +271,27 @@ export class PlatformService extends Service {
         this._platformClients[platform] = client
 
         return client
+    }
+
+    waitPlatform(platfrom: string, timeout = 1000 * 60) {
+        const { promise, resolve, reject } = withResolver()
+
+        const dispoable = this.ctx.on(
+            'chatluna/model-added',
+            async (_, name) => {
+                if (name === platfrom) {
+                    dispoable()
+                    resolve()
+                }
+            }
+        )
+
+        this.ctx.setTimeout(() => {
+            dispoable()
+            reject(new Error(`Timeout waiting for ${platfrom}`))
+        }, timeout)
+
+        return promise
     }
 
     getTool(name: string) {
