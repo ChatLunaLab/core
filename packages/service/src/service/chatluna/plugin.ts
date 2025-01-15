@@ -93,7 +93,7 @@ export abstract class ChatLunaPlatformPlugin<
 
     abstract createClient(
         ctx: Context
-    ): BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>
+    ): BasePlatformClient<R, T, ChatLunaBaseEmbeddings | ChatLunaChatModel>
 
     async initClient() {
         try {
@@ -121,7 +121,11 @@ export abstract class ChatLunaPlatformPlugin<
     async registerClient(
         func: (
             ctx: Context
-        ) => BasePlatformClient<R, ChatLunaBaseEmbeddings | ChatLunaChatModel>,
+        ) => BasePlatformClient<
+            R,
+            T,
+            ChatLunaBaseEmbeddings | ChatLunaChatModel
+        >,
         platformName: string = this.name
     ) {
         const disposable = this.platformService.registerClient(
