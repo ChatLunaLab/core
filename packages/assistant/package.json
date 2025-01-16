@@ -50,9 +50,9 @@
     ],
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
-        "@langchain/core": "^0.3.27",
-        "js-yaml": "^4.1.0",
-        "cordis": "^3.18.1"
+        "@langchain/core": "^0.3.30",
+        "cordis": "^3.18.1",
+        "js-yaml": "^4.1.0"
     },
     "peerDependencies": {
         "@chatluna/core": "^0.0.1",

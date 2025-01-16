@@ -1,5 +1,9 @@
 import { Context } from 'cordis'
-import { PlatformService, RequestService } from '@chatluna/core/service'
+import {
+    PlatformService,
+    PresetService,
+    RequestService
+} from '@chatluna/core/service'
 
 /**
  *
@@ -10,4 +14,5 @@ import { PlatformService, RequestService } from '@chatluna/core/service'
 export function apply(ctx: Context) {
     ctx.plugin(RequestService)
     ctx.plugin(PlatformService)
+    ctx.plugin(PresetService)
 }

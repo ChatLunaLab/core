@@ -34,6 +34,7 @@ export interface ChatLunaConversationUser {
     userId: string
     conversationId: string
     assistant: string
+    owner: boolean
 }
 
 export interface ChatLunaConversationGroup {
@@ -54,7 +55,7 @@ export interface ChatLunaConversationGroupUser {
 }
 
 export interface ChatLunaAssistant {
-    id: string
+    id: number
     name: string
     preset: string
     model: string

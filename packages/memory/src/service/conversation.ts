@@ -53,18 +53,31 @@ export class ChatLunaConversationService extends Service {
     }
 
     async createAssistant(assistant: ChatLunaAssistantTemplate) {
-        const id = generateUUID()
-
         await this._database.create('chatluna_assistant', {
-            id,
             ...assistant
         })
     }
 
-    async deleteAssistant(id: string) {
+    async deleteAssistant(id: number) {
         await this._database.remove('chatluna_assistant', {
             id
         })
+    }
+
+    async getAssistantByName(name: string) {
+        const queried = await this._database.get('chatluna_assistant', {
+            name
+        })
+        if (!queried || queried.length === 0 || queried.length > 1) {
+            throw new ChatLunaError(
+                ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
+                `The query assistant with name ${name} is not found or more than one: ${JSON.stringify(
+                    queried
+                )}`
+            )
+        }
+
+        return queried[0]
     }
 
     async updateAssistant(assistant: ChatLunaAssistantTemplate) {
@@ -163,7 +176,7 @@ export class ChatLunaConversationService extends Service {
         return queried
     }
 
-    async getAssistant(id: string) {
+    async getAssistant(id: number) {
         const queried = await this._database.get('chatluna_assistant', {
             id
         })
@@ -595,7 +608,11 @@ export class ChatLunaConversationService extends Service {
             {
                 userId: 'string',
                 conversationId: 'string',
-                assistant: 'string'
+                assistant: 'string',
+                owner: {
+                    type: 'boolean',
+                    initial: false
+                }
             },
             {
                 primary: ['userId', 'conversationId']
@@ -620,7 +637,7 @@ export class ChatLunaConversationService extends Service {
         this._database.extend(
             'chatluna_assistant',
             {
-                id: 'string',
+                id: 'integer',
                 name: 'string',
                 preset: 'string',
                 model: 'string',
@@ -642,7 +659,8 @@ export class ChatLunaConversationService extends Service {
                 }
             },
             {
-                primary: ['id']
+                primary: ['id'],
+                autoInc: true
             }
         )
 
