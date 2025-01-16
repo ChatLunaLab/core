@@ -24,7 +24,8 @@ export interface ChatLunaConversation {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additional_kwargs?: Record<string, any>
 
-    assistantId: string
+    assistantId: number
+    model?: string
 
     createdTime: Date
     updatedTime: Date
@@ -80,6 +81,7 @@ export type ChatLunaConversationTemplate = PartialOptional<
     | 'createdTime'
     | 'updatedTime'
     | 'title'
+    | 'model'
 >
 
 export type ChatLunaMessageRole = MessageType

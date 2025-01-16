@@ -180,6 +180,7 @@ export class ChatLunaConversationService extends Service {
         const queried = await this._database.get('chatluna_assistant', {
             id
         })
+        console.log(queried)
         if (!queried || queried.length === 0 || queried.length > 1) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
@@ -237,12 +238,17 @@ export class ChatLunaConversationService extends Service {
         userId: string,
         assistant: string | undefined = undefined
     ): Promise<[ChatLunaConversation, ChatLunaConversationUser][]> {
-        const selection = this._database
+        let selection = this._database
             .select('chatluna_conversation_user')
             .where({
-                userId,
+                userId
+            })
+
+        if (assistant) {
+            selection = selection.where({
                 assistant
             })
+        }
 
         const queried = await selection.execute()
 
@@ -545,9 +551,12 @@ export class ChatLunaConversationService extends Service {
                     nullable: true
                 },
                 assistantId: {
-                    type: 'string'
+                    type: 'integer'
                 },
-
+                model: {
+                    type: 'string',
+                    nullable: true
+                },
                 createdTime: {
                     type: 'timestamp'
                 },
