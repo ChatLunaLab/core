@@ -85,7 +85,6 @@ export interface ChatLunaModelInput extends ChatLunaModelCallOptions {
     requester: ModelRequester
 
     maxConcurrency?: number
-
     maxRetries?: number
 }
 
@@ -167,7 +166,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             tools: options?.tools ?? this._options.tools,
             id: options?.id ?? this._options.id,
             signal: options?.signal ?? this._options.signal,
-            timeout: options?.timeout ?? this._options.timeout
+            timeout: options?.timeout ?? this._options.timeout,
+            maxConcurrency: options?.maxConcurrency
         }
     }
 
@@ -285,12 +285,12 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
                 promptTokens,
                 totalTokens: completionTokens + promptTokens
             }
-
-            await runManager?.handleLLMEnd({
-                generations: [],
-                llmOutput: response.generationInfo
-            })
         }
+
+        await runManager?.handleLLMEnd({
+            generations: [],
+            llmOutput: response.generationInfo
+        })
 
         return {
             generations: [response],

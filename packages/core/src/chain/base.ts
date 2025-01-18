@@ -5,7 +5,10 @@ import {
     ChatLunaLLMChainWrapperInput
 } from '@chatluna/core/chain'
 import { ChainValues } from '@langchain/core/utils/types'
-import { ChatLunaChatModel } from '@chatluna/core/model'
+import {
+    ChatLunaChatModel,
+    ChatLunaModelCallOptions
+} from '@chatluna/core/model'
 import { BaseMessageChunk } from '@langchain/core/messages'
 import {
     BaseLangChain,
@@ -21,6 +24,7 @@ import { BaseMemory } from '@langchain/core/memory'
 import { RUN_KEY } from '@langchain/core/outputs'
 import { ensureConfig, RunnableConfig } from '@langchain/core/runnables'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
+import { Context } from 'cordis'
 
 export abstract class ChatLunaLLMChainWrapper<
     T extends ChatLunaLLMChainWrapperInput = ChatLunaLLMChainWrapperInput,
@@ -259,8 +263,9 @@ export abstract class BaseChain<
 // eslint-disable-next-line generator-star-spacing
 export async function* streamCallChatLunaChain(
     chain: ChatLunaLLMChain,
-    values: ChainValues,
-    events: ChainEvents
+    values: ChainValues & ChatLunaModelCallOptions,
+    events: ChainEvents,
+    params: ChainValues & { ctx?: Context }
 ) {
     let usedToken: {
         promptTokens: number
@@ -286,16 +291,76 @@ export async function* streamCallChatLunaChain(
         ]
     }
 
+    const requestId = crypto.randomUUID()
+
+    // eslint-disable-next-line no-async-promise-executor
+    await (async () => {
+        const conversationId = params.conversationId
+        const platform = params.platform
+        const ctx = params.ctx
+
+        const modelQueue = ctx.chatluna_platform.modelQueue
+        const conversationQueue = ctx.chatluna_platform.conversationQueue
+
+        // Add to queues
+        await Promise.all([
+            conversationId
+                ? conversationQueue.add(conversationId, requestId)
+                : Promise.resolve(),
+            modelQueue.add(platform, requestId)
+        ])
+
+        const currentQueueLength =
+            await conversationQueue.getQueueLength(conversationId)
+        await events['llm-queue-waiting'](currentQueueLength)
+
+        // Wait for our turn
+        await Promise.all([
+            conversationId
+                ? conversationQueue.wait(conversationId, requestId, 0)
+                : Promise.resolve(),
+            modelQueue.wait(platform, requestId, params.maxConcurrency)
+        ])
+    })()
+
+    const signal = values.signal
+
     /* c8 ignore start */
-    const streamIterable = await chain.stream(values, options)
+    try {
+        const streamIterable = await chain.stream(
+            {
+                values
+            },
+            {
+                ...options
+            }
+        )
 
-    const signal = values.signal as AbortSignal
-
-    for await (const chunk of streamIterable) {
-        if (signal && signal.aborted) {
-            break
+        for await (const chunk of streamIterable) {
+            if (signal && signal.aborted) {
+                break
+            }
+            yield chunk
         }
-        yield chunk
+    } finally {
+        await (async () => {
+            const conversationId = params.conversationId
+            const platform = params.platform
+            const ctx = params.ctx
+
+            const modelQueue = ctx.chatluna_platform.modelQueue
+            const conversationQueue = ctx.chatluna_platform.conversationQueue
+
+            // Clean up resources
+
+            // Wait for our turn
+            await Promise.all([
+                conversationId
+                    ? conversationQueue.remove(conversationId, requestId)
+                    : Promise.resolve(),
+                modelQueue.remove(platform, requestId)
+            ])
+        })()
     }
 
     if (signal?.aborted ?? false) {

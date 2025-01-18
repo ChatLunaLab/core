@@ -9,7 +9,7 @@ import {
 } from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { ChatLunaChatModel } from '@chatluna/core/model'
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 
 export interface ChatLunaChatChainInput extends ChatLunaLLMChainWrapperInput {
@@ -76,7 +76,8 @@ export class ChatLunaChatChain
         stream,
         events,
         variables,
-        signal
+        signal,
+        params
     }: ChatLunaLLMCallArg) {
         const requests: ChainValues = {
             input: message
@@ -94,7 +95,13 @@ export class ChatLunaChatChain
                 stream,
                 signal
             },
-            events
+            events,
+            {
+                ...params,
+                ctx: this.ctx,
+                platform: this.llm._llmType(),
+                ...this.llm.invocationParams()
+            }
         )) {
             yield chunk
         }
