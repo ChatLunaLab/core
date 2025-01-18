@@ -180,7 +180,6 @@ export class ChatLunaConversationService extends Service {
         const queried = await this._database.get('chatluna_assistant', {
             id
         })
-        console.log(queried)
         if (!queried || queried.length === 0 || queried.length > 1) {
             throw new ChatLunaError(
                 ChatLunaErrorCode.ASSISTANT_NOT_FOUND,
@@ -426,6 +425,8 @@ export class ChatLunaConversationService extends Service {
             createdTime: new Date(),
             parentId: conversation.latestMessageId
         })
+
+        message.content = JSON.stringify(message.content)
 
         await this._database.create('chatluna_message', message)
 

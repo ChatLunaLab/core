@@ -37,7 +37,7 @@ export abstract class Assistant {
         let response: BaseMessageChunk
 
         for await (const chunk of this.stream(args)) {
-            response = chunk ?? response.concat(chunk)
+            response = response != null ? response.concat(chunk) : chunk
         }
 
         return response
@@ -54,7 +54,7 @@ export abstract class Assistant {
         let response: BaseMessageChunk
         for await (const chunk of await this._stream(args)) {
             yield chunk
-            response = chunk ?? response.concat(chunk)
+            response = response != null ? response.concat(chunk) : chunk
         }
 
         this._afterChat(args, response)
@@ -76,6 +76,9 @@ export abstract class Assistant {
         } */
 
         const messageContent = getMessageContent(response.content)
+        this.ctx.logger.info(
+            `Assistant chat count: ${this._chatCount}, message: ${messageContent}`
+        )
 
         // Update chat history
         if (messageContent.trim().length > 0) {
