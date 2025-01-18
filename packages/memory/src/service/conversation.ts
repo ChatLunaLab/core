@@ -294,6 +294,25 @@ export class ChatLunaConversationService extends Service {
         return queried[0]
     }
 
+    async updateConversation(
+        conversationId: string,
+        conversation: PartialOptional<ChatLunaConversation, 'id'>
+    ) {
+        const updatedTime = new Date()
+        await this._database.upsert('chatluna_conversation', [
+            {
+                id: conversationId,
+                updatedTime,
+                ...conversation
+            }
+        ])
+
+        await this.ctx.parallel(
+            'chatluna/conversation-updated',
+            await this.resolveConversation(conversationId)
+        )
+    }
+
     async cloneConversation(
         conversation: ChatLunaConversation | string,
         extra: ChatLunaConversationUser

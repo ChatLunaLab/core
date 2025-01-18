@@ -95,4 +95,10 @@ declare module 'cordis' {
         chatluna_conversation_user: ChatLunaConversationUser
         chatluna_assistant: ChatLunaAssistant
     }
+
+    interface Events {
+        'chatluna/conversation-updated': (
+            conversation: ChatLunaConversation
+        ) => Promise<void>
+    }
 }

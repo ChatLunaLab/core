@@ -16,6 +16,17 @@ export class ChatLunaAssistant extends Assistant {
 
     constructor(private _input: AssisantInput) {
         super(_input)
+
+        this._input.ctx.on(
+            'chatluna/conversation-updated',
+            async (conversation) => {
+                if (conversation.id === this.conversationId) {
+                    this._chain = null
+                    this._model = null
+                    this._rawModel = null
+                }
+            }
+        )
     }
 
     async _stream(args: ChatLunaLLMCallArg) {
