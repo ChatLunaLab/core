@@ -53,4 +53,8 @@ export class ChatLunaAssistant extends Assistant {
 
         this._chain = chain
     }
+
+    public get model() {
+        return this._model._llmType + '/' + this._model.modelName
+    }
 }

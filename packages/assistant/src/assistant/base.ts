@@ -95,7 +95,9 @@ export abstract class Assistant {
         return response
     }
 
-    abstract _stream(
+    protected abstract _stream(
         args: ChatLunaLLMCallArg
     ): AsyncGenerator<BaseMessageChunk, void, unknown>
+
+    public abstract model: string
 }
