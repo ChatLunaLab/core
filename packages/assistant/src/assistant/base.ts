@@ -76,9 +76,6 @@ export abstract class Assistant {
         } */
 
         const messageContent = getMessageContent(response.content)
-        this.ctx.logger.info(
-            `Assistant chat count: ${this._chatCount}, message: ${messageContent}`
-        )
 
         // Update chat history
         if (messageContent.trim().length > 0) {

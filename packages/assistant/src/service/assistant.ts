@@ -6,9 +6,10 @@ import {
 } from '@chatluna/memory/types'
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
+import { LRUCache } from '@chatluna/utils'
 
 export class ChatLunaAssistantService extends Service {
-    private _assistants: Record<string, Assistant> = {}
+    private _assistants = new LRUCache<Assistant>(100)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
@@ -44,11 +45,17 @@ export class ChatLunaAssistantService extends Service {
         const conversationId =
             typeof conversation === 'string' ? conversation : conversation.id
 
-        if (this._assistants[conversationId]) {
+        if (this._assistants.get(conversationId)) {
             return this._assistants[conversationId]
         }
 
         const assistantData = await this.getAssistantData(conversation)
+        const conversationData =
+            typeof conversation === 'string'
+                ? await this.ctx.chatluna_conversation.resolveConversation(
+                      conversation
+                  )
+                : conversation
 
         const preset = () =>
             this.ctx.chatluna_preset.getPreset(assistantData.preset)
@@ -56,7 +63,7 @@ export class ChatLunaAssistantService extends Service {
         const assistant = new ChatLunaAssistant({
             ctx: this.ctx,
             preset,
-            model: assistantData.model,
+            model: conversationData.model ?? assistantData.model,
             memory: new DataBaseChatMessageHistory(
                 this.ctx,
                 conversationId
@@ -75,7 +82,7 @@ export class ChatLunaAssistantService extends Service {
 
         // TODO: trgigger clear cache event
 
-        delete this._assistants[conversationId]
+        this._assistants.delete(conversationId)
     }
 
     async clearAssistantChatHistory(
