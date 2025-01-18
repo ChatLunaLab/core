@@ -1,6 +1,6 @@
 import type * as fetchType from 'undici-types'
 import type { ClientOptions, WebSocket } from 'ws'
-import { ClientRequestArgs } from 'http'
+import type { ClientRequestArgs } from 'http'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
 import { Context, Inject, Service } from 'cordis'
 import { Logger } from '@cordisjs/logger'

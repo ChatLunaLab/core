@@ -1,9 +1,8 @@
 import { Context, Logger, Service } from 'cordis'
 import { loadPreset, PresetTemplate } from '@chatluna/core/preset'
 import { ChatLunaError, ChatLunaErrorCode, sha1 } from '@chatluna/utils'
-import { watch } from 'fs'
-import fs from 'fs/promises'
-import path from 'path'
+
+const isNode = typeof process !== 'undefined' && process.versions?.node
 
 export class PresetService extends Service {
     private readonly _presets: PresetTemplate[] = []
@@ -21,6 +20,14 @@ export class PresetService extends Service {
 
         ctx.on('dispose', () => {
             this._aborter?.abort()
+        })
+
+        this._presets.push({
+            triggerKeyword: ['empty'],
+            rawText: '',
+            messages: [],
+            config: {},
+            path: 'empty'
         })
     }
 
@@ -63,7 +70,6 @@ export class PresetService extends Service {
         )
 
         if (preset) {
-            // await this.cache.set('default-preset', 'chatgpt')
             return preset
         } else {
             throw new ChatLunaError(
@@ -71,8 +77,6 @@ export class PresetService extends Service {
                 new Error(`No preset found for keyword chatgpt`)
             )
         }
-
-        // throw new Error("No default preset found")
     }
 
     async getAllPresetKeyWord(
@@ -117,7 +121,14 @@ export class PresetService extends Service {
         this._presets.splice(index, 1)
     }
 
-    private watchPreset(dir: string) {
+    private async watchPreset(dir: string) {
+        if (!isNode) {
+            this._logger.warn(
+                'File watching is only supported in Node.js environment.'
+            )
+            return
+        }
+
         let fsWait: NodeJS.Timeout | boolean = false
         const md5Cache = new Map<string, string>()
 
@@ -126,6 +137,10 @@ export class PresetService extends Service {
         }
 
         this._aborter = new AbortController()
+
+        const { watch } = await import('fs')
+        const fs = await import('fs/promises')
+        const path = await import('path')
 
         watch(
             dir,
@@ -203,6 +218,16 @@ export class PresetService extends Service {
     }
 
     async loadAllPreset() {
+        if (!isNode) {
+            this._logger.warn(
+                'Loading presets from filesystem is only supported in Node.js environment.'
+            )
+            return
+        }
+
+        const fs = await import('fs/promises')
+        const path = await import('path')
+
         const files = await fs.readdir(this.dir)
 
         this._presets.length = 0
@@ -213,15 +238,26 @@ export class PresetService extends Service {
             if (extension !== '.txt' && extension !== '.yml') {
                 continue
             }
-            await this.loadPreset(path.join(this.dir, file))
+            const presetPath = path.join(this.dir, file)
+            await this.loadPreset(
+                await fs.readFile(presetPath, 'utf-8'),
+                presetPath
+            )
         }
     }
 
     async init(dir: string) {
+        if (!isNode) {
+            this._logger.warn(
+                'Initialization with directory is only supported in Node.js environment.'
+            )
+            return
+        }
+
         this._dir = dir
         await this.loadAllPreset()
 
-        this.watchPreset(dir)
+        await this.watchPreset(dir)
     }
 
     get dir() {
