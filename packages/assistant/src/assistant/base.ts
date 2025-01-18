@@ -52,7 +52,7 @@ export abstract class Assistant {
         )
 
         let response: BaseMessageChunk
-        for await (const chunk of this._stream(args)) {
+        for await (const chunk of await this._stream(args)) {
             yield chunk
             response = chunk ?? response.concat(chunk)
         }
@@ -97,7 +97,7 @@ export abstract class Assistant {
 
     protected abstract _stream(
         args: ChatLunaLLMCallArg
-    ): AsyncGenerator<BaseMessageChunk, void, unknown>
+    ): Promise<AsyncGenerator<BaseMessageChunk, void, unknown>>
 
     public abstract model: string
 }

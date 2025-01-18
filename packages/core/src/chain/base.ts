@@ -286,8 +286,6 @@ export async function* streamCallChatLunaChain(
         ]
     }
 
-    let response: BaseMessageChunk
-
     /* c8 ignore start */
     const streamIterable = await chain.stream(values, options)
 
@@ -298,17 +296,11 @@ export async function* streamCallChatLunaChain(
             break
         }
         yield chunk
-        if (response == null) {
-            response = chunk
-        } else {
-            response = response.concat(chunk)
-        }
     }
 
-    if (signal.aborted) {
+    if (signal?.aborted ?? false) {
         throw new ChatLunaError(ChatLunaErrorCode.ABORTED)
     }
 
     await events?.['llm-used-token'](usedToken)
-    return response
 }

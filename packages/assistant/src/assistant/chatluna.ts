@@ -16,9 +16,9 @@ export class ChatLunaAssistant extends Assistant {
         super(_input)
     }
 
-    _stream(args: ChatLunaLLMCallArg) {
+    async _stream(args: ChatLunaLLMCallArg) {
         if (this._chain == null || this._input.assisantMode === 'plugin') {
-            this._createChain()
+            await this._createChain()
         }
 
         return this._chain.stream(args)
@@ -29,6 +29,8 @@ export class ChatLunaAssistant extends Assistant {
 
         if (this._input.model instanceof Array) {
             model = this._input.model.join('/')
+        } else {
+            model = this._input.model
         }
 
         return this.ctx.chatluna_platform.randomModel(model, ModelType.llm)
@@ -55,6 +57,14 @@ export class ChatLunaAssistant extends Assistant {
     }
 
     public get model() {
-        return this._model._llmType + '/' + this._model.modelName
+        let model: string
+
+        if (this._input.model instanceof Array) {
+            model = this._input.model.join('/')
+        } else {
+            model = this._input.model
+        }
+
+        return model
     }
 }

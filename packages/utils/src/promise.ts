@@ -68,21 +68,25 @@ export async function* asyncGeneratorTimeout<T>(
     timeoutFunction: (reject: (error: Error) => void) => void
 ): AsyncIterable<T> {
     const ita = source[Symbol.asyncIterator]()
-    let clock: NodeJS.Timeout
+    let abortController: AbortController
 
     try {
         while (true) {
-            // eslint-disable-next-line promise/param-names
-            const timeout = new Promise((_, reject) => {
-                clock = setTimeout(() => {
+            abortController = new AbortController()
+
+            const timeout = new Promise<never>((_resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    abortController.abort()
                     timeoutFunction(reject)
                 }, ms)
-            })
-            const next = <IteratorResult<T>>(
-                await Promise.race([ita.next(), timeout])
-            )
 
-            clearTimeout(clock)
+                abortController.signal.addEventListener('abort', () => {
+                    clearTimeout(timeoutId)
+                })
+            })
+
+            const nextPromise = ita.next()
+            const next = await Promise.race([nextPromise, timeout])
 
             if (next.done) {
                 return
@@ -91,10 +95,14 @@ export async function* asyncGeneratorTimeout<T>(
             yield next.value
         }
     } catch (err) {
-        clearTimeout(clock)
-        ita.return()
+        if (abortController) {
+            abortController.abort()
+        }
+        await ita.return?.()
         throw err
     } finally {
-        clearTimeout(clock)
+        if (abortController) {
+            abortController.abort()
+        }
     }
 }

@@ -190,7 +190,7 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
         const chunks: ChatGenerationChunk[] = []
         for await (const chunk of asyncGeneratorTimeout(
             stream,
-            options.timeout,
+            options.timeout ?? 1000 * 30,
             (reject) => {
                 reject(
                     new ChatLunaError(

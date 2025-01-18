@@ -13,6 +13,7 @@ export const inject = [
     'chatluna_platform',
     'chatluna_conversation',
     'chatluna_user',
+    'chatluna_preset',
     'database'
 ]
 
