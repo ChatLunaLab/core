@@ -1,7 +1,6 @@
 import {
     BasePlatformClient,
     ChatLunaTool,
-    ClientConfig,
     ContextWrapper,
     CreateClientFunction,
     CreateVectorStoreFunction,
@@ -18,6 +17,7 @@ import {
     ChatLunaError,
     ChatLunaErrorCode,
     LRUCache,
+    RequestIdQueue,
     withResolver
 } from '@chatluna/utils'
 import { Context, Service } from 'cordis'
@@ -37,6 +37,8 @@ export class PlatformService extends Service {
     private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
 
     private _tmpVectorStores = new LRUCache<ChatLunaSaveableVectorStore>(20)
+    private _modelQueue = new RequestIdQueue()
+    private _conversationQueue = new RequestIdQueue()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
@@ -298,8 +300,12 @@ export class PlatformService extends Service {
         return this._tools[name]
     }
 
-    private _getClientConfigAsKey(config: ClientConfig) {
-        return `${config.platform}/${config.apiKey}/${config.apiEndpoint}/${config.maxRetries}/${config.concurrentMaxSize}/${config.timeout}`
+    get conversationQueue() {
+        return this._conversationQueue
+    }
+
+    get modelQueue() {
+        return this._modelQueue
     }
 
     static inject = ['chatluna_request']

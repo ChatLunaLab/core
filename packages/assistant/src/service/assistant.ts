@@ -50,12 +50,6 @@ export class ChatLunaAssistantService extends Service {
         }
 
         const assistantData = await this.getAssistantData(conversation)
-        const conversationData =
-            typeof conversation === 'string'
-                ? await this.ctx.chatluna_conversation.resolveConversation(
-                      conversation
-                  )
-                : conversation
 
         const preset = () =>
             this.ctx.chatluna_preset.getPreset(assistantData.preset)
@@ -63,7 +57,18 @@ export class ChatLunaAssistantService extends Service {
         const assistant = new ChatLunaAssistant({
             ctx: this.ctx,
             preset,
-            model: conversationData.model ?? assistantData.model,
+            model: async () => {
+                const assistantData = await this.getAssistantData(conversation)
+                const conversationData =
+                    typeof conversation === 'string'
+                        ? await this.ctx.chatluna_conversation.resolveConversation(
+                              conversation
+                          )
+                        : conversation
+
+                return conversationData.model ?? assistantData.model
+            },
+            conversationId,
             memory: new DataBaseChatMessageHistory(
                 this.ctx,
                 conversationId

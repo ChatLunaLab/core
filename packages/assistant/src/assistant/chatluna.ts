@@ -12,6 +12,8 @@ export class ChatLunaAssistant extends Assistant {
 
     private _model: ChatLunaChatModel
 
+    private _rawModel: string
+
     constructor(private _input: AssisantInput) {
         super(_input)
     }
@@ -24,16 +26,22 @@ export class ChatLunaAssistant extends Assistant {
         return this._chain.stream(args)
     }
 
-    private _createModel() {
-        let model: string
+    private async _createModel() {
+        if (this._rawModel == null) {
+            let rawModel = this._input.model()
 
-        if (this._input.model instanceof Array) {
-            model = this._input.model.join('/')
-        } else {
-            model = this._input.model
+            if (rawModel instanceof Promise) {
+                rawModel = await rawModel
+            }
+
+            if (Array.isArray(rawModel)) {
+                rawModel = rawModel[0] + '/' + rawModel[1]
+            }
+
+            this._rawModel = rawModel
         }
 
-        return this.ctx.chatluna_platform.randomModel(model, ModelType.llm)
+        return this.ctx.chatluna_platform.randomModel(this.model, ModelType.llm)
     }
 
     private async _createChain() {
@@ -57,14 +65,6 @@ export class ChatLunaAssistant extends Assistant {
     }
 
     public get model() {
-        let model: string
-
-        if (this._input.model instanceof Array) {
-            model = this._input.model.join('/')
-        } else {
-            model = this._input.model
-        }
-
-        return model
+        return this._rawModel
     }
 }

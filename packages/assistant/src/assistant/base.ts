@@ -8,17 +8,19 @@ import { Context } from 'cordis'
 
 export interface AssisantInput {
     ctx: Context
-    model: [string, string] | string
+    model: () => Promise<[string, string] | string> | [string, string] | string
     assisantMode?: 'chat' | 'plugin' | string
     preset: () => Promise<PresetTemplate>
     memory: BaseChatMessageHistory
     tools?: ChatLunaTool[]
+    conversationId?: string
     // files?: string[]
 }
 
 export abstract class Assistant {
     public ctx: Context
     public preset: () => Promise<PresetTemplate>
+    public conversationId?: string
 
     private _chatCount = 0
 
@@ -50,6 +52,8 @@ export abstract class Assistant {
             args.variables,
             this
         )
+
+        args.params['conversationId'] = this.conversationId
 
         let response: BaseMessageChunk
         for await (const chunk of await this._stream(args)) {
