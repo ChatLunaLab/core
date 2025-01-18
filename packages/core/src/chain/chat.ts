@@ -1,11 +1,11 @@
 import { ChainValues } from '@langchain/core/utils/types'
 import {
-    callChatLunaChain,
     ChatLunaChatPrompt,
     ChatLunaLLMCallArg,
     ChatLunaLLMChain,
     ChatLunaLLMChainWrapper,
-    ChatLunaLLMChainWrapperInput
+    ChatLunaLLMChainWrapperInput,
+    streamCallChatLunaChain
 } from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { ChatLunaChatModel } from '@chatluna/core/model'
@@ -71,7 +71,7 @@ export class ChatLunaChatChain
         })
     }
 
-    async call({
+    async *stream({
         message,
         stream,
         events,
@@ -86,7 +86,8 @@ export class ChatLunaChatChain
         requests['variables'] = variables ?? {}
 
         const chain = this.createChain({ signal })
-        const response = await callChatLunaChain(
+
+        for await (const chunk of streamCallChatLunaChain(
             chain,
             {
                 ...requests,
@@ -94,9 +95,9 @@ export class ChatLunaChatChain
                 signal
             },
             events
-        )
-
-        return response
+        )) {
+            yield chunk
+        }
     }
 
     createChain(arg: Partial<ChatLunaLLMCallArg>): ChatLunaLLMChain {

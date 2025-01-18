@@ -28,7 +28,18 @@ export abstract class ChatLunaLLMChainWrapper<
 > {
     protected constructor(_params: T) {}
 
-    abstract call(arg: R): Promise<BaseMessageChunk>
+    abstract stream(arg: R): AsyncGenerator<BaseMessageChunk>
+
+    async call(arg: R): Promise<BaseMessageChunk> {
+        let lastMessage: BaseMessageChunk | undefined
+
+        for await (const message of this.stream(arg)) {
+            lastMessage =
+                lastMessage != null ? lastMessage.concat(message) : message
+        }
+
+        return lastMessage
+    }
 
     abstract historyMemory: BaseChatMessageHistory
 
@@ -245,11 +256,12 @@ export abstract class BaseChain<
     }
 }
 
-export async function callChatLunaChain(
+// eslint-disable-next-line generator-star-spacing
+export async function* streamCallChatLunaChain(
     chain: ChatLunaLLMChain,
     values: ChainValues,
     events: ChainEvents
-): Promise<BaseMessageChunk> {
+) {
     let usedToken: {
         promptTokens: number
         completionTokens: number
@@ -274,40 +286,28 @@ export async function callChatLunaChain(
         ]
     }
 
-    const getResponse = async () => {
-        let response: BaseMessageChunk
-        if (values.stream) {
-            /* c8 ignore start */
-            const streamIterable = await chain.stream(values, options)
+    let response: BaseMessageChunk
 
-            for await (const chunk of streamIterable) {
-                if (response == null) {
-                    response = chunk
-                } else {
-                    response = response.concat(chunk)
-                }
-            }
+    /* c8 ignore start */
+    const streamIterable = await chain.stream(values, options)
 
-            /* c8 ignore end */
-        } else {
-            response = await chain.invoke(values, options)
+    const signal = values.signal as AbortSignal
+
+    for await (const chunk of streamIterable) {
+        if (signal && signal.aborted) {
+            break
         }
-
-        return response
+        yield chunk
+        if (response == null) {
+            response = chunk
+        } else {
+            response = response.concat(chunk)
+        }
     }
 
-    const response =
-        values['signal'] instanceof AbortSignal
-            ? ((await Promise.race([
-                  getResponse(),
-                  // eslint-disable-next-line promise/param-names
-                  new Promise((_, reject) => {
-                      values['signal'].addEventListener('abort', () => {
-                          reject(new ChatLunaError(ChatLunaErrorCode.ABORTED))
-                      })
-                  })
-              ])) as BaseMessageChunk)
-            : await getResponse()
+    if (signal.aborted) {
+        throw new ChatLunaError(ChatLunaErrorCode.ABORTED)
+    }
 
     await events?.['llm-used-token'](usedToken)
     return response

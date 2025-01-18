@@ -31,6 +31,19 @@ export abstract class Assistant {
     }
 
     async run(args: ChatLunaLLMCallArg): Promise<BaseMessageChunk> {
+        /*  const additionalArgs = await this._chatHistory.getAdditionalArgs()
+        arg.variables = { ...additionalArgs, ...arg.variables } */
+
+        let response: BaseMessageChunk
+
+        for await (const chunk of this.stream(args)) {
+            response = chunk ?? response.concat(chunk)
+        }
+
+        return response
+    }
+
+    async *stream(args: ChatLunaLLMCallArg) {
         await this.ctx.parallel(
             'chatluna/before-assistant-chat',
             args.message,
@@ -38,26 +51,19 @@ export abstract class Assistant {
             this
         )
 
-        /*  const additionalArgs = await this._chatHistory.getAdditionalArgs()
-        arg.variables = { ...additionalArgs, ...arg.variables } */
+        let response: BaseMessageChunk
+        for await (const chunk of this._stream(args)) {
+            yield chunk
+            response = chunk ?? response.concat(chunk)
+        }
 
-        const response = await this._processChat(args)
-
-        this.ctx.parallel(
-            'chatluna/after-assistant-chat',
-            args.message,
-            response,
-            args.variables,
-            this
-        )
-
-        return response
+        this._afterChat(args, response)
     }
 
-    private async _processChat(
-        args: ChatLunaLLMCallArg
+    private async _afterChat(
+        args: ChatLunaLLMCallArg,
+        response: BaseMessageChunk
     ): Promise<BaseMessageChunk> {
-        const response = await this._run(args)
         this._chatCount++
 
         // Handle post-processing if needed
@@ -89,5 +95,7 @@ export abstract class Assistant {
         return response
     }
 
-    abstract _run(args: ChatLunaLLMCallArg): Promise<BaseMessageChunk>
+    abstract _stream(
+        args: ChatLunaLLMCallArg
+    ): AsyncGenerator<BaseMessageChunk, void, unknown>
 }

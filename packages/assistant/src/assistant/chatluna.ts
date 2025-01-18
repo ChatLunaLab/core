@@ -5,7 +5,6 @@ import {
     ChatLunaLLMChainWrapper
 } from '@chatluna/core/chain'
 import { ChatLunaChatModel } from '@chatluna/core/model'
-import { BaseMessageChunk } from '@langchain/core/messages'
 import { ModelType } from '@chatluna/core/platform'
 
 export class ChatLunaAssistant extends Assistant {
@@ -17,12 +16,12 @@ export class ChatLunaAssistant extends Assistant {
         super(_input)
     }
 
-    _run(args: ChatLunaLLMCallArg): Promise<BaseMessageChunk> {
+    _stream(args: ChatLunaLLMCallArg) {
         if (this._chain == null || this._input.assisantMode === 'plugin') {
             this._createChain()
         }
 
-        return this._chain.call(args)
+        return this._chain.stream(args)
     }
 
     private _createModel() {
