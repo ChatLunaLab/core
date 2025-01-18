@@ -258,6 +258,14 @@ export class PresetService extends Service {
         await this.loadAllPreset()
 
         await this.watchPreset(dir)
+
+        this._presets.push({
+            triggerKeyword: ['empty'],
+            rawText: '',
+            messages: [],
+            config: {},
+            path: 'empty'
+        })
     }
 
     get dir() {
