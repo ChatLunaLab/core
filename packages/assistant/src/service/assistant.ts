@@ -7,6 +7,7 @@ import {
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
 import { LRUCache } from '@chatluna/utils'
+import { ModelType } from '@chatluna/core/platform'
 
 export class ChatLunaAssistantService extends Service {
     private _assistants = new LRUCache<Assistant>(100)
@@ -14,6 +15,24 @@ export class ChatLunaAssistantService extends Service {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
         super(ctx, 'chatluna_assistant', true)
+
+        ctx.on('ready', async () => {
+            try {
+                await ctx.chatluna_conversation.getAssistantByName('empty')
+            } catch {
+                const models = this.ctx.chatluna_platform.getAllModels(
+                    ModelType.llm
+                )
+                const randomModel =
+                    models[Math.floor(Math.random() * models.length)]
+                await ctx.chatluna_conversation.createAssistant({
+                    name: 'empty',
+                    model: `${randomModel.platform}/${randomModel.name}`,
+                    description: 'Empty assistant',
+                    preset: 'empty'
+                })
+            }
+        })
     }
 
     async getAssistantData(
