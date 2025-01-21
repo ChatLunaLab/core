@@ -6,7 +6,7 @@ import {
 } from '@chatluna/memory/types'
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
-import { LRUCache, sleep } from '@chatluna/utils'
+import { LRUCache } from '@chatluna/utils'
 import { ModelType } from '@chatluna/core/platform'
 
 export class ChatLunaAssistantService extends Service {
@@ -17,21 +17,15 @@ export class ChatLunaAssistantService extends Service {
         super(ctx, 'chatluna_assistant', true)
 
         ctx.on('ready', async () => {
-            await sleep(10000)
             try {
                 await ctx.chatluna_conversation.getAssistantByName('Assistant')
             } catch {
-                const models = this.ctx.chatluna_platform.getAllModels(
-                    ModelType.llm
-                )
-                const randomModel =
-                    models[Math.floor(Math.random() * models.length)]
                 await ctx.chatluna_conversation.createAssistant({
                     name: 'Assistant',
                     shared: true,
                     author: 'ChatLuna Official',
                     ownerId: 'admin',
-                    model: `${randomModel.platform}/${randomModel.name}`,
+                    model: `auto/auto`,
                     description: 'Your assistant',
                     preset: 'empty',
                     avatar: 'https://avatars.githubusercontent.com/u/139454032?s=200&v=4'
@@ -104,7 +98,24 @@ export class ChatLunaAssistantService extends Service {
                           )
                         : conversation
 
-                return conversationData.model ?? assistantData.model
+                let model = conversationData.model ?? assistantData.model
+
+                if (model === 'auto/auto') {
+                    const models = this.ctx.chatluna_platform.getAllModels(
+                        ModelType.llm
+                    )
+                    const randomModel =
+                        models[Math.floor(Math.random() * models.length)]
+
+                    model = randomModel.name
+
+                    this.ctx.chatluna_conversation.updateAssistant({
+                        ...assistantData,
+                        model
+                    })
+                }
+
+                return model
             },
             conversationId,
             memory: new DataBaseChatMessageHistory(
