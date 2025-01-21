@@ -69,6 +69,8 @@ export interface ChatLunaAssistant {
         triggerKeywords?: string[]
     }[]
     files?: string[]
+    shared: boolean
+    ownId: string
 }
 
 export type ChatLunaAssistantTemplate = PartialOptional<ChatLunaAssistant, 'id'>

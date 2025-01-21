@@ -170,10 +170,16 @@ export class ChatLunaConversationService extends Service {
         return queried[0]
     }
 
-    async getAllAssistant() {
-        const queried = await this._database.get('chatluna_assistant', {})
+    async getAllAssistant(userId: string) {
+        const queried = await this._database.get('chatluna_assistant', {
+            ownId: userId
+        })
 
-        return queried
+        const shared = await this._database.get('chatluna_assistant', {
+            shared: true
+        })
+
+        return queried.concat(shared)
     }
 
     async getAssistant(id: number) {
@@ -685,6 +691,13 @@ export class ChatLunaConversationService extends Service {
                 files: {
                     type: 'array',
                     nullable: true
+                },
+                shared: {
+                    type: 'boolean',
+                    initial: false
+                },
+                ownId: {
+                    type: 'string'
                 }
             },
             {

@@ -27,6 +27,8 @@ export class ChatLunaAssistantService extends Service {
                     models[Math.floor(Math.random() * models.length)]
                 await ctx.chatluna_conversation.createAssistant({
                     name: 'empty',
+                    shared: true,
+                    ownId: 'admin',
                     model: `${randomModel.platform}/${randomModel.name}`,
                     description: 'Empty assistant',
                     preset: 'empty'
@@ -52,10 +54,24 @@ export class ChatLunaAssistantService extends Service {
         return assistantData
     }
 
-    async getAssistantById(id: number) {
+    async getAssistantById(userId: string, id: number) {
         const assistantData =
             await this.ctx.chatluna_conversation.getAssistant(id)
+
+        if (userId !== assistantData.ownId || !assistantData.shared) {
+            return null
+        }
         return assistantData
+    }
+
+    async deleteAssistant(userId: string, id: number) {
+        const assistantData =
+            await this.ctx.chatluna_conversation.getAssistant(id)
+
+        if (userId !== assistantData.ownId || !assistantData.shared) {
+            return null
+        }
+        await this.ctx.chatluna_conversation.deleteAssistant(id)
     }
 
     async getAssistantByConversation(
