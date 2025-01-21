@@ -179,7 +179,11 @@ export class ChatLunaConversationService extends Service {
             shared: true
         })
 
-        return queried.concat(shared)
+        return Array.from(
+            new Map(
+                queried.concat(shared).map((item) => [item.id, item])
+            ).values()
+        )
     }
 
     async getAssistant(id: number) {
@@ -672,7 +676,10 @@ export class ChatLunaConversationService extends Service {
         this._database.extend(
             'chatluna_assistant',
             {
-                id: 'integer',
+                id: {
+                    type: 'integer',
+                    nullable: true
+                },
                 name: 'string',
                 preset: 'string',
                 model: 'string',
@@ -701,7 +708,7 @@ export class ChatLunaConversationService extends Service {
                 }
             },
             {
-                primary: ['id'],
+                primary: 'id',
                 autoInc: true
             }
         )

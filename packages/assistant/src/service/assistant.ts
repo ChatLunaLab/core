@@ -6,7 +6,7 @@ import {
 } from '@chatluna/memory/types'
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
-import { LRUCache } from '@chatluna/utils'
+import { LRUCache, sleep } from '@chatluna/utils'
 import { ModelType } from '@chatluna/core/platform'
 
 export class ChatLunaAssistantService extends Service {
@@ -17,8 +17,9 @@ export class ChatLunaAssistantService extends Service {
         super(ctx, 'chatluna_assistant', true)
 
         ctx.on('ready', async () => {
+            await sleep(10000)
             try {
-                await ctx.chatluna_conversation.getAssistantByName('empty')
+                await ctx.chatluna_conversation.getAssistantByName('Assistant')
             } catch {
                 const models = this.ctx.chatluna_platform.getAllModels(
                     ModelType.llm
@@ -26,12 +27,13 @@ export class ChatLunaAssistantService extends Service {
                 const randomModel =
                     models[Math.floor(Math.random() * models.length)]
                 await ctx.chatluna_conversation.createAssistant({
-                    name: 'empty',
+                    name: 'Assistant',
                     shared: true,
                     ownId: 'admin',
                     model: `${randomModel.platform}/${randomModel.name}`,
-                    description: 'Empty assistant',
-                    preset: 'empty'
+                    description: 'Your assistant',
+                    preset: 'empty',
+                    avatar: 'https://avatars.githubusercontent.com/u/139454032?s=200&v=4'
                 })
             }
         })
