@@ -70,7 +70,8 @@ export interface ChatLunaAssistant {
     }[]
     files?: string[]
     shared: boolean
-    ownId: string
+    ownerId: string
+    author: string
 }
 
 export type ChatLunaAssistantTemplate = PartialOptional<ChatLunaAssistant, 'id'>

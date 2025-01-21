@@ -172,7 +172,7 @@ export class ChatLunaConversationService extends Service {
 
     async getAllAssistant(userId: string) {
         const queried = await this._database.get('chatluna_assistant', {
-            ownId: userId
+            ownerId: userId
         })
 
         const shared = await this._database.get('chatluna_assistant', {
@@ -703,7 +703,10 @@ export class ChatLunaConversationService extends Service {
                     type: 'boolean',
                     initial: false
                 },
-                ownId: {
+                ownerId: {
+                    type: 'string'
+                },
+                author: {
                     type: 'string'
                 }
             },

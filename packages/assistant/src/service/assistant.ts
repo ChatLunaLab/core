@@ -29,7 +29,8 @@ export class ChatLunaAssistantService extends Service {
                 await ctx.chatluna_conversation.createAssistant({
                     name: 'Assistant',
                     shared: true,
-                    ownId: 'admin',
+                    author: 'ChatLuna Official',
+                    ownerId: 'admin',
                     model: `${randomModel.platform}/${randomModel.name}`,
                     description: 'Your assistant',
                     preset: 'empty',
@@ -60,7 +61,7 @@ export class ChatLunaAssistantService extends Service {
         const assistantData =
             await this.ctx.chatluna_conversation.getAssistant(id)
 
-        if (userId !== assistantData.ownId || !assistantData.shared) {
+        if (userId !== assistantData.ownerId || !assistantData.shared) {
             return null
         }
         return assistantData
@@ -70,7 +71,7 @@ export class ChatLunaAssistantService extends Service {
         const assistantData =
             await this.ctx.chatluna_conversation.getAssistant(id)
 
-        if (userId !== assistantData.ownId || !assistantData.shared) {
+        if (userId !== assistantData.ownerId || !assistantData.shared) {
             return null
         }
         await this.ctx.chatluna_conversation.deleteAssistant(id)
