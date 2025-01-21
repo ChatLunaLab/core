@@ -306,7 +306,7 @@ export class ChatLunaConversationService extends Service {
 
     async updateConversation(
         conversationId: string,
-        conversation: PartialOptional<ChatLunaConversation, 'id'>
+        conversation: Partial<ChatLunaConversation>
     ) {
         const updatedTime = new Date()
         await this._database.upsert('chatluna_conversation', [

@@ -44,6 +44,7 @@ export class ChatLunaChatChain
         this.preset = preset
         this.llm = llm
         this.prompt = prompt
+        this.ctx = input.ctx
     }
 
     static fromLLM(
@@ -67,6 +68,7 @@ export class ChatLunaChatChain
             llm,
             preset,
             prompt,
+            ctx,
             historyMemory
         })
     }

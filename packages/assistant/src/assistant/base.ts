@@ -53,6 +53,7 @@ export abstract class Assistant {
             this
         )
 
+        args.params = args.params ?? {}
         args.params['conversationId'] = this.conversationId
 
         let response: BaseMessageChunk

@@ -1,4 +1,4 @@
-import { Context } from '@cordisjs/core'
+import { Context } from 'cordis'
 import {
     BaseMessage,
     BaseMessageChunk,
