@@ -167,7 +167,8 @@ export class ChatLunaChatModel extends BaseChatModel<ChatLunaModelCallOptions> {
             id: options?.id ?? this._options.id,
             signal: options?.signal ?? this._options.signal,
             timeout: options?.timeout ?? this._options.timeout,
-            maxConcurrency: options?.maxConcurrency
+            maxConcurrency:
+                options?.maxConcurrency ?? this._options.maxConcurrency
         }
     }
 

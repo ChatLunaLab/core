@@ -293,48 +293,44 @@ export async function* streamCallChatLunaChain(
 
     const requestId = crypto.randomUUID()
 
-    // eslint-disable-next-line no-async-promise-executor
-    await (async () => {
-        const conversationId = params.conversationId
-        const platform = params.platform
-        const ctx = params.ctx
-
-        const modelQueue = ctx.chatluna_platform.modelQueue
-        const conversationQueue = ctx.chatluna_platform.conversationQueue
-
-        // Add to queues
-        await Promise.all([
-            conversationId
-                ? conversationQueue.add(conversationId, requestId)
-                : Promise.resolve(),
-            modelQueue.add(platform, requestId)
-        ])
-
-        const currentQueueLength =
-            await conversationQueue.getQueueLength(conversationId)
-        await events['llm-queue-waiting'](currentQueueLength)
-
-        // Wait for our turn
-        await Promise.all([
-            conversationId
-                ? conversationQueue.wait(conversationId, requestId, 0)
-                : Promise.resolve(),
-            modelQueue.wait(platform, requestId, params.maxConcurrency)
-        ])
-    })()
-
     const signal = values.signal
 
     /* c8 ignore start */
     try {
-        const streamIterable = await chain.stream(
-            {
-                values
-            },
-            {
-                ...options
-            }
-        )
+        // eslint-disable-next-line no-async-promise-executor
+        await (async () => {
+            const conversationId = params.conversationId
+            const platform = params.platform
+            const ctx = params.ctx
+
+            const modelQueue = ctx.chatluna_platform.modelQueue
+            const conversationQueue = ctx.chatluna_platform.conversationQueue
+
+            // Add to queues
+            await Promise.all([
+                conversationId
+                    ? conversationQueue.add(conversationId, requestId)
+                    : Promise.resolve(),
+                modelQueue.add(platform, requestId)
+            ])
+
+            const currentQueueLength =
+                await conversationQueue.getQueueLength(conversationId)
+            await events?.['llm-queue-waiting'](currentQueueLength)
+            console.log(params)
+
+            // Wait for our turn
+            await Promise.all([
+                conversationId
+                    ? conversationQueue.wait(conversationId, requestId, 0)
+                    : Promise.resolve(),
+                modelQueue.wait(platform, requestId, params.maxConcurrency ?? 3)
+            ])
+        })()
+
+        const streamIterable = await chain.stream(values, {
+            ...options
+        })
 
         for await (const chunk of streamIterable) {
             if (signal && signal.aborted) {

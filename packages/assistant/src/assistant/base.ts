@@ -30,6 +30,7 @@ export abstract class Assistant {
         this.ctx = input.ctx
         this.preset = input.preset
         this.memory = input.memory
+        this.conversationId = input.conversationId
     }
 
     async run(args: ChatLunaLLMCallArg): Promise<BaseMessageChunk> {

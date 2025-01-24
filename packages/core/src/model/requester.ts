@@ -248,6 +248,8 @@ export abstract class HttpModelRequester<T extends ClientConfig = ClientConfig>
 
         const body = JSON.stringify(data)
 
+        console.log('requestUrl', requestUrl)
+
         return this.requestService.fetch(requestUrl, {
             body,
             headers,
@@ -272,7 +274,14 @@ export abstract class HttpModelRequester<T extends ClientConfig = ClientConfig>
     }
 
     _concatUrl(url: string): string {
-        return url
+        // TODO: move to http model requester
+        const apiEndPoint = this.config.apiEndpoint
+
+        if (apiEndPoint.endsWith('/')) {
+            return apiEndPoint + url
+        }
+
+        return apiEndPoint + '/' + url
     }
 }
 

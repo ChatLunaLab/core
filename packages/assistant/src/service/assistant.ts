@@ -104,10 +104,11 @@ export class ChatLunaAssistantService extends Service {
                     const models = this.ctx.chatluna_platform.getAllModels(
                         ModelType.llm
                     )
-                    const randomModel =
-                        models[Math.floor(Math.random() * models.length)]
+                    const array = new Uint32Array(1)
+                    crypto.getRandomValues(array)
+                    const randomModel = models[array[0] % models.length]
 
-                    model = randomModel.name
+                    model = randomModel.platform + '/' + randomModel.name
 
                     this.ctx.chatluna_conversation.updateAssistant({
                         ...assistantData,
