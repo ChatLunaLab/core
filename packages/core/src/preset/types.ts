@@ -46,6 +46,9 @@ export interface RawPreset {
     version?: string
     authors_note?: AuthorsNote
     knowledge?: KnowledgeConfig
+    nickname?: string | string[]
+    avatar?: string
+    description?: string
     config?: {
         longMemoryPrompt?: string
         loreBooksPrompt?: string
@@ -85,6 +88,9 @@ export type RoleBookConfig = Omit<PresetTemplate['loreBooks'], 'items'>
 export interface PresetTemplate {
     version?: string
     triggerKeyword: string[]
+    nickname?: string | string[]
+    avatar?: string
+    description?: string
     rawText: string
     messages: BaseMessage[]
     formatUserPromptString?: string
@@ -115,9 +121,9 @@ export interface PresetTemplate {
                   keywords?: string[]
               }[]
             | string[]
+
         //  postHandler?: PostHandler
     }
-    nickname?: string | string[]
 }
 
 export interface KnowledgeConfig {
