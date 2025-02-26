@@ -1,10 +1,3 @@
-import {
-    AIMessage,
-    BaseMessage,
-    BaseMessageFields,
-    HumanMessage,
-    SystemMessage
-} from '@langchain/core/messages'
 import { load } from 'js-yaml'
 import {
     isRoleBook,
@@ -13,21 +6,18 @@ import {
     RawPreset,
     RoleBookConfig
 } from './types.ts'
+import { AssistantMessage, SystemMessage, UserMessage } from 'cortexluna'
 
 export function loadPreset(rawText: string): PresetTemplate {
     return loadYamlPreset(rawText)
 }
 
-function createMessage(
-    role: string,
-    content: string,
-    type?: string
-): BaseMessage {
+function createMessage(role: string, content: string, type?: string) {
     if (content == null) {
         throw new Error('Content is required')
     }
 
-    const fields: BaseMessageFields = {
+    const fields = {
         content: content.trim(),
         additional_kwargs: { type }
     }
@@ -36,12 +26,24 @@ function createMessage(
         case 'assistant':
         case 'ai':
         case 'model':
-            return new AIMessage(fields)
+            return {
+                role: 'assistant',
+                content: fields.content,
+                metadata: fields.additional_kwargs
+            } as AssistantMessage
         case 'user':
         case 'human':
-            return new HumanMessage(fields)
+            return {
+                role: 'user',
+                content: fields.content,
+                metadata: fields.additional_kwargs
+            } as UserMessage
         case 'system':
-            return new SystemMessage(fields)
+            return {
+                role: 'system',
+                content: fields.content,
+                metadata: fields.additional_kwargs
+            } as SystemMessage
         default:
             throw new Error(`Unknown role: ${role}`)
     }

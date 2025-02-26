@@ -1,14 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-len */
 import { Document } from '@langchain/core/documents'
-import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
-import { ChatPromptValueInterface } from '@langchain/core/prompt_values'
-import {
-    BaseChatPromptTemplate,
-    BasePromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder
-} from '@langchain/core/prompts'
-import { ChainValues, PartialValues } from '@langchain/core/utils/types'
 import { Logger } from 'cordis'
 import {
     AuthorsNote,
@@ -19,27 +11,33 @@ import {
     RoleBook
 } from '@chatluna/core/preset'
 import { SystemPrompts } from '@chatluna/core/chain'
-import { messageTypeToOpenAIRole } from '@chatluna/core/utils'
+import {
+    BaseMessage,
+    BaseMessagePromptTemplate,
+    BaseMessagesPromptTemplate,
+    BasePromptTemplate,
+    InputValues,
+    messagePromptTemplate,
+    PartialValues,
+    UserMessage
+} from 'cortexluna'
 
 export interface ChatLunaChatPromptInput {
-    messagesPlaceholder?: MessagesPlaceholder
+    messagesPlaceholder?: BaseMessagesPromptTemplate
     tokenCounter: (text: string) => Promise<number>
     sendTokenLimit?: number
     preset?: () => Promise<PresetTemplate>
     logger?: Logger
 }
 
-export class ChatLunaChatPrompt
-    extends BaseChatPromptTemplate
-    implements ChatLunaChatPromptInput
-{
+export class ChatLunaChatPrompt implements BaseMessagesPromptTemplate {
     getPreset?: () => Promise<PresetTemplate>
 
     tokenCounter: (text: string) => Promise<number>
 
-    conversationSummaryPrompt?: HumanMessagePromptTemplate
+    conversationSummaryPrompt?: BaseMessagePromptTemplate<UserMessage>
 
-    knowledgePrompt?: HumanMessagePromptTemplate
+    knowledgePrompt?: BaseMessagePromptTemplate<UserMessage>
 
     _tempPreset?: [PresetTemplate, [SystemPrompts, string[]]]
 
@@ -49,8 +47,10 @@ export class ChatLunaChatPrompt
 
     private _systemPrompts: BaseMessage[]
 
+    partialValues?: PartialValues
+
     constructor(fields: ChatLunaChatPromptInput) {
-        super({ inputVariables: ['chat_history', 'variables', 'input'] })
+        //  super({ inputVariables: ['chat_history', 'variables', 'input'] })
 
         this.tokenCounter = fields.tokenCounter
 
@@ -67,6 +67,19 @@ export class ChatLunaChatPrompt
             })
     }
 
+    _type = 'base_messages_prompt_template' as const
+
+    inputVariables: string[] = ['chat_history', 'variables', 'input']
+    template: string = ''
+
+    format(values: InputValues): Promise<BaseMessage[]> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return this.formatMessages(values as any)
+    }
+
+    messagesPlaceholder?: BaseMessagesPromptTemplate<BaseMessage[]>
+    preset?: () => Promise<PresetTemplate>
+
     _getPromptType() {
         return 'chatluna_chat' as const
     }
@@ -74,9 +87,7 @@ export class ChatLunaChatPrompt
     private async _countMessageTokens(message: BaseMessage) {
         let result =
             (await this.tokenCounter(message.content as string)) +
-            (await this.tokenCounter(
-                messageTypeToOpenAIRole(message.getType())
-            ))
+            (await this.tokenCounter(message.role))
 
         if (message.name) {
             result += await this.tokenCounter(message.name)
@@ -85,14 +96,14 @@ export class ChatLunaChatPrompt
         return result
     }
 
-    private async _formatSystemPrompts(variables: ChainValues) {
+    private async _formatSystemPrompts(variables: InputValues) {
         const preset = await this.getPreset()
 
         if (!this._tempPreset || this._tempPreset[0] !== preset) {
-            this.conversationSummaryPrompt =
-                HumanMessagePromptTemplate.fromTemplate(
-                    preset.config.longMemoryPrompt ?? // eslint-disable-next-line max-len
-                        `Relevant context: {long_history}
+            this.conversationSummaryPrompt = messagePromptTemplate(
+                'user',
+                preset.config.longMemoryPrompt ?? // eslint-disable-next-line max-len
+                    `Relevant context: {long_history}
 
 Guidelines for response:
 1. Use the system prompt as your primary guide.
@@ -101,9 +112,10 @@ Guidelines for response:
 4. Avoid repetition and expand your perspective.
 
 Your goal is to craft an insightful, engaging response that seamlessly integrates all relevant information while maintaining coherence and originality.`
-                )
+            )
 
-            this.knowledgePrompt = HumanMessagePromptTemplate.fromTemplate(
+            this.knowledgePrompt = messagePromptTemplate(
+                'user',
                 preset.knowledge?.prompt ??
                     `Relevant knowledge: {input}
 
@@ -118,7 +130,8 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
             )
         }
 
-        const result = formatPresetTemplate(preset, variables, true) as [
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = formatPresetTemplate(preset, variables as any, true) as [
             BaseMessage[],
             string[]
         ]
@@ -136,7 +149,7 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
     }: {
         input: BaseMessage
         chat_history: BaseMessage[] | string
-        variables?: ChainValues
+        variables?: InputValues
         agent_scratchpad?: BaseMessage[] | BaseMessage
     }) {
         const result: BaseMessage[] = []
@@ -157,7 +170,7 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
         const loreBooks = (variables?.['lore_books'] ?? []) as RoleBook[]
         const authorsNote = variables?.['authors_note'] as AuthorsNote
         const [formatAuthorsNote, usedTokensAuthorsNote] = authorsNote
-            ? await this._counterAuthorsNote(authorsNote, variables)
+            ? await this._counterAuthorsNote(authorsNote, variables as any)
             : [null, 0]
         usedTokens += inputTokens
 
@@ -223,15 +236,15 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
                 `Used tokens: ${usedTokens} exceed limit: ${this.sendTokenLimit}`
             )
 
-            const mapMessages = result.map((msg) => {
+            /*  const mapMessages = result.map((msg) => {
                 const original = msg.toDict()
                 const dict = structuredClone(original)
                 delete dict.data.additional_kwargs['images']
                 delete dict.data.additional_kwargs['preset']
                 return dict
-            })
+            }) */
 
-            this.logger?.debug(`messages: ${JSON.stringify(mapMessages)})`)
+            this.logger?.debug(`messages: ${JSON.stringify(result)})`)
         }
 
         return result
@@ -241,7 +254,7 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
         loreBooks: RoleBook[],
         usedTokens: number,
         result: BaseMessage[],
-        variables: ChainValues
+        variables: InputValues
     ) {
         const preset = this.tempPreset
         const tokenLimit =
@@ -253,7 +266,8 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
             preset.config.loreBooksPrompt ?? '{input}'
         )
 
-        const loreBooksPrompt = HumanMessagePromptTemplate.fromTemplate(
+        const loreBooksPrompt = messagePromptTemplate(
+            'user',
             preset.config.loreBooksPrompt ?? '{input}'
         )
 
@@ -287,14 +301,15 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
         for (const [position, array] of Object.entries(canUseLoreBooks)) {
             const message = formatMessages(
                 [await loreBooksPrompt.format({ input: array.join('\n') })],
-                variables
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                variables as any
             )[0]
 
             if (position === 'default') {
                 if (hasLongMemory) {
                     const index = result.findIndex(
                         (msg) =>
-                            msg instanceof AIMessage &&
+                            msg.role === 'assistant' &&
                             msg.content === 'Ok. I will remember.'
                     )
                     index !== -1
@@ -361,7 +376,7 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
 
     private async _counterAuthorsNote(
         authorsNote: AuthorsNote,
-        variables?: ChainValues
+        variables?: Record<string, string>
     ): Promise<[string, number]> {
         const formatAuthorsNote = formatPresetTemplateString(
             authorsNote.content,
@@ -381,17 +396,15 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
         const insertPosition = this._findIndex(result, rawPosition)
 
         if (rawPosition === 'in_chat') {
-            result.splice(
-                insertPosition - (authorsNote.insertDepth ?? 0),
-                0,
-                new SystemMessage(formatAuthorsNote)
-            )
+            result.splice(insertPosition - (authorsNote.insertDepth ?? 0), 0, {
+                role: 'system',
+                content: formatAuthorsNote
+            })
         } else {
-            result.splice(
-                insertPosition,
-                0,
-                new SystemMessage(formatAuthorsNote)
-            )
+            result.splice(insertPosition, 0, {
+                role: 'system',
+                content: formatAuthorsNote
+            })
         }
 
         return usedTokens
@@ -410,9 +423,7 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
         }
 
         const findIndexByType = (type: string) =>
-            chatHistory.findIndex(
-                (message) => message.additional_kwargs?.type === type
-            )
+            chatHistory.findIndex((message) => message.metadata?.type === type)
 
         const descriptionIndex = findIndexByType('description')
         const personalityIndex = findIndexByType('description')
@@ -490,20 +501,20 @@ Your goal is to craft a response that intelligently incorporates relevant knowle
 
         if (formatConversationSummary) {
             result.push(formatConversationSummary)
-            result.push(new AIMessage('Ok. I will remember.'))
+            result.push({
+                role: 'assistant',
+                content: 'Ok. I will remember.'
+            })
         }
 
         return usedTokens
     }
 
-    get tempPreset() {
-        return this._tempPreset[0]
+    partial(values: PartialValues): BasePromptTemplate<BaseMessage[]> {
+        throw new Error('Method not implemented.')
     }
 
-    partial(
-        values: PartialValues
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): Promise<BasePromptTemplate<any, ChatPromptValueInterface, any>> {
-        throw new Error('Method not implemented.')
+    get tempPreset() {
+        return this._tempPreset[0]
     }
 }

@@ -1,6 +1,5 @@
 export * from './count_tokens.ts'
 export * from './tiktoken.ts'
-export * from './openai.ts'
 export * from './default.ts'
 export * from './types.ts'
 export * from './function_def.ts'

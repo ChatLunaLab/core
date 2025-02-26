@@ -1,11 +1,13 @@
-import { ChatLunaBaseEmbeddings, ChatLunaChatModel } from '@chatluna/core/model'
-import { StructuredTool } from '@langchain/core/tools'
-import { BaseMessage } from '@langchain/core/messages'
 import { ChatLunaLLMChainWrapper } from '@chatluna/core/chain'
-import { BasePlatformClient } from '@chatluna/core/platform'
-import { BufferWindowMemory } from '@chatluna/core/memory'
 import { Context } from 'cordis'
-import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
+/* import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore' */
+import {
+    BaseChatMessageHistory,
+    BaseMessage,
+    BaseTool,
+    EmbeddingModel,
+    LanguageModel
+} from 'cortexluna'
 
 export interface ChatLunaChainInfo {
     name: string
@@ -16,26 +18,26 @@ export interface ChatLunaChainInfo {
 }
 
 export interface CreateToolParams {
-    model: ChatLunaChatModel
-    embeddings: ChatLunaBaseEmbeddings
+    model: LanguageModel
+    embeddings: EmbeddingModel
     assistantId?: string
 }
 
 export interface CreateVectorStoreParams {
     key?: string
-    embeddings: ChatLunaBaseEmbeddings
+    embeddings: EmbeddingModel
     //  topK?: number
 }
 
 export interface CreateChatLunaLLMChainParams {
-    model: ChatLunaChatModel
-    embeddings?: ChatLunaBaseEmbeddings
-    historyMemory: BufferWindowMemory
+    model: LanguageModel
+    embeddings?: EmbeddingModel
+    historyMemory: BaseChatMessageHistory
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ChatLunaTool<T = any> {
-    createTool: (params: CreateToolParams, arg?: T) => Promise<StructuredTool>
+    createTool: (params: CreateToolParams, arg?: T) => Promise<BaseTool>
     selector: (history: BaseMessage[]) => boolean
 
     authorization?: (arg: T) => boolean
@@ -43,55 +45,19 @@ export interface ChatLunaTool<T = any> {
     enabled?: boolean
 }
 
-export type CreateVectorStoreFunction = (
+/* export type CreateVectorStoreFunction = (
     params: CreateVectorStoreParams
-) => Promise<ChatLunaSaveableVectorStore>
-
-export type CreateClientFunction = (ctx: Context) => BasePlatformClient
+) => Promise<ChatLunaSaveableVectorStore> */
 
 export interface ContextWrapper<T> {
     ctx: Context
     value: T
 }
 
-export interface ModelInfo {
-    name: string
-
-    type: ModelType
-
-    maxTokens?: number
-
-    capabilities?: ModelCapability[]
-
-    costPerTokenInput?: number
-
-    costPerTokenOutput?: number
-}
-
-export interface PlatformModelInfo extends ModelInfo {
-    platform: string
-}
-
-export enum ModelCapability {
-    INPUT_TEXT,
-    INPUT_VOICE,
-    INPUT_IMAGE,
-    OUTPUT_TEXT,
-    OUTPUT_IMAGE,
-    OUTPUT_VOICE,
-    FUNCTION_CALL
-}
-
 export interface CreateVectorStoreParams {
     key?: string
-    embeddings: ChatLunaBaseEmbeddings
+    embeddings: EmbeddingModel
     //  topK?: number
-}
-
-export enum ModelType {
-    all,
-    llm,
-    embeddings
 }
 
 /* declare module '@langchain/core/messages' {

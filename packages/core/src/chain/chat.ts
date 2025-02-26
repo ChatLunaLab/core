@@ -2,20 +2,20 @@ import { ChainValues } from '@langchain/core/utils/types'
 import {
     ChatLunaChatPrompt,
     ChatLunaLLMCallArg,
-    ChatLunaLLMChain,
     ChatLunaLLMChainWrapper,
     ChatLunaLLMChainWrapperInput,
     streamCallChatLunaChain
 } from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
-import { ChatLunaChatModel } from '@chatluna/core/model'
 import { Context } from 'cordis'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
+import { bindPromptTemplate, LanguageModel, streamText } from 'cortexluna'
+import { calculateTokens, getModelNameForTiktoken } from '@chatluna/core/utils'
 
 export interface ChatLunaChatChainInput extends ChatLunaLLMChainWrapperInput {
     prompt: ChatLunaChatPrompt
 
-    llm: ChatLunaChatModel
+    llm: LanguageModel
 }
 
 export class ChatLunaChatChain
@@ -24,7 +24,7 @@ export class ChatLunaChatChain
 {
     botName: string
 
-    llm: ChatLunaChatModel
+    llm: LanguageModel
 
     historyMemory: BaseChatMessageHistory
 
@@ -48,7 +48,7 @@ export class ChatLunaChatChain
     }
 
     static fromLLM(
-        llm: ChatLunaChatModel,
+        llm: LanguageModel,
         {
             historyMemory,
             preset,
@@ -57,10 +57,12 @@ export class ChatLunaChatChain
     ): ChatLunaLLMChainWrapper {
         const prompt = new ChatLunaChatPrompt({
             preset,
-            tokenCounter: (text) => llm.getNumTokens(text),
-            sendTokenLimit:
-                llm.invocationParams().maxTokenLimit ??
-                llm.getModelMaxContextSize(),
+            tokenCounter: (text) =>
+                calculateTokens({
+                    prompt: text,
+                    modelName: getModelNameForTiktoken(llm.model)
+                }),
+            sendTokenLimit: 120000,
             logger: ctx?.logger('chatluna')
         })
 
@@ -88,29 +90,30 @@ export class ChatLunaChatChain
         requests['chat_history'] = await this.historyMemory.getMessages()
         requests['variables'] = variables ?? {}
 
-        const chain = this.createChain({ signal })
+        const chain = this.createChain()
 
         for await (const chunk of streamCallChatLunaChain(
             chain,
             {
                 ...requests,
-                stream,
                 signal
             },
             events,
             {
                 ...params,
                 ctx: this.ctx,
-                platform: this.llm._llmType(),
-                ...this.llm.invocationParams()
+                platform: this.llm.provider
             }
         )) {
             yield chunk
         }
     }
 
-    createChain(arg: Partial<ChatLunaLLMCallArg>): ChatLunaLLMChain {
-        return this.prompt.pipe(this.llm.bind({ signal: arg.signal }))
+    createChain() {
+        return {
+            chain: bindPromptTemplate(this.prompt, streamText),
+            model: this.llm
+        }
     }
 
     get model() {

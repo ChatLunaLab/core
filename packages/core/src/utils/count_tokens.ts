@@ -214,14 +214,14 @@ export function parseRawModelName(modelName: string): [string, string] {
             `Can't find model name`
         )
     }
-    const result = modelName.split(/(?<=^[^\/]+)\//)
+    const indexOf = modelName.indexOf(':')
 
-    if (result.length !== 2) {
-        throw new ChatLunaError(
-            ChatLunaErrorCode.MODEL_NOT_FOUND,
-            `Can't find model name ${result}`
-        )
+    if (indexOf > -1) {
+        return [modelName.slice(0, indexOf), modelName.slice(indexOf + 1)]
     }
 
-    return result as [string, string]
+    throw new ChatLunaError(
+        ChatLunaErrorCode.MODEL_NOT_FOUND,
+        `Can't find model name`
+    )
 }

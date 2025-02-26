@@ -1,16 +1,11 @@
 import {
     PlatformService,
-    RequestService,
-    PresetService
+    PresetService,
+    RequestService
 } from '@chatluna/core/service'
-import {
-    BasePlatformClient,
-    ChatLunaChainInfo,
-    ModelType
-} from '@chatluna/core/platform'
-import { ChatLunaChatModel, ChatLunaEmbeddings } from '@chatluna/core/model'
+import { ChatLunaChainInfo } from '@chatluna/core/platform'
 
-declare module '@cordisjs/core' {
+declare module 'cordis' {
     interface Context {
         chatluna_request: RequestService
         chatluna_platform: PlatformService
@@ -18,16 +13,6 @@ declare module '@cordisjs/core' {
     }
 
     interface Events {
-        'chatluna/model-added': (
-            service: PlatformService,
-            platform: string,
-            client: BasePlatformClient | BasePlatformClient[]
-        ) => void
-        'chatluna/embeddings-added': (
-            service: PlatformService,
-            platform: string,
-            client: BasePlatformClient | BasePlatformClient[]
-        ) => void
         'chatluna/vector-store-added': (
             service: PlatformService,
             name: string
@@ -36,28 +21,12 @@ declare module '@cordisjs/core' {
             service: PlatformService,
             chain: ChatLunaChainInfo
         ) => void
-        'chatluna/model-removed': (
-            service: PlatformService,
-            platform: string,
-            client: BasePlatformClient
-        ) => void
+
         'chatluna/vector-store-removed': (
             service: PlatformService,
             name: string
         ) => void
-        'chatluna/embeddings-removed': (
-            service: PlatformService,
-            platform: string,
-            client: BasePlatformClient | BasePlatformClient[]
-        ) => void
+
         'chatluna/tool-updated': (service: PlatformService) => void
     }
 }
-
-export type PickModelType<T = ModelType.all> = T extends ModelType.all
-    ? ChatLunaEmbeddings | ChatLunaChatModel
-    : T extends ModelType.embeddings
-      ? ChatLunaEmbeddings
-      : T extends ModelType.llm
-        ? ChatLunaChatModel
-        : never

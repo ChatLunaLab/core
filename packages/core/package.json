@@ -87,7 +87,6 @@
     "keywords": [
         "chatbot",
         "llm",
-        "langchain",
         "framework",
         "chatgpt",
         "gpt",
@@ -96,8 +95,8 @@
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
         "@cordisjs/logger": "^0.3.3",
-        "@langchain/core": "^0.3.30",
         "cordis": "^3.18.1",
+        "cortexluna": "^0.0.1",
         "js-tiktoken": "npm:@dingyi222666/js-tiktoken@^1.0.15",
         "js-yaml": "^4.1.0",
         "ml-distance": "^4.0.1",

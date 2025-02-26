@@ -1,5 +1,6 @@
-import { BaseMessage } from '@langchain/core/messages'
 // import type { PostHandler } from '../../utils/types'
+
+import { BaseMessage } from 'cortexluna'
 
 export interface RawPreset {
     keywords: string[]

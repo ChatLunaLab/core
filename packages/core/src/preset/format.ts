@@ -1,11 +1,6 @@
-import {
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage
-} from '@langchain/core/messages'
 import { getTimeDiff, rollDice, selectFromList } from '@chatluna/utils'
 import { PresetTemplate } from './types.ts'
+import { BaseMessage } from 'cortexluna'
 
 type Token = {
     type: 'text' | 'variable' | 'function'
@@ -215,16 +210,7 @@ export function formatMessages(
             variables
         )
 
-        const messageInstance = new {
-            human: HumanMessage,
-            ai: AIMessage,
-            system: SystemMessage
-        }[message.getType()]({
-            content,
-            additional_kwargs: message.additional_kwargs
-        })
-
-        return messageInstance
+        return Object.assign({}, message, { content })
     })
 }
 
@@ -243,16 +229,7 @@ export function formatPresetTemplate(
             variables
         )
 
-        const messageInstance = new {
-            human: HumanMessage,
-            ai: AIMessage,
-            system: SystemMessage
-        }[message.getType()]({
-            content,
-            additional_kwargs: message.additional_kwargs
-        })
-
-        return messageInstance
+        return Object.assign({}, message, { content })
     })
 
     if (returnVariables) {

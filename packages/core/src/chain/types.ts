@@ -1,16 +1,12 @@
 import { Context } from 'cordis'
-import {
-    BaseMessage,
-    BaseMessageChunk,
-    HumanMessage
-} from '@langchain/core/messages'
 import { Runnable, RunnableConfig } from '@langchain/core/runnables'
 import { ChainValues } from '@langchain/core/utils/types'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { BaseChatMessageHistory } from '@langchain/core/chat_history'
+import { BaseMessage, BaseMessageChunk, UserMessage } from 'cortexluna'
 
 export interface ChatLunaLLMCallArg {
-    message: HumanMessage
+    message: UserMessage
     events?: ChainEvents
     stream?: boolean
     signal?: AbortSignal
