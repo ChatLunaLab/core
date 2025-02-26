@@ -5,9 +5,9 @@ import {
 } from '@chatluna/core/chain'
 import { ChainValues } from '@langchain/core/utils/types'
 import { ChatLunaError, ChatLunaErrorCode } from '@chatluna/utils'
-import { BaseChatMessageHistory } from '@langchain/core/chat_history'
 import { Context } from 'cordis'
 import {
+    BaseChatMessageHistory,
     BaseMessageChunk,
     bindPromptTemplate,
     Callback,

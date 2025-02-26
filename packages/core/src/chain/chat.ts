@@ -8,8 +8,12 @@ import {
 } from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { Context } from 'cordis'
-import { BaseChatMessageHistory } from '@langchain/core/chat_history'
-import { bindPromptTemplate, LanguageModel, streamText } from 'cortexluna'
+import {
+    BaseChatMessageHistory,
+    bindPromptTemplate,
+    LanguageModel,
+    streamText
+} from 'cortexluna'
 import { calculateTokens, getModelNameForTiktoken } from '@chatluna/core/utils'
 
 export interface ChatLunaChatChainInput extends ChatLunaLLMChainWrapperInput {

@@ -1,9 +1,6 @@
 import { Context } from 'cordis'
-import { Runnable, RunnableConfig } from '@langchain/core/runnables'
-import { ChainValues } from '@langchain/core/utils/types'
 import { PresetTemplate } from '@chatluna/core/preset'
-import { BaseChatMessageHistory } from '@langchain/core/chat_history'
-import { BaseMessage, BaseMessageChunk, UserMessage } from 'cortexluna'
+import { BaseChatMessageHistory, BaseMessage, UserMessage } from 'cortexluna'
 
 export interface ChatLunaLLMCallArg {
     message: UserMessage
@@ -12,7 +9,7 @@ export interface ChatLunaLLMCallArg {
     signal?: AbortSignal
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     params?: Record<string, any>
-    variables?: ChainValues
+    variables?: Record<string, string | unknown>
 }
 
 export interface ChatLunaLLMChainWrapperInput {
@@ -35,8 +32,3 @@ export interface ChainEvents {
 }
 
 export type SystemPrompts = BaseMessage[]
-export type ChatLunaLLMChain = Runnable<
-    ChainValues,
-    BaseMessageChunk,
-    RunnableConfig
->
