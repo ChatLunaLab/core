@@ -6,7 +6,8 @@ import {
     BaseMessage,
     BaseTool,
     EmbeddingModel,
-    LanguageModel
+    LanguageModel,
+    SaveableVectorStore
 } from 'cortexluna'
 
 export interface ChatLunaChainInfo {
@@ -45,9 +46,9 @@ export interface ChatLunaTool<T = any> {
     enabled?: boolean
 }
 
-/* export type CreateVectorStoreFunction = (
+export type CreateVectorStoreFunction = (
     params: CreateVectorStoreParams
-) => Promise<ChatLunaSaveableVectorStore> */
+) => Promise<SaveableVectorStore>
 
 export interface ContextWrapper<T> {
     ctx: Context

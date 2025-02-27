@@ -1,23 +1,38 @@
-import { ChatLunaTool } from '@chatluna/core/platform'
+import {
+    ChatLunaTool,
+    CreateVectorStoreFunction,
+    CreateVectorStoreParams
+} from '@chatluna/core/platform'
 import { LRUCache, RequestIdQueue } from '@chatluna/utils'
 import { Context, Service } from 'cordis'
 import { parseRawModelName } from '@chatluna/core/utils'
-import { ChatLunaSaveableVectorStore } from '@chatluna/core/vectorstore'
-import { ModelType, PlatformModelInfo } from 'cortexluna'
+import { ModelType, PlatformModelInfo, SaveableVectorStore } from 'cortexluna'
 
 export class PlatformService extends Service {
     private _tools: Record<string, ChatLunaTool> = {}
     private _models: Record<string, PlatformModelInfo[]> = {}
 
-    /*  private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
-     */
-    private _tmpVectorStores = new LRUCache<ChatLunaSaveableVectorStore>(20)
+    private _vectorStore: Record<string, CreateVectorStoreFunction> = {}
+
+    private _tmpVectorStores = new LRUCache<SaveableVectorStore>(20)
     private _modelQueue = new RequestIdQueue()
     private _conversationQueue = new RequestIdQueue()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(ctx: Context, config: any) {
         super(ctx, 'chatluna_platform', true)
+
+        ctx.on('cortexluna/provider-updated', async (service) => {
+            this._models = await service.models().then((m) => {
+                return m.reduce(
+                    (acc, m) => {
+                        acc[m.provider] = [...(acc[m.provider] ?? []), m]
+                        return acc
+                    },
+                    {} as Record<string, PlatformModelInfo[]>
+                )
+            })
+        })
     }
 
     registerTool(name: string, toolCreator: ChatLunaTool) {
@@ -34,7 +49,7 @@ export class PlatformService extends Service {
         this.ctx.emit('chatluna/tool-updated', this)
     }
 
-    /*  private _unregisterVectorStore(name: string) {
+    private _unregisterVectorStore(name: string) {
         delete this._vectorStore[name]
 
         this.ctx.emit('chatluna/vector-store-removed', this, name)
@@ -48,7 +63,7 @@ export class PlatformService extends Service {
         this.ctx.emit('chatluna/vector-store-added', this, name)
         const disposable = () => this._unregisterVectorStore(name)
         return this.ctx.effect(() => disposable)
-    } */
+    }
 
     getModels(platform: string, type: ModelType) {
         return this._models[platform]?.filter((m) => m.type === type) ?? []
@@ -74,7 +89,7 @@ export class PlatformService extends Service {
             .filter((m) => m.type === type)
     }
 
-    /*  get vectorStores() {
+    get vectorStores() {
         return Object.keys(this._vectorStore)
     }
 
@@ -98,7 +113,7 @@ export class PlatformService extends Service {
         this._tmpVectorStores.set(key, vectorStore)
 
         return vectorStore
-    } */
+    }
 
     async setToolEnabledStatus(tool: string | ChatLunaTool, status: boolean) {
         if (typeof tool === 'string') {
