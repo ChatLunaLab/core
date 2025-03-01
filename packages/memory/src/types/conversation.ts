@@ -1,5 +1,5 @@
 import { PartialOptional } from '@chatluna/memory/types'
-import { MessageContent, MessageType } from '@langchain/core/messages'
+import { MessageContent, MessageRole } from 'cortexluna'
 
 export interface ChatLunaSimpleMessage {
     content: MessageContent
@@ -87,7 +87,7 @@ export type ChatLunaConversationTemplate = PartialOptional<
     | 'model'
 >
 
-export type ChatLunaMessageRole = MessageType
+export type ChatLunaMessageRole = MessageRole
 
 declare module 'cordis' {
     interface Tables {

@@ -1,14 +1,13 @@
-import { BaseChatMessageHistory } from '@langchain/core/chat_history'
-import {
-    AIMessage,
-    BaseMessage,
-    BaseMessageFields,
-    HumanMessage,
-    SystemMessage
-} from '@langchain/core/messages'
 import { Context } from 'cordis'
+import {
+    AssistantMessageSchema,
+    BaseChatMessageHistory,
+    BaseMessage,
+    SystemMessageSchema,
+    UserMessageSchema
+} from 'cortexluna'
 
-export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
+export class DataBaseChatMessageHistory implements BaseChatMessageHistory {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     lc_namespace: string[] = ['llm-core', 'memory', 'message']
 
@@ -25,12 +24,16 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
         conversationId: string,
         private _maxMessagesCount: number = 100
     ) {
-        super()
-
         this.conversationId = conversationId
         this._ctx = ctx
         this._chatHistory = []
         this._additional_kwargs = {}
+    }
+
+    async addMessages(messages: BaseMessage[]): Promise<void> {
+        for (const message of messages) {
+            await this._saveMessage(message)
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -48,11 +51,17 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
 
     addUserMessage(message: string): Promise<void> {
         /* c8 ignore next 6 */
-        return this._saveMessage(new HumanMessage(message))
+        return this._saveMessage({
+            content: message,
+            role: 'user'
+        })
     }
 
-    addAIChatMessage(message: string): Promise<void> {
-        return this._saveMessage(new AIMessage(message))
+    addAssistantChatMessage(message: string): Promise<void> {
+        return this._saveMessage({
+            content: message,
+            role: 'assistant'
+        })
     }
 
     async addMessage(message: BaseMessage): Promise<void> {
@@ -127,22 +136,31 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
                 this.conversationId
             )
 
-        return serializedChatHistory.map((item) => {
+        return serializedChatHistory.map((item): BaseMessage => {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             const kw_args = item.additional_kwargs /*  ?? '{}') */
             const content = /* JSON.parse( */ item.content /*  */
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const fields: BaseMessageFields = {
+            const fields = {
                 content,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                additional_kwargs: kw_args as any
+                metadata: kw_args as any
             }
             if (item.role === 'system') {
-                return new SystemMessage(fields)
-            } else if (item.role === 'human') {
-                return new HumanMessage(fields)
-            } else if (item.role === 'ai') {
-                return new AIMessage(fields)
+                return SystemMessageSchema.parse({
+                    role: 'system',
+                    ...fields
+                })
+            } else if (item.role === 'user') {
+                return UserMessageSchema.parse({
+                    role: 'user',
+                    ...fields
+                })
+            } else if (item.role === 'assistant') {
+                return AssistantMessageSchema.parse({
+                    role: 'assistant',
+                    ...fields
+                })
             } else {
                 throw new Error('Unknown role')
             }
@@ -178,9 +196,9 @@ export class DataBaseChatMessageHistory extends BaseChatMessageHistory {
             await this._ctx.chatluna_conversation.addMessage(
                 this.conversationId,
                 {
-                    role: message.getType(),
+                    role: message.role,
                     content: message.content,
-                    additional_kwargs: message.additional_kwargs
+                    additional_kwargs: message.metadata
                 },
                 needCorpMessage,
                 this._maxMessagesCount

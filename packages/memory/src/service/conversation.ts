@@ -541,7 +541,7 @@ export class ChatLunaConversationService extends Service {
 
         let first = firstMessages[0]
 
-        if (first.role === 'ai') {
+        if (first.role === 'assistant') {
             await this._database.remove('chatluna_message', {
                 id: first.id
             })
