@@ -19,7 +19,6 @@
         "test:c8": "shx rm -rf coverage && c8 yarn test"
     },
     "devDependencies": {
-        "@langchain/core": "^0.3.30",
         "@types/chai": "^4.3.20",
         "@types/chai-as-promised": "^7.1.8",
         "@types/chai-subset": "^1",
