@@ -4,13 +4,12 @@ import {
     ChatLunaLLMCallArg,
     ChatLunaLLMChainWrapper
 } from '@chatluna/core/chain'
-import { ChatLunaChatModel } from '@chatluna/core/model'
-import { ModelType } from '@chatluna/core/platform'
+import { LanguageModel } from 'cortexluna'
 
 export class ChatLunaAssistant extends Assistant {
     private _chain: ChatLunaLLMChainWrapper
 
-    private _model: ChatLunaChatModel
+    private _model: LanguageModel
 
     private _rawModel: string
 
@@ -46,13 +45,14 @@ export class ChatLunaAssistant extends Assistant {
             }
 
             if (Array.isArray(rawModel)) {
-                rawModel = rawModel[0] + '/' + rawModel[1]
+                rawModel = rawModel[0] + ':' + rawModel[1]
             }
 
             this._rawModel = rawModel
         }
 
-        return this.ctx.chatluna_platform.randomModel(this.model, ModelType.llm)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return this.ctx.cortex_luna.languageModel(this._rawModel as any)
     }
 
     private async _createChain() {

@@ -50,7 +50,7 @@
     ],
     "dependencies": {
         "@chatluna/utils": "^0.0.1",
-        "@langchain/core": "^0.3.30",
+        "cortexluna": "^0.0.1",
         "cordis": "^3.18.1",
         "js-yaml": "^4.1.0"
     },

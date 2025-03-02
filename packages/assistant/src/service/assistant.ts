@@ -7,7 +7,8 @@ import {
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
 import { LRUCache } from '@chatluna/utils'
-import { ModelType } from '@chatluna/core/platform'
+import { ModelType } from 'cortexluna'
+import type {} from '@chatluna/core/service'
 
 export class ChatLunaAssistantService extends Service {
     private _assistants = new LRUCache<Assistant>(100)
@@ -101,14 +102,19 @@ export class ChatLunaAssistantService extends Service {
                 let model = conversationData.model ?? assistantData.model
 
                 if (model === 'auto/auto') {
-                    const models = this.ctx.chatluna_platform.getAllModels(
-                        ModelType.llm
-                    )
+                    const models = await this.ctx.cortex_luna
+                        .models()
+                        .then((models) =>
+                            models.filter(
+                                (model) =>
+                                    model.type === ModelType.LANGUAGE_MODEL
+                            )
+                        )
                     const array = new Uint32Array(1)
                     crypto.getRandomValues(array)
                     const randomModel = models[array[0] % models.length]
 
-                    model = randomModel.platform + '/' + randomModel.name
+                    model = randomModel.provider + ':' + randomModel.name
 
                     this.ctx.chatluna_conversation.updateAssistant({
                         ...assistantData,

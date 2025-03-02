@@ -2,9 +2,12 @@ import { ChatLunaLLMCallArg } from '@chatluna/core/chain'
 import { ChatLunaTool } from '@chatluna/core/platform'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { getMessageContent } from '@chatluna/utils'
-import { BaseChatMessageHistory } from '@langchain/core/chat_history'
-import { BaseMessageChunk } from '@langchain/core/messages'
 import { Context } from 'cordis'
+import {
+    BaseChatMessageHistory,
+    BaseMessageChunk,
+    concatChunks
+} from 'cortexluna'
 
 export interface AssisantInput {
     ctx: Context
@@ -40,7 +43,7 @@ export abstract class Assistant {
         let response: BaseMessageChunk
 
         for await (const chunk of this.stream(args)) {
-            response = response != null ? response.concat(chunk) : chunk
+            response = response != null ? concatChunks(response, chunk) : chunk
         }
 
         return response
@@ -60,7 +63,7 @@ export abstract class Assistant {
         let response: BaseMessageChunk
         for await (const chunk of await this._stream(args)) {
             yield chunk
-            response = response != null ? response.concat(chunk) : chunk
+            response = response != null ? concatChunks(response, chunk) : chunk
         }
 
         this._afterChat(args, response)
