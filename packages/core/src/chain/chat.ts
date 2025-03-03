@@ -1,11 +1,4 @@
 import { ChainValues } from '@langchain/core/utils/types'
-import {
-    ChatLunaChatPrompt,
-    ChatLunaLLMCallArg,
-    ChatLunaLLMChainWrapper,
-    ChatLunaLLMChainWrapperInput,
-    streamCallChatLunaChain
-} from '@chatluna/core/chain'
 import { PresetTemplate } from '@chatluna/core/preset'
 import { Context } from 'cordis'
 import {
@@ -15,6 +8,9 @@ import {
     streamText
 } from 'cortexluna'
 import { calculateTokens, getModelNameForTiktoken } from '@chatluna/core/utils'
+import { ChatLunaChatPrompt } from './prompt.ts'
+import { ChatLunaLLMCallArg, ChatLunaLLMChainWrapperInput } from './types.ts'
+import { ChatLunaLLMChainWrapper, streamCallChatLunaChain } from './base.ts'
 
 export interface ChatLunaChatChainInput extends ChatLunaLLMChainWrapperInput {
     prompt: ChatLunaChatPrompt
