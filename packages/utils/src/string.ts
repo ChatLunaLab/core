@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { BaseMessage } from '@langchain/core/messages'
+import type { MessageContent } from 'cortexluna'
 
 export function sha1(text: string) {
     return createHash('sha1').update(text).digest('hex')
@@ -53,7 +53,7 @@ export function fuzzyQuery(source: string, keywords: string[]): boolean {
     return false
 }
 
-export function getMessageContent(message: BaseMessage['content']) {
+export function getMessageContent(message: MessageContent) {
     if (typeof message === 'string') {
         return message
     }

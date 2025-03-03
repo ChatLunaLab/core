@@ -42,5 +42,8 @@
         "chatgpt",
         "gpt",
         "chatluna"
-    ]
+    ],
+    "devDependencies": {
+        "cortexluna": "^0.0.1"
+    }
 }
