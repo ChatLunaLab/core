@@ -125,10 +125,9 @@ export class ChatLunaAssistantService extends Service {
 
                     model = `${randomModel.provider}:${randomModel.name}`
 
-                    await this.ctx.chatluna_conversation.updateAssistant({
-                        ...assistantData,
-                        model
-                    })
+                    await this.ctx.chatluna_conversation.updateAssistant(
+                        Object.assign(assistantData, { model })
+                    )
 
                     await this.ctx.chatluna_conversation.updateConversation(
                         conversationId,
