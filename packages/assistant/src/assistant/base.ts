@@ -66,6 +66,14 @@ export abstract class Assistant {
             response = response != null ? concatChunks(response, chunk) : chunk
         }
 
+        if (
+            Array.isArray(response.content) &&
+            response.content.length === 1 &&
+            response.content[0].type === 'text'
+        ) {
+            response.content = response.content[0].text
+        }
+
         this._afterChat(args, response)
     }
 
