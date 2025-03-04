@@ -125,14 +125,16 @@ export class ChatLunaAssistantService extends Service {
 
                     model = `${randomModel.provider}:${randomModel.name}`
 
-                    assistantData.model = model
+                    await this.ctx.chatluna_conversation.updateAssistant({
+                        ...assistantData,
+                        model
+                    })
 
-                    await this.ctx.chatluna_conversation.updateAssistant(
-                        assistantData
-                    )
-
-                    console.log(
-                        `Auto set model to ${randomModel.provider}:${randomModel.name}`
+                    await this.ctx.chatluna_conversation.updateConversation(
+                        conversationId,
+                        {
+                            model
+                        }
                     )
                 }
 
