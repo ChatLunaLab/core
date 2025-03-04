@@ -14,6 +14,7 @@ export const inject = [
     'chatluna_conversation',
     'chatluna_user',
     'chatluna_preset',
+    'cortex_luna',
     'database'
 ]
 

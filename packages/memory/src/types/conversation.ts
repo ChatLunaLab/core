@@ -72,6 +72,7 @@ export interface ChatLunaAssistant {
     shared: boolean
     ownerId: string
     author: string
+    // TODO: type, remove shared
 }
 
 export type ChatLunaAssistantTemplate = PartialOptional<ChatLunaAssistant, 'id'>

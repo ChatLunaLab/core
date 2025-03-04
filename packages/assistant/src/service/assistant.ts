@@ -6,7 +6,7 @@ import {
 } from '@chatluna/memory/types'
 import {} from '@chatluna/memory/service'
 import { DataBaseChatMessageHistory } from '@chatluna/memory/memory'
-import { LRUCache } from '@chatluna/utils'
+import { ChatLunaError, ChatLunaErrorCode, LRUCache } from '@chatluna/utils'
 import { ModelType } from 'cortexluna'
 import type {} from '@chatluna/core/service'
 
@@ -26,7 +26,7 @@ export class ChatLunaAssistantService extends Service {
                     shared: true,
                     author: 'ChatLuna Official',
                     ownerId: 'admin',
-                    model: `auto/auto`,
+                    model: `auto:auto`,
                     description: 'Your assistant',
                     preset: 'empty',
                     avatar: 'https://avatars.githubusercontent.com/u/139454032?s=200&v=4'
@@ -91,7 +91,6 @@ export class ChatLunaAssistantService extends Service {
             ctx: this.ctx,
             preset,
             model: async () => {
-                const assistantData = await this.getAssistantData(conversation)
                 const conversationData =
                     typeof conversation === 'string'
                         ? await this.ctx.chatluna_conversation.resolveConversation(
@@ -101,7 +100,10 @@ export class ChatLunaAssistantService extends Service {
 
                 let model = conversationData.model ?? assistantData.model
 
-                if (model === 'auto/auto') {
+                if (model === 'auto:auto') {
+                    const assistantData =
+                        await this.getAssistantData(conversation)
+
                     const models = await this.ctx.cortex_luna
                         .models()
                         .then((models) =>
@@ -110,16 +112,28 @@ export class ChatLunaAssistantService extends Service {
                                     model.type === ModelType.LANGUAGE_MODEL
                             )
                         )
-                    const array = new Uint32Array(1)
-                    crypto.getRandomValues(array)
-                    const randomModel = models[array[0] % models.length]
 
-                    model = randomModel.provider + ':' + randomModel.name
+                    if (models.length === 0) {
+                        throw new ChatLunaError(
+                            ChatLunaErrorCode.MODEL_INIT_ERROR,
+                            'No available model'
+                        )
+                    }
 
-                    this.ctx.chatluna_conversation.updateAssistant({
-                        ...assistantData,
-                        model
-                    })
+                    const randomModel =
+                        models[Math.floor(Math.random() * models.length)]
+
+                    model = `${randomModel.provider}:${randomModel.name}`
+
+                    assistantData.model = model
+
+                    await this.ctx.chatluna_conversation.updateAssistant(
+                        assistantData
+                    )
+
+                    console.log(
+                        `Auto set model to ${randomModel.provider}:${randomModel.name}`
+                    )
                 }
 
                 return model

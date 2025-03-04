@@ -121,7 +121,6 @@ export async function* streamCallChatLunaChain(
             const currentQueueLength =
                 await conversationQueue.getQueueLength(conversationId)
             await events?.['llm-queue-waiting'](currentQueueLength)
-            console.log(params)
 
             // Wait for our turn
             await Promise.all([
@@ -132,14 +131,14 @@ export async function* streamCallChatLunaChain(
             ])
         })()
 
-        const streamIterable = chain.chain({
+        const { messageStream } = await chain.chain({
             model: chain.model,
-            input: values,
             ...values,
-            ...options
+            ...options,
+            input: values
         })
 
-        for await (const chunk of (await streamIterable).messageStream) {
+        for await (const chunk of messageStream) {
             if (signal && signal.aborted) {
                 break
             }
