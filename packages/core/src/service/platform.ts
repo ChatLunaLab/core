@@ -26,7 +26,7 @@ export class PlatformService extends Service {
             this._models = await service.models().then((m) => {
                 return m.reduce(
                     (acc, m) => {
-                        acc[m.provider] = [...(acc[m.provider] ?? []), m]
+                        acc[m.provider] = [...(acc[m.provider] ?? []), { ...m }]
                         return acc
                     },
                     {} as Record<string, PlatformModelInfo[]>
